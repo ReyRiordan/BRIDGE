@@ -1,0 +1,49 @@
+# Voice runtime dependencies (Pipecat on AWS Bedrock AgentCore Runtime).
+#
+# Installed by Dockerfile.voice. Self-contained: this is the union of the
+# pipecat/WebRTC stack and the shared app deps the voice_kit package needs.
+#
+# Pinning is intentionally loose; pipecat-ai 1.3.0 is the version the kit's
+# code was verified against (frame names, VADProcessor, PipelineWorker,
+# SmallWebRTCRequestHandler). PIN IT (pipecat-ai==1.3.0) if you want
+# reproducibility — a future pipecat release may rename these APIs.
+
+# Pipecat real-time voice pipeline. Extras:
+#   [webrtc] — SmallWebRTC server transport (pulls aiortc + opencv/cv2; the
+#              transport module imports cv2 at import time, so the bare package
+#              raises ImportError("Missing module: cv2") without libgl1/libglib2.0-0).
+#   [silero] — SileroVADAnalyzer (Silero VAD ONNX) for speech start/stop detection.
+pipecat-ai[webrtc,silero]
+
+# aiortc comes in via pipecat-ai[webrtc]; pinned explicitly too for clarity
+# (KVS managed TURN, relay-only — see voice_kit/kvs.py).
+aiortc
+
+# AgentCore runtime app (BedrockAgentCoreApp: /ping + /invocations on :8080)
+bedrock-agentcore
+
+# Silero VAD ships as an ONNX model; pipecat[silero] pulls onnxruntime, but list
+# explicitly so the voice image always has it.
+onnxruntime
+
+# Web server for the AgentCore app
+uvicorn[standard]
+
+# Config + schemas
+pydantic>=2
+pydantic-settings>=2
+
+# Audio processing
+numpy>=1.24.0,<2          # cap <2: numpy 2.x ships no prebuilt arm64 cp311 wheel for slim/Lambda base images, forcing a source build that fails without a C compiler
+soundfile>=0.12.0         # WAV encode for TogetherSTT (needs libsndfile1 system lib)
+requests>=2.31            # Sync HTTP for Inworld TTS streaming
+
+# HTTP client and AWS
+aiohttp                   # Async HTTP client (OpenRouter/Bedrock/Together)
+boto3                     # KVS, Polly, SSM secrets
+amazon-transcribe         # Amazon Transcribe Streaming SDK for STT
+
+# --- Control-plane host only (NOT needed in the runtime container, but the
+# --- router imports fastapi; harmless to include here, or install separately
+# --- in your API host: fastapi + boto3 + pydantic-settings + aiohttp)
+fastapi
