@@ -66,9 +66,22 @@ Order matters at steps 5 → 6 → 7.
    - `aws ssm describe-parameters` lists the three keys under the runtime's first `SECRETS_SSM_PREFIXES` path.
    - `aws bedrock-agentcore invoke-agent-runtime` with a **fresh** `runtimeSessionId` (containers are pinned per session — reusing one gets you a warm container from before the secrets existed) triggers a cold start. CloudWatch should show "Application startup complete" and no `UnrecognizedClientException` / `None`-key errors.
    - `_export_ssm_secrets()` logs nothing on success and swallows `ParameterNotFound`, so there is no positive log line to grep for. What the clean start *does* prove is that the read did not raise: it runs at import time (`config.py`), so an `AccessDenied` would stop the container before it ever served `/ping`. Confirm the grant itself with `aws iam simulate-principal-policy --action-names ssm:GetParameter` against the runtime role, including a negative control outside the prefix (expect `implicitDeny`).
-5. **Hosting** — in the Amplify console create the app against `ReyRiordan/MEWAI-BD` `main`, build spec from the root `amplify.yml`, frontend-only. Set the three secrets for the branch.
+5. **Hosting** — in the Amplify console create the app against the GitHub repo's `main`, build spec from the root `amplify.yml`, frontend-only. Leave **"my app is a monorepo" unchecked**: the build spec handles `web/` itself via `npm --prefix`, and that option expects the different `applications:`/`appRoot` format.
+
+   The app also needs an **IAM service role**, or the build runs as Amplify's own service account and `ampx generate outputs` fails with `AccessDenied` on `cloudformation:GetTemplateSummary` — the giveaway is that the account id in that error is AWS's, not yours. Hosting here only *reads* backend outputs, so a minimal role is enough:
+
+   ```bash
+   aws iam create-role --role-name BridgeAmplifyServiceRole \
+     --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"amplify.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+   # inline policy — cloudformation:DescribeStacks/GetTemplateSummary/ListStackResources/DescribeStackResources
+   #   on stack/amplify-<appId>-*/*, plus amplify:GetApp/GetBranch/ListBranches on apps/<appId>*
+   aws amplify update-app --app-id <appId> \
+     --iam-service-role-arn arn:aws:iam::<account>:role/BridgeAmplifyServiceRole
+   ```
+
+   AWS's docs name the managed `AmplifyBackendDeployFullAccess`, which is not available in every account; the only managed alternative here, `AdministratorAccess-Amplify`, is far broader than a frontend-only build warrants. Widen the role only if Hosting is ever made to deploy backends.
 6. **Branch backend** — `CI=1 AWS_PROFILE=compass-test npx ampx pipeline-deploy --app-id <appId> --branch main`. Note `pipeline-deploy` takes **no `--profile` flag** (it is built for CI and reads credentials from the environment) — pass the profile as `AWS_PROFILE`. Must precede the first Hosting build, since `ampx generate outputs` needs a backend to read.
-7. **End to end** — trigger the Hosting build, open the SPA, and `fetch` `<apiUrl>/health` from the browser console: that proves reachability *and* CORS. Add the Hosting origin to `ALLOWED_ORIGINS` in `amplify/constants.ts` and redeploy the backend once (chicken-and-egg; expected).
+7. **End to end** — trigger the Hosting build, open the SPA, and `fetch` `<apiUrl>/health` from the browser console: that proves reachability *and* CORS. Hosting origins are deterministic (`https://<branch>.<appId>.amplifyapp.com`), so `ALLOWED_ORIGINS` can be set the moment the app id is known — no need to wait for the first build and redeploy afterwards. Custom domains and preview branches are extra origins and must be added explicitly.
 8. **Tear down the sandbox** — `npx ampx sandbox delete --profile compass-test`. The branch stack is the single remaining environment.
 
 ## Cost
@@ -78,6 +91,17 @@ One NAT gateway is the fixed floor (~$32/month, always on) — the reason the sa
 ## Gotchas
 
 - `ampx pipeline-deploy` needs `CI=1` and an app + branch that already exist.
+- **Name every per-account resource off the backend identifier.** Both the KVS channel and the AgentCore runtime are unique per account, and sandbox + branch stacks coexist, so the kit's shared defaults (`VoiceKitSignalingChannel`, `VoiceRuntime`) make the second deploy fail with `AlreadyExists`. `voiceRuntimeName()` in `constants.ts` also sanitizes: AgentCore accepts only `[a-zA-Z][a-zA-Z0-9_]{0,47}`, so hyphenated stack names cannot be passed through.
+- A stack left in `ROLLBACK_COMPLETE` cannot be updated — delete it before redeploying.
+- **Teardown usually fails on the first attempt.** AgentCore keeps service-managed `agentic_ai` ENIs in the private subnets for a while after the runtime is deleted, so `ampx sandbox delete` ends in `DELETE_FAILED` on the security group and private subnets ("has a dependent object" / "has dependencies and cannot be deleted"). The ENIs are AWS-owned and cannot be force-deleted; wait for them to release and re-run the delete:
+
+  ```bash
+  aws ec2 describe-network-interfaces --filters Name=interface-type,Values=agentic_ai \
+    --query 'NetworkInterfaces[?VpcId==`<vpc>`].NetworkInterfaceId'
+  aws cloudformation delete-stack --stack-name <stack>   # once the list is empty
+  ```
+
+  Cost-wise this is not urgent: the NAT gateway and Elastic IP — the only meaningful charges — delete successfully in the first pass. What lingers is a free, empty VPC shell.
 - **Bundle with the SAM build image, not the Lambda runtime image.** `public.ecr.aws/lambda/python:3.11` is for *running* Lambdas; its runtime-interface `ENTRYPOINT` swallows any bundling command and docker exits 142. Use `Runtime.PYTHON_3_11.bundlingImage`.
 - **Keep CDK's own output out of the asset source.** Both assets here are rooted at the repo (`Code.fromAsset('.')` and the docker context) while CDK stages into `.amplify/artifacts/cdk.out/` *inside* that root, so staging copies its output into itself until `ENAMETOOLONG`. Both exclude lists need `.amplify/` and `cdk.out/` — and note `.dockerignore`'s `amplify/` does **not** match `.amplify/`.
 - **`pip --target /asset-output` fails on the bind mount** with "Invalid cross-device link" (pip finishes with a hard-link move). Install container-side, then `cp` across.
