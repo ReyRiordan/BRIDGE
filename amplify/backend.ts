@@ -16,7 +16,7 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { CDKContextKey, ParameterPathConversions } from '@aws-amplify/platform-core';
 import type { BackendIdentifier } from '@aws-amplify/plugin-types';
-import { DockerImage, Duration } from 'aws-cdk-lib';
+import { Duration } from 'aws-cdk-lib';
 import {
   Architecture,
   Code,
@@ -75,20 +75,34 @@ const apiFn = new LambdaFunction(stack, 'BridgeApi', {
   code: Code.fromAsset('.', {
     exclude: API_ASSET_EXCLUDE,
     bundling: {
-      image: DockerImage.fromRegistry('public.ecr.aws/lambda/python:3.11'),
+      // The SAM build image, NOT public.ecr.aws/lambda/python:3.11: the latter
+      // is for *running* Lambdas and its runtime-interface ENTRYPOINT swallows
+      // the bundling command (docker exits 142).
+      image: LambdaRuntime.PYTHON_3_11.bundlingImage,
       platform: 'linux/arm64',
       // The tooling pins (ruff/pytest/httpx) live in api/requirements.txt for
       // CI to grep; they have no business in the deployed package. resources/
       // is copied in so /health (and [Rewrite C]'s /scenario) can read the
       // scenario JSON from the bundle.
+      //
+      // The `exclude` above shapes the asset HASH, but bundling still mounts
+      // the raw source tree at /asset-input — so the copies prune tests and
+      // host-built __pycache__ themselves.
       command: [
         'bash',
         '-c',
         [
           "sed '/^ruff==/d;/^pytest==/d;/^httpx==/d' api/requirements.txt > /tmp/requirements.txt",
-          'pip install --no-cache-dir -r /tmp/requirements.txt --target /asset-output',
+          // pip --target straight onto /asset-output fails: /asset-output is a
+          // bind mount, and pip finishes with a hard-link move off the
+          // container fs ("Invalid cross-device link"). Install container-side,
+          // then copy across the boundary.
+          'pip install --no-cache-dir -r /tmp/requirements.txt --target /tmp/site-packages',
+          'cp -r /tmp/site-packages/. /asset-output/',
           'cp -r api /asset-output/api',
           'cp -r resources /asset-output/resources',
+          'rm -rf /asset-output/api/tests /asset-output/api/requirements.txt',
+          "find /asset-output -type d -name __pycache__ -prune -exec rm -rf {} +",
         ].join(' && '),
       ],
     },

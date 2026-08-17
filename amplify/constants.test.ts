@@ -96,6 +96,14 @@ describe('API_ASSET_EXCLUDE', () => {
     }
   })
 
+  test('excludes CDK output dirs, which live inside the asset source', () => {
+    // The asset source is the repo root and CDK stages into
+    // .amplify/artifacts/cdk.out/ — without these, staging copies its own
+    // output into itself until the path hits ENAMETOOLONG.
+    expect(API_ASSET_EXCLUDE).toContain('.amplify/')
+    expect(API_ASSET_EXCLUDE).toContain('cdk.out/')
+  })
+
   test('keeps api/ and resources/ — the bundling step copies both', () => {
     expect(API_ASSET_EXCLUDE).not.toContain('api/')
     expect(API_ASSET_EXCLUDE).not.toContain('resources/')

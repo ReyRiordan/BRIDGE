@@ -92,8 +92,17 @@ export const ALLOWED_ORIGINS = ['http://localhost:5173'];
 /**
  * Paths excluded from the API Lambda's bundling asset. Keeps the asset small so
  * its hash stays stable and unchanged deploys skip the rebuild.
+ *
+ * `.amplify/` and `cdk.out/` are NOT optional: the asset source is the repo
+ * root and CDK stages the asset INTO `.amplify/artifacts/cdk.out/`, so leaving
+ * them in makes staging copy its own output into itself until the path blows
+ * past the OS limit (`ENAMETOOLONG`).
  */
 export const API_ASSET_EXCLUDE = [
+  // Build output that lives inside the asset source — see the note above.
+  '.amplify/',
+  'cdk.out/',
+  'amplify_outputs.json',
   // Legacy app trees (removed at final teardown)
   'frontend/',
   'backend/',
@@ -114,6 +123,8 @@ export const API_ASSET_EXCLUDE = [
   '**/__pycache__/',
   '**/*.pyc',
   '**/tests/',
+  '.pytest_cache/',
+  '.ruff_cache/',
   '.venv*/',
   '*.egg-info/',
   'dist/',

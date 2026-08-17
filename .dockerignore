@@ -21,6 +21,14 @@ scripts/
 node_modules/
 runtime/tests/
 
+# CDK build output. NOT optional and NOT covered by `amplify/` above: CDK
+# stages this docker context (the repo root) INTO .amplify/artifacts/cdk.out/,
+# so leaving these in makes staging copy its own output into itself until the
+# path blows past the OS limit (ENAMETOOLONG).
+.amplify/
+cdk.out/
+amplify_outputs.json
+
 # VCS / tooling / build junk
 .git/
 .github/
