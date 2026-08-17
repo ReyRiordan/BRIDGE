@@ -73,7 +73,7 @@ export interface WebRTCService {
   initializeConnection(
     sessionId: string,
     runtimeSessionId: string,
-    iceServers?: IceServerConfig[]
+    iceServers?: IceServerConfig[],
   ): Promise<void>
   closeConnection(): Promise<void>
   setMuted(muted: boolean): void

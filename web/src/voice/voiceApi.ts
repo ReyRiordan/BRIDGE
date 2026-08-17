@@ -32,7 +32,7 @@ let basePath = '/voice'
  */
 export const configureVoiceApi = (
   t: VoiceApiTransport,
-  base: string = '/voice'
+  base: string = '/voice',
 ): void => {
   transport = t
   basePath = base
@@ -62,8 +62,9 @@ export const startVoiceSession = (id: string): Promise<StartSessionResponse> =>
  */
 export const signalVoiceSession = (
   id: string,
-  body: SignalRequest
-): Promise<SignalResponse> => getTransport().post(`${basePath}/${id}/signal`, body)
+  body: SignalRequest,
+): Promise<SignalResponse> =>
+  getTransport().post(`${basePath}/${id}/signal`, body)
 
 /**
  * End the voice session — runs the backend's on_end hook and returns its

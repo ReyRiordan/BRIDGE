@@ -34,7 +34,7 @@ export interface UseWebRTCReturn {
   startCall: (
     sessionId: string,
     runtimeSessionId: string,
-    iceServers?: IceServerConfig[]
+    iceServers?: IceServerConfig[],
   ) => Promise<() => void>
   endCall: () => Promise<void>
   toggleMute: () => void
@@ -112,7 +112,7 @@ export const useWebRTC = (): UseWebRTCReturn => {
     async (
       sessionId: string,
       runtimeSessionId: string,
-      iceServers?: IceServerConfig[]
+      iceServers?: IceServerConfig[],
     ) => {
       try {
         setError(null)
@@ -121,7 +121,7 @@ export const useWebRTC = (): UseWebRTCReturn => {
         await webrtcService.initializeConnection(
           sessionId,
           runtimeSessionId,
-          iceServers
+          iceServers,
         )
 
         // Wait for ICE to actually connect; a cold-started runtime can fail to
@@ -178,7 +178,7 @@ export const useWebRTC = (): UseWebRTCReturn => {
         throw webrtcError
       }
     },
-    []
+    [],
   )
 
   /**

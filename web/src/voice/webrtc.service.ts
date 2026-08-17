@@ -53,7 +53,7 @@ class WebRTCServiceClass implements WebRTCService {
   async requestMicrophonePermission(): Promise<MediaStream> {
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
-        WEBRTC_CONFIG.AUDIO_CONSTRAINTS
+        WEBRTC_CONFIG.AUDIO_CONSTRAINTS,
       )
       this.localStream = stream
       return stream
@@ -91,7 +91,7 @@ class WebRTCServiceClass implements WebRTCService {
   async initializeConnection(
     sessionId: string,
     runtimeSessionId: string,
-    iceServers?: IceServerConfig[]
+    iceServers?: IceServerConfig[],
   ): Promise<void> {
     try {
       // Ensure we have microphone access
@@ -109,7 +109,7 @@ class WebRTCServiceClass implements WebRTCService {
       }))
       if (rtcIceServers.length === 0) {
         console.warn(
-          'No ICE servers provided to voice connection; ICE will likely stall.'
+          'No ICE servers provided to voice connection; ICE will likely stall.',
         )
       }
       // A mid-call reconnect reaches here without an intervening closeConnection;
@@ -159,7 +159,7 @@ class WebRTCServiceClass implements WebRTCService {
           this.audioContext = new AudioContext()
         }
         const source = this.audioContext.createMediaStreamSource(
-          event.streams[0]
+          event.streams[0],
         )
         const analyser = this.audioContext.createAnalyser()
         analyser.fftSize = 256
@@ -211,14 +211,14 @@ class WebRTCServiceClass implements WebRTCService {
             if (this.peerConnection!.iceGatheringState === 'complete') {
               this.peerConnection!.removeEventListener(
                 'icegatheringstatechange',
-                onStateChange
+                onStateChange,
               )
               resolve()
             }
           }
           this.peerConnection!.addEventListener(
             'icegatheringstatechange',
-            onStateChange
+            onStateChange,
           )
         }
       })
@@ -234,7 +234,7 @@ class WebRTCServiceClass implements WebRTCService {
         new RTCSessionDescription({
           sdp: answer.sdp,
           type: answer.type as RTCSdpType,
-        })
+        }),
       )
     } catch (error) {
       // Clean up on error

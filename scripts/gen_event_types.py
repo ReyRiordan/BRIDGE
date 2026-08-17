@@ -73,12 +73,12 @@ def render() -> str:
         lines = [f"/** {doc[0]} */"] if doc else []
         lines.append(f"export interface {model.__name__} {{")
         for name, field in model.model_fields.items():
-            lines.append(f"  {name}: {ts_type(field.annotation)};")
+            lines.append(f"  {name}: {ts_type(field.annotation)}")
         lines.append("}")
         blocks.append("\n".join(lines))
 
     union = "\n  | ".join(model.__name__ for model in EVENT_MODELS)
-    blocks.append(f"export type GameEvent =\n  | {union};")
+    blocks.append(f"export type GameEvent =\n  | {union}")
 
     return "\n\n".join(blocks) + "\n"
 
