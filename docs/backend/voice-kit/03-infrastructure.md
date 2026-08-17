@@ -1,6 +1,60 @@
 # Infrastructure
 
-Prose companion to `infra/voice-runtime.ts` (the copyable CDK module — see `infra/README.md` for wiring). Everything here validates **only at deploy time**.
+Prose companion to `amplify/voice-runtime.ts` — the self-contained CDK module that provisions everything the voice pipeline needs: VPC (1 NAT, private subnets), KVS signaling channel, the AgentCore Runtime built from `runtime/Dockerfile.voice`, all IAM grants, and API-Lambda wiring. Everything here validates **only at deploy time**.
+
+## Wiring it up (worked example)
+
+`backend.ts` ([Rewrite B]) calls `addVoiceRuntime(...)`:
+
+```ts
+import { addVoiceRuntime } from './voice-runtime';
+
+// ONE constants object as the source of truth for pipeline config
+// (all values must be strings — these become container env vars):
+const VOICE_CONFIG = {
+  LLM_PROVIDER: 'bedrock',            // 'openrouter' | 'bedrock'
+  LLM_MODEL: 'openai.gpt-oss-120b',
+  LLM_REASONING: 'low',
+  LLM_PROVIDERS: '',                  // OpenRouter routing prefs; ignored on bedrock
+  STT_PROVIDER: 'transcribe',         // 'transcribe' | 'together' (together = off-AWS, dev only)
+  TTS_PROVIDER: 'polly',              // 'polly' | 'inworld'
+  TTS_VOICE: 'Ruth',
+  SESSION_TIME_LIMIT_MINUTES: '30',
+};
+
+const { runtime } = addVoiceRuntime({
+  stack,
+  // VERIFY FIRST: aws ec2 describe-availability-zones — AgentCore supports only
+  // physical use1-az1/az2/az4 and the letter mapping is randomized per account.
+  availabilityZones: ['us-east-1a', 'us-east-1b', 'us-east-1c'],
+  // The image needs runtime/ AND resources/, so the context is the REPO ROOT
+  // and the Dockerfile path is relative to it. The root .dockerignore keeps the
+  // context from picking up the legacy trees.
+  dockerContext: '.',
+  dockerfile: 'runtime/Dockerfile.voice',
+  invokers: [apiLambda],
+  environment: VOICE_CONFIG,
+  // Keyless secrets: names + SSM path prefixes (set values with
+  // `npx ampx sandbox secret set OPENROUTER_API_KEY` etc.)
+  secretsFromSsm: ['OPENROUTER_API_KEY', 'AWS_BEDROCK_BASE_URL', 'TOGETHER_API_KEY', 'INWORLD_API_KEY'].join(','),
+  secretsSsmPrefixes: ssmPrefixes,
+  // Grants for the game engine's context provider / transcript sink, e.g.:
+  // extraRuntimePolicies: [/* dynamodb reads/writes */],
+  // addDynamoDbEndpoint: true,
+});
+```
+
+For Amplify-managed secret paths, build the prefixes with `@aws-amplify/platform-core`:
+
+```ts
+import { ParameterPathConversions } from '@aws-amplify/platform-core';
+const ssmPrefixes = [
+  ParameterPathConversions.toParameterPrefix(backendId),           // branch/sandbox-scoped
+  ParameterPathConversions.toParameterPrefix(backendId.namespace), // app-shared
+].join(',');
+```
+
+Requires an `aws-cdk-lib` new enough to ship `aws-cdk-lib/aws-bedrockagentcore` (the `Runtime` / `AgentRuntimeArtifact` / `RuntimeNetworkConfiguration` constructs) — pinned in the root `package.json`.
 
 ## Why AgentCore at all
 
@@ -19,7 +73,7 @@ One `CfnSignalingChannel`, type `SINGLE_MASTER` (the only supported type), with 
 
 ## AgentCore Runtime
 
-- Image: CDK `AgentRuntimeArtifact.fromAsset(dockerContext, { file: 'Dockerfile.voice', platform: LINUX_ARM64 })` → ECR. ARM64 is required.
+- Image: CDK `AgentRuntimeArtifact.fromAsset(dockerContext, { file, platform: LINUX_ARM64 })` → ECR. ARM64 is required. BRIDGE builds from the repo root with `file: 'runtime/Dockerfile.voice'` so `resources/` (scenario + prompts) lands in the image.
 - Network: `RuntimeNetworkConfiguration.usingVpc` on the private subnets.
 - Inbound auth: **IAM/SigV4** (no `authorizerConfiguration`) — keyless from the API host and required for `runtimeSessionId` affinity.
 - `lifecycleConfiguration.maxLifetime`: 1 hour — the backstop ceiling above the pipeline's own idle-timeout self-termination.
@@ -49,3 +103,7 @@ One `CfnSignalingChannel`, type `SINGLE_MASTER` (the only supported type), with 
 
 - One NAT gateway is the main fixed cost; media itself relays through KVS TURN (billed per TURN streaming minute), not the NAT.
 - Containers scale per `runtimeSessionId`; `maxLifetime` bounds runaways. The pipeline's idle timeout ends abandoned sessions earlier.
+
+## First deploy
+
+`npx ampx sandbox`, watch for AZ `UPDATE_FAILED`, confirm the runtime reaches `READY`. Step-by-step: `04-deploy-runbook.md`. Failure symptoms: `05-gotchas.md`.

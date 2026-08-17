@@ -1,6 +1,6 @@
 # Configuration
 
-All config is env-driven through `voice_kit/config.py` (pydantic-settings; a `.env` next to the package works locally). Programmatic override: `voice_kit.configure(**overrides)`. `backend/.env.example` is the copyable template.
+All config is env-driven through `runtime/voice_kit/config.py` (pydantic-settings; a `.env` next to the package works locally). Programmatic override: `voice_kit.configure(**overrides)`. the repo-root `.env.example` is the copyable template.
 
 **Consumer** column: which process needs the var — the AgentCore **runtime** container, the API **control-plane** host, or **both**.
 
@@ -72,4 +72,4 @@ Deployed runtimes never receive plain-text secret values. Instead infra injects:
 - `SECRETS_FROM_SSM` — comma-separated secret *names* (e.g. `OPENROUTER_API_KEY,INWORLD_API_KEY,TOGETHER_API_KEY,AWS_BEDROCK_BASE_URL`)
 - `SECRETS_SSM_PREFIXES` — comma-separated SSM parameter path prefixes, most specific first
 
-At cold start, `_export_ssm_secrets()` (runs before `Settings` loads) resolves each name via `ssm:GetParameter` (WithDecryption) under the first prefix that has it and exports it into `os.environ`. Already-set env vars always win; unresolved names stay unset and the owning feature degrades as with any missing secret. Locally (no `SECRETS_FROM_SSM`) it's a no-op and `.env` is used. The task role needs `ssm:GetParameter` on the prefixes (handled by `infra/voice-runtime.ts`); with Amplify, set values via `npx ampx sandbox secret set NAME`.
+At cold start, `_export_ssm_secrets()` (runs before `Settings` loads) resolves each name via `ssm:GetParameter` (WithDecryption) under the first prefix that has it and exports it into `os.environ`. Already-set env vars always win; unresolved names stay unset and the owning feature degrades as with any missing secret. Locally (no `SECRETS_FROM_SSM`) it's a no-op and `.env` is used. The task role needs `ssm:GetParameter` on the prefixes (handled by `amplify/voice-runtime.ts`); with Amplify, set values via `npx ampx sandbox secret set NAME`.

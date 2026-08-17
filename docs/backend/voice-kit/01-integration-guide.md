@@ -1,22 +1,40 @@
 # Integration guide
 
-How to wire the kit into an Amplify Gen 2 project with a FastAPI backend. Read `00-architecture.md` first for the shape; `05-gotchas.md` before your first deploy.
+How BRIDGE wires the voice kit together. Read `00-architecture.md` first for the shape; `05-gotchas.md` before your first deploy.
 
-## What you must supply
+The kit is a voice-to-voice pipeline — **browser WebRTC → Bedrock AgentCore → pipecat (STT → LLM → TTS)** — extracted from a production deployment and now vendored into this repo:
 
-- [ ] A **system prompt** (env `SYSTEM_PROMPT`, or a context provider that builds one per session)
-- [ ] **Auth** on the three endpoints (`authorize` hook and/or FastAPI `dependencies`) — the defaults are open
-- [ ] A **session id** concept (any string your app can re-fetch by)
-- [ ] A **transcript sink** if you want server-side transcripts (`set_transcript_handler`)
-- [ ] Session **state transitions** if your domain has them (`on_start` / `on_end`)
-- [ ] Verified **AgentCore AZ letters** for your account (gotcha #4)
-- [ ] Secrets in **SSM** for whichever providers you enable
+- **STT**: Amazon Transcribe Streaming (default) or Together AI (Parakeet)
+- **LLM**: OpenRouter or AWS Bedrock (bedrock-mantle, SigV4) — env-switchable
+- **TTS**: Amazon Polly (generative streaming, default) or Inworld
+- **Transport**: WebRTC over KVS-managed TURN (relay-only), signaling proxied through `api/`
+- **Hosting**: AgentCore Runtime (ARM64 container), infra as an Amplify Gen 2 / CDK module
 
-## Step 1 — copy the backend package
+Domain logic is not baked in: the kit exposes extension points (a per-session context provider, a transcript sink, and auth/lifecycle hooks on the signaling router) that BRIDGE's game engine fills in.
 
-Copy `backend/voice_kit/`, `backend/Dockerfile.voice`, and `backend/requirements-voice.txt` into your backend docker context (e.g. `amplify/backend/`). The package is imported as plain `voice_kit.*` — put it wherever your `PYTHONPATH` resolves.
+## Where the code lives
 
-## Step 2 — control plane (API host)
+| Piece | Path |
+|---|---|
+| Package (control plane + pipeline) | `runtime/voice_kit/` |
+| Container image + deps | `runtime/Dockerfile.voice`, `runtime/requirements-voice.txt` |
+| BRIDGE runtime code (game engine, events) | `runtime/bridge/` |
+| Infra module | `amplify/voice-runtime.ts` |
+| Browser client | `web/src/voice/` (see `docs/frontend/voice-client.md`) |
+
+`voice_kit` is imported as plain `voice_kit.*`; the container sets `PYTHONPATH=/app`, and `runtime/pyproject.toml` packages it (control-plane deps only) for the API Lambda.
+
+## What BRIDGE must supply
+
+- [ ] A **system prompt** (env `SYSTEM_PROMPT`, or a context provider that builds one per session) — [Rewrite E]
+- [ ] **Auth** on the three endpoints (`authorize` hook and/or FastAPI `dependencies`) — the defaults are open — [Rewrite C]
+- [ ] A **session id** concept (any string the app can re-fetch by)
+- [ ] A **transcript sink** for server-side transcripts (`set_transcript_handler`) — [Rewrite D]
+- [ ] Session **state transitions** (`on_start` / `on_end`)
+- [ ] Verified **AgentCore AZ letters** for the account (gotcha #4)
+- [ ] Secrets in **SSM** for whichever providers are enabled
+
+## Step 1 — control plane (API host)
 
 Deps: `fastapi`, `boto3`, `pydantic>=2`, `pydantic-settings`, `aiohttp` (no pipecat — the control-plane surface is deliberately pipecat-free).
 
@@ -47,12 +65,12 @@ register_exception_handlers(app)                       # 502s with CORS headers 
 
 Env needed here: `VOICE_RUNTIME_ARN`, `KVS_CHANNEL_NAME`, `AWS_REGION` (infra injects the first two).
 
-## Step 3 — runtime (AgentCore container)
+## Step 2 — runtime (AgentCore container)
 
 Write a tiny wrapper module that registers your hooks and re-exports the app:
 
 ```python
-# my_voice_app.py  (in the docker context, next to voice_kit/)
+# runtime/bridge/voice_app.py  ([Rewrite D]; uvicorn target in Dockerfile.voice)
 import asyncio
 from voice_kit import SessionContext, VoiceConfig, TranscriptMessage
 from voice_kit import set_context_provider, set_transcript_handler
@@ -75,17 +93,15 @@ set_context_provider(provide_context)
 set_transcript_handler(store_turn)
 ```
 
-Then in `Dockerfile.voice`: add `COPY my_voice_app.py /app/` and switch the CMD to `uvicorn my_voice_app:app ...` (a commented line is already there).
+`runtime/bridge/` is already COPYed into the image; the CMD is repointed at the wrapper in [Rewrite D]. Until then the container runs the bare kit app, whose default context provider builds everything from `SYSTEM_PROMPT` + `TTS_*` env vars with no server-side transcript.
 
-Skipping this step entirely is valid for a single-persona agent: the default context provider builds everything from `SYSTEM_PROMPT` + `TTS_*` env vars, with no server-side transcript.
+## Step 3 — infra
 
-## Step 4 — infra
+`amplify/voice-runtime.ts` is in place; `backend.ts` calls `addVoiceRuntime(...)` with verified AZs, the config constants, SSM secret names/prefixes, and `extraRuntimePolicies` for whatever the hooks read/write ([Rewrite B]). Worked example: `03-infrastructure.md`.
 
-Follow `infra/README.md`: copy `infra/voice-runtime.ts` into `amplify/`, call `addVoiceRuntime(...)` from your `backend.ts` with verified AZs, your config constants, SSM secret names/prefixes, and `extraRuntimePolicies` for whatever your hooks read/write.
+## Step 4 — frontend
 
-## Step 5 — frontend
-
-Follow `frontend/USAGE.md`: copy the five files, `configureVoiceApi(yourAxiosAdapter, '/voice')`, then wire `useWebRTC` + `startVoiceSession`/`endVoiceSession` into your UI with the reconnect loop.
+The five client files live in `web/src/voice/`. Call `configureVoiceApi(adapter, '/voice')` once at startup, then wire `useWebRTC` + `startVoiceSession`/`endVoiceSession` into the simulation screen with the reconnect loop — see `docs/frontend/voice-client.md` ([Rewrite G]).
 
 ## End-to-end sequence (sanity reference)
 
@@ -109,4 +125,18 @@ Follow `frontend/USAGE.md`: copy the five files, `configureVoiceApi(yourAxiosAda
 
 ## Verifying your integration
 
-Cheap gates before a deploy: `python3 -m compileall backend/voice_kit`, then in your API venv `python -c "import voice_kit; voice_kit.create_voice_router()"`. The real gate is the ARM64 docker build + `/ping` smoke and the post-deploy checklist — see `04-deploy-runbook.md`.
+Cheap gates before a deploy, in order:
+
+```bash
+python3 -m compileall runtime/voice_kit runtime/bridge api
+python3 -m pytest runtime/tests api/tests
+
+# The pipecat-free gate — must succeed in a venv where `import pipecat` FAILS:
+python3 -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
+/tmp/cp/bin/python -c "import voice_kit; voice_kit.create_voice_router()"
+
+docker build --platform linux/arm64 -f runtime/Dockerfile.voice -t bridge-voice .
+docker run --rm -p 8080:8080 bridge-voice   # then: curl localhost:8080/ping
+```
+
+The real gate is that ARM64 build + `/ping` smoke, then the post-deploy checklist — see `04-deploy-runbook.md`.

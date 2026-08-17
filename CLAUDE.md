@@ -10,7 +10,7 @@ A voice-to-voice medical training simulation where medical students practice beh
 
 The repo is mid-rewrite from a single-process prototype (FastAPI + FastRTC + Gradio) to a production app on AWS:
 
-- **New architecture:** Vite + React + TS + Tailwind SPA (`web/`) on Amplify Hosting; a thin FastAPI control-plane Lambda (`api/`, via Mangum); the voice pipeline on **Bedrock AgentCore + pipecat** (`runtime/`, built from the vendored `voice-pipeline-kit/`); Amplify Gen 2 TS CDK infra (`amplify/`).
+- **New architecture:** Vite + React + TS + Tailwind SPA (`web/`) on Amplify Hosting; a thin FastAPI control-plane Lambda (`api/`, via Mangum); the voice pipeline on **Bedrock AgentCore + pipecat** (`runtime/`, built on the vendored `voice_kit` package); Amplify Gen 2 TS CDK infra (`amplify/`).
 - The rewrite is **additive**: the legacy app stays runnable until the final teardown issue. Old and new trees coexist (`frontend/` = legacy, `web/` = new).
 - The rewrite is tracked as GitHub issues `[Rewrite A]`–`[Rewrite I]`; see the tracking issue for wave ordering.
 - Every rewrite change follows: **implement → write tests → update docs → tests/lint green in CI** (`.github/workflows/`).
@@ -34,7 +34,7 @@ You MUST keep the docs up to date at all times because they are such a core part
 | frontend | `docs/frontend/` | `web/` (SPA screens, game UI, voice client) |
 | backend | `docs/backend/` | `api/` (control-plane Lambda), `runtime/` (AgentCore voice pipeline + game engine), `amplify/` (infra). Includes `docs/backend/voice-kit/` ops docs (architecture, configuration, infrastructure, deploy runbook, gotchas). |
 
-Until the doc folders are scaffolded (rewrite issue A), the kit's docs live at `voice-pipeline-kit/docs/` and the legacy app is documented in the section below.
+Start at [`docs/frontend/README.md`](docs/frontend/README.md) or [`docs/backend/README.md`](docs/backend/README.md) — each carries the doc map for its layer. The legacy app is documented in the section below.
 
 ## Legacy App (still runnable during the rewrite)
 

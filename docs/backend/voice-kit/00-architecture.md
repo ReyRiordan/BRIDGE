@@ -28,12 +28,12 @@ transport.input() → VADProcessor (Silero) → STTProcessor → LLMProcessor
 
 | Stage | Component | File | Details |
 |---|---|---|---|
-| Transport | Pipecat `SmallWebRTCTransport` (+ `SmallWebRTCRequestHandler`) | `voice_kit/runtime.py` | The handler owns the aiortc peer connection + SDP negotiation; we pass KVS managed-TURN `IceServer`s and filter the answer SDP to relay-only candidates |
-| VAD | `VADProcessor(SileroVADAnalyzer())` | `voice_kit/pipeline.py` | Standalone processor (pipecat 1.3.0); emits `VADUserStarted/StoppedSpeakingFrame` the STT stage gates on. Silero left at defaults — onset recovery is the STT pre-roll's job |
-| STT | `AmazonTranscribeSTT` / `TogetherSTT` | `voice_kit/providers/stt.py` | Streaming; provider via `STT_PROVIDER`. `STTProcessor` keeps a byte-bounded pre-roll ring buffer (`STT_PREROLL_MS`) so the utterance onset survives Silero's confirmation window |
-| LLM | `OpenRouterChat` / `BedrockChat` | `voice_kit/providers/llm.py` | Single non-streaming chat call per turn; provider via `LLM_PROVIDER`, model via `LLM_MODEL`. History roles are chat-native `user`/`assistant` |
-| TTS | `InworldTTS` (48 kHz) / `PollyTTS` (24 kHz generative) | `voice_kit/providers/tts.py` | Sync streaming generators, run in a worker thread; emitted as `TTSAudioRawFrame`s. Voice via the session's `VoiceConfig` |
-| Sink | `TranscriptSinkProcessor` | `voice_kit/processors.py` | Awaits the host's transcript handler (your persistence) and emits each turn as JSON over the data channel (live UI transcript) |
+| Transport | Pipecat `SmallWebRTCTransport` (+ `SmallWebRTCRequestHandler`) | `runtime/voice_kit/runtime.py` | The handler owns the aiortc peer connection + SDP negotiation; we pass KVS managed-TURN `IceServer`s and filter the answer SDP to relay-only candidates |
+| VAD | `VADProcessor(SileroVADAnalyzer())` | `runtime/voice_kit/pipeline.py` | Standalone processor (pipecat 1.3.0); emits `VADUserStarted/StoppedSpeakingFrame` the STT stage gates on. Silero left at defaults — onset recovery is the STT pre-roll's job |
+| STT | `AmazonTranscribeSTT` / `TogetherSTT` | `runtime/voice_kit/providers/stt.py` | Streaming; provider via `STT_PROVIDER`. `STTProcessor` keeps a byte-bounded pre-roll ring buffer (`STT_PREROLL_MS`) so the utterance onset survives Silero's confirmation window |
+| LLM | `OpenRouterChat` / `BedrockChat` | `runtime/voice_kit/providers/llm.py` | Single non-streaming chat call per turn; provider via `LLM_PROVIDER`, model via `LLM_MODEL`. History roles are chat-native `user`/`assistant` |
+| TTS | `InworldTTS` (48 kHz) / `PollyTTS` (24 kHz generative) | `runtime/voice_kit/providers/tts.py` | Sync streaming generators, run in a worker thread; emitted as `TTSAudioRawFrame`s. Voice via the session's `VoiceConfig` |
+| Sink | `TranscriptSinkProcessor` | `runtime/voice_kit/processors.py` | Awaits the host's transcript handler (your persistence) and emits each turn as JSON over the data channel (live UI transcript) |
 
 Each finalized turn travels the whole chain as a `TranscriptMessageFrame` (not consumed by the stage that produced it), so the sink — last in the chain — sees both the user and assistant messages of every turn, in order.
 

@@ -5,13 +5,13 @@ Every one of these was learned the hard way. Each entry: what breaks / why / the
 ## Credentials & IAM
 
 **1. Never inject `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` into the runtime env.**
-boto3's default credential chain prefers env-var creds over the IAM task role, so injecting them (even placeholders) shadows the role for *every* boto3 client in the container. The keyless KVS client then fails `DescribeSignalingChannel` with `UnrecognizedClientException` ("security token invalid") and the browser gets a 502. KVS / Transcribe / Polly / Bedrock all authorize via task-role grants. The provider wrappers pass static keys only when *both* are set (local dev); `infra/voice-runtime.ts` carries the warning in its env block.
+boto3's default credential chain prefers env-var creds over the IAM task role, so injecting them (even placeholders) shadows the role for *every* boto3 client in the container. The keyless KVS client then fails `DescribeSignalingChannel` with `UnrecognizedClientException` ("security token invalid") and the browser gets a 502. KVS / Transcribe / Polly / Bedrock all authorize via task-role grants. The provider wrappers pass static keys only when *both* are set (local dev); `amplify/voice-runtime.ts` carries the warning in its env block.
 
 **2. `polly:StartSpeechSynthesisStream`, not `polly:SynthesizeSpeech`.**
-`PollyTTS` uses the generative-engine *streaming* action, which is a distinct IAM action. Granting only `SynthesizeSpeech` fails with AccessDenied. Already correct in `infra/voice-runtime.ts`.
+`PollyTTS` uses the generative-engine *streaming* action, which is a distinct IAM action. Granting only `SynthesizeSpeech` fails with AccessDenied. Already correct in `amplify/voice-runtime.ts`.
 
 **3. Bedrock signs with `bedrock-mantle:CreateInference`, not `bedrock:InvokeModel`.**
-The OpenAI-compatible bedrock-mantle endpoint authorizes via `bedrock-mantle:*`. Also SigV4 exact-bytes: serialize the payload once and send `data=body` — re-serializing with `json=payload` changes bytes and invalidates the signature (opaque 403). Never set the `Host` header manually. Both handled in `voice_kit/providers/llm.py`.
+The OpenAI-compatible bedrock-mantle endpoint authorizes via `bedrock-mantle:*`. Also SigV4 exact-bytes: serialize the payload once and send `data=body` — re-serializing with `json=payload` changes bytes and invalidates the signature (opaque 403). Never set the `Host` header manually. Both handled in `runtime/voice_kit/providers/llm.py`.
 
 ## AgentCore
 
@@ -42,10 +42,10 @@ aiortc has no relay-only transport-policy knob; `filter_relay_only_sdp` strips h
 Wait for `iceGatheringState === 'complete'` before POSTing the offer (the runtime needs the complete candidate list in one shot). The single round-trip is sub-second — safely under a 29 s API Gateway limit. Implemented in `webrtc.service.ts`.
 
 **12. Explicit KVS channel name.**
-CloudFormation exposes no name attribute on `CfnSignalingChannel`, and the runtime looks the channel up by name (`describe_signaling_channel(ChannelName=...)`). Set the name explicitly and pass the same value to both sides — done in `infra/voice-runtime.ts`.
+CloudFormation exposes no name attribute on `CfnSignalingChannel`, and the runtime looks the channel up by name (`describe_signaling_channel(ChannelName=...)`). Set the name explicitly and pass the same value to both sides — done in `amplify/voice-runtime.ts`.
 
 **13. Lazy KVS / boto3 init in the runtime.**
-IAM creds aren't ready at container boot; any boto3 client built at import time (worst: an import-time `GetIceServerConfig`) crashes the container. Every client in `voice_kit/kvs.py` (and the AgentCore client in the control plane) is constructed inside a function.
+IAM creds aren't ready at container boot; any boto3 client built at import time (worst: an import-time `GetIceServerConfig`) crashes the container. Every client in `runtime/voice_kit/kvs.py` (and the AgentCore client in the control plane) is constructed inside a function.
 
 ## Event loop & pipeline
 
@@ -87,7 +87,7 @@ The runtime writes turns live via your transcript handler, so a session snapshot
 Mute the local mic while the agent's TTS is audibly playing, or speaker echo re-triggers the server-side VAD. Detect real audio activity with an `AnalyserNode` on the remote stream (debounced 500 ms) — `audio.onplay` fires at connection time, long before any TTS content. Implemented in `webrtc.service.ts` + the auto-mute effect in `useWebRTC.ts`; also reset the speaking flag in `endCall` (a stale `true` breaks auto-mute on the next call).
 
 **25. Fresh `runtime_session_id` on every reconnect.**
-On ICE stall or a dropped connection, call `/start` again for a new affinity key (possibly a new container) but keep the same `session_id` so the context provider reloads the same conversation. See `frontend/USAGE.md`.
+On ICE stall or a dropped connection, call `/start` again for a new affinity key (possibly a new container) but keep the same `session_id` so the context provider reloads the same conversation. See `docs/frontend/voice-client.md`.
 
 ## Dependencies
 
