@@ -1,0 +1,35 @@
+# Amplify Hosting build spec — FRONTEND ONLY.
+#
+# There is deliberately no `backend` phase: Amplify's build images have no
+# Docker, which the AgentCore image asset and the Lambda bundling both need. The
+# branch backend is deployed from a developer machine instead:
+#
+#   CI=1 npx ampx pipeline-deploy --app-id <appId> --branch <branch>
+#
+# That must run BEFORE the first Hosting build, since `ampx generate outputs`
+# below reads a backend that already exists. See docs/backend/deployment.md.
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Root install is for `ampx` only; the SPA is a separate npm project.
+        - npm ci
+        # Pull the deployed backend's outputs (apiUrl) and serve them as a
+        # static file the SPA fetches at runtime ([Rewrite F]/[Rewrite G]).
+        - npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID
+        - cp amplify_outputs.json web/public/amplify_outputs.json
+        # --prefix, not `cd`: Amplify runs every command in one shell session,
+        # so a `cd` in preBuild would leak into the build phase.
+        - npm --prefix web ci
+    build:
+      commands:
+        - npm --prefix web run build
+  artifacts:
+    baseDirectory: web/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - web/node_modules/**/*

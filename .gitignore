@@ -11,4 +11,5 @@ build/
 
 # Amplify Gen 2 — generated per deploy, never committed.
 amplify_outputs.json
+web/public/amplify_outputs.json
 .amplify/
