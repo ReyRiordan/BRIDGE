@@ -1,0 +1,12 @@
+# Control-plane Lambda dependencies. Deliberately pipecat-free: the API host
+# imports only voice_kit's control-plane surface (see runtime/pyproject.toml).
+#
+# Backend CI reads the ruff pin straight out of this file (`grep '^ruff=='`),
+# and this is the only requirements file that installs pytest — keep both.
+
+fastapi==0.141.1
+
+# Tooling (CI + local): the lint job installs the ruff line, the test job runs
+# pytest over both api/tests and runtime/tests.
+ruff==0.16.3
+pytest==9.1.1

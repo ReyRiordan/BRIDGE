@@ -1,0 +1,17 @@
+{
+  "name": "bridge",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Root project for the BRIDGE Amplify Gen 2 backend (amplify/). The SPA is a self-contained npm project under web/.",
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit -p amplify"
+  },
+  "devDependencies": {
+    "aws-cdk-lib": "^2.265.0",
+    "constructs": "^10.8.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

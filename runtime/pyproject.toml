@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Packages `voice_kit` ONLY — the pipecat-free control-plane surface the API
+# Lambda installs (`pip install ./runtime`). `bridge/` is container-only code
+# (it ships via the Dockerfile COPY, never as a dependency of api/), and the
+# pipeline half of voice_kit is imported only inside the container, where
+# requirements-voice.txt — not this file — provides pipecat.
+[project]
+name = "bridge-voice-kit"
+version = "0.1.0"
+description = "BRIDGE voice pipeline kit: pipecat runtime + pipecat-free control plane"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "pydantic>=2",
+    "pydantic-settings>=2",
+    "boto3",
+    "aiohttp",
+]
+
+[tool.setuptools]
+packages = [
+    "voice_kit",
+    "voice_kit.control_plane",
+    "voice_kit.providers",
+]

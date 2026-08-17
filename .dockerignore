@@ -1,0 +1,36 @@
+# The voice runtime image builds from the REPO ROOT (see runtime/Dockerfile.voice)
+# so it can COPY both runtime/ and resources/. While the legacy app and the
+# rewrite coexist, this exclude list is what keeps the build context small —
+# effectively only runtime/ and resources/ reach the daemon.
+
+# Legacy app trees (removed at final teardown)
+frontend/
+backend/
+scenes/
+visuals/
+app.py
+requirements.txt
+render.yaml
+
+# New trees not needed in the runtime image
+web/
+docs/
+amplify/
+api/
+scripts/
+node_modules/
+runtime/tests/
+
+# VCS / tooling / build junk
+.git/
+.github/
+.claude/
+**/__pycache__/
+**/*.pyc
+**/tests/
+.venv*/
+*.egg-info/
+dist/
+coverage/
+.env
+.DS_Store

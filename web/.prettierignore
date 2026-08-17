@@ -1,0 +1,7 @@
+dist
+coverage
+public
+
+# Machine-written from runtime/bridge/events.py; scripts/gen_event_types.py owns
+# its formatting (and Backend CI diffs the file byte for byte).
+src/voice/gameEvents.gen.ts
