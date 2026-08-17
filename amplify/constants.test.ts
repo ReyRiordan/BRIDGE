@@ -4,8 +4,10 @@ import {
   API_ASSET_EXCLUDE,
   API_LAMBDA,
   AVAILABILITY_ZONES,
+  RUNTIME_NAME_MAX_LENGTH,
   SECRET_NAMES,
   VOICE_CONFIG,
+  voiceRuntimeName,
 } from './constants'
 
 // No CDK synth here (see voice-runtime.test.ts): these guard the plain data
@@ -69,6 +71,44 @@ describe('VOICE_CONFIG', () => {
   test('session limit is a positive integer string', () => {
     expect(VOICE_CONFIG.SESSION_TIME_LIMIT_MINUTES).toMatch(/^\d+$/)
     expect(Number(VOICE_CONFIG.SESSION_TIME_LIMIT_MINUTES)).toBeGreaterThan(0)
+  })
+})
+
+describe('voiceRuntimeName', () => {
+  const SANDBOX = { namespace: 'bridge', name: 'reyriordan', type: 'sandbox' }
+  const BRANCH = { namespace: 'd8vcc5ya6qjw1', name: 'main', type: 'branch' }
+
+  test('sandbox and branch backends get distinct names', () => {
+    // AgentCore names are unique per ACCOUNT; both stacks coexist by design, so
+    // a shared name fails the second deploy with AlreadyExists.
+    expect(voiceRuntimeName(SANDBOX)).not.toBe(voiceRuntimeName(BRANCH))
+  })
+
+  test('two apps sharing a branch name still differ', () => {
+    expect(voiceRuntimeName({ namespace: 'appA', name: 'main', type: 'branch' })).not.toBe(
+      voiceRuntimeName({ namespace: 'appB', name: 'main', type: 'branch' }),
+    )
+  })
+
+  test.each([
+    SANDBOX,
+    BRANCH,
+    { namespace: 'd8vcc5ya6qjw1', name: 'feature/some-very-long-branch-name-here', type: 'branch' },
+    { namespace: 'a'.repeat(60), name: 'b'.repeat(60), type: 'sandbox' },
+  ])('satisfies the AgentCore name pattern: %o', (id) => {
+    const name = voiceRuntimeName(id)
+    expect(name).toMatch(/^[a-zA-Z][a-zA-Z0-9_]{0,47}$/)
+    expect(name.length).toBeLessThanOrEqual(RUNTIME_NAME_MAX_LENGTH)
+  })
+
+  test('over-long identities stay distinct after truncation', () => {
+    const a = voiceRuntimeName({ namespace: 'x'.repeat(40), name: 'release-alpha', type: 'branch' })
+    const b = voiceRuntimeName({ namespace: 'x'.repeat(40), name: 'release-beta', type: 'branch' })
+    expect(a).not.toBe(b)
+  })
+
+  test('is deterministic', () => {
+    expect(voiceRuntimeName(BRANCH)).toBe(voiceRuntimeName(BRANCH))
   })
 })
 

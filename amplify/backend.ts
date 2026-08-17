@@ -32,6 +32,7 @@ import {
   AVAILABILITY_ZONES,
   SECRET_NAMES,
   VOICE_CONFIG,
+  voiceRuntimeName,
 } from './constants';
 import { addVoiceRuntime } from './voice-runtime';
 
@@ -121,6 +122,10 @@ const apiFnUrl = apiFn.addFunctionUrl({ authType: FunctionUrlAuthType.NONE });
 addVoiceRuntime({
   stack,
   availabilityZones: AVAILABILITY_ZONES,
+  // Per-backend, like channelName below: AgentCore runtime names are unique per
+  // ACCOUNT, so the kit's 'VoiceRuntime' default makes the second backend fail
+  // with AlreadyExists while sandbox and branch stacks coexist.
+  runtimeName: voiceRuntimeName(backendId),
   // Repo root: the image needs runtime/ AND resources/. The root .dockerignore
   // keeps the context small.
   dockerContext: '.',

@@ -71,6 +71,33 @@ export const VOICE_CONFIG: Record<string, string> = {
   SCENARIO_PATH: '/app/resources/scenario_1.json',
 };
 
+/**
+ * AgentCore runtime names are unique PER ACCOUNT, so the shared default
+ * ('VoiceRuntime') makes the second backend fail with `AlreadyExists` — the
+ * sandbox and branch stacks coexist by design. Derive one per backend, the same
+ * reasoning as the KVS channel name.
+ *
+ * The API accepts `[a-zA-Z][a-zA-Z0-9_]{0,47}`: letters, digits and
+ * underscores only, so the stack name's hyphens cannot be used raw.
+ */
+export const RUNTIME_NAME_MAX_LENGTH = 48;
+
+export function voiceRuntimeName(backendId: {
+  namespace: string;
+  name: string;
+  type: string;
+}): string {
+  const clean = (s: string) => (s ?? '').replace(/[^a-zA-Z0-9]/g, '');
+  const full = `Voice_${clean(backendId.namespace)}_${clean(backendId.name)}_${clean(backendId.type)}`;
+  if (full.length <= RUNTIME_NAME_MAX_LENGTH) return full;
+  // Truncation alone could collide (two long branch names sharing a prefix), so
+  // keep a deterministic digest of the full identity on the end.
+  let hash = 5381;
+  for (let i = 0; i < full.length; i++) hash = ((hash * 33) ^ full.charCodeAt(i)) >>> 0;
+  const suffix = `_${hash.toString(36)}`;
+  return full.slice(0, RUNTIME_NAME_MAX_LENGTH - suffix.length) + suffix;
+}
+
 /** Lambda bundling knobs for the control-plane API. */
 export const API_LAMBDA = {
   memorySizeMb: 512,
