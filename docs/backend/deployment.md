@@ -59,8 +59,13 @@ Order matters at steps 5 → 6 → 7.
    docker run --rm -p 8080:8080 bridge-voice   # then: curl localhost:8080/ping
    ```
 2. **Sandbox** — `npx ampx sandbox --profile compass-test`. Watch for AZ `UPDATE_FAILED`; confirm the AgentCore runtime reaches **READY**.
-3. **Secrets** — `ampx sandbox secret set` ×3 (above).
-4. **Verify** — `aws lambda get-function-configuration` shows `VOICE_RUNTIME_ARN` + `KVS_CHANNEL_NAME`; `curl <fnUrl>/health` returns `{"status":"ok","scenario_loaded":true}`; one direct `aws bedrock-agentcore invoke-agent-runtime` dummy payload triggers a cold start whose CloudWatch logs show SSM secret resolution with no `None`-key errors and no `UnrecognizedClientException`.
+3. **Secrets** — `ampx sandbox secret set` ×3 (above). The command prompts on a TTY and rejects an empty value, so in a non-interactive shell pipe the value in instead: `printf '%s' "$KEY" | npx ampx sandbox secret set NAME --profile compass-test`.
+4. **Verify** —
+   - `aws lambda get-function-configuration` shows `VOICE_RUNTIME_ARN` + `KVS_CHANNEL_NAME`.
+   - `curl <fnUrl>/health` returns `{"status":"ok","scenario_loaded":true}` (this is the proof that `resources/` really is in the bundle).
+   - `aws ssm describe-parameters` lists the three keys under the runtime's first `SECRETS_SSM_PREFIXES` path.
+   - `aws bedrock-agentcore invoke-agent-runtime` with a **fresh** `runtimeSessionId` (containers are pinned per session — reusing one gets you a warm container from before the secrets existed) triggers a cold start. CloudWatch should show "Application startup complete" and no `UnrecognizedClientException` / `None`-key errors.
+   - `_export_ssm_secrets()` logs nothing on success and swallows `ParameterNotFound`, so there is no positive log line to grep for. What the clean start *does* prove is that the read did not raise: it runs at import time (`config.py`), so an `AccessDenied` would stop the container before it ever served `/ping`. Confirm the grant itself with `aws iam simulate-principal-policy --action-names ssm:GetParameter` against the runtime role, including a negative control outside the prefix (expect `implicitDeny`).
 5. **Hosting** — in the Amplify console create the app against `ReyRiordan/MEWAI-BD` `main`, build spec from the root `amplify.yml`, frontend-only. Set the three secrets for the branch.
 6. **Branch backend** — `CI=1 npx ampx pipeline-deploy --app-id <appId> --branch main --profile compass-test`. Must precede the first Hosting build, since `ampx generate outputs` needs a backend to read.
 7. **End to end** — trigger the Hosting build, open the SPA, and `fetch` `<apiUrl>/health` from the browser console: that proves reachability *and* CORS. Add the Hosting origin to `ALLOWED_ORIGINS` in `amplify/constants.ts` and redeploy the backend once (chicken-and-egg; expected).
@@ -73,6 +78,10 @@ One NAT gateway is the fixed floor (~$32/month, always on) — the reason the sa
 ## Gotchas
 
 - `ampx pipeline-deploy` needs `CI=1` and an app + branch that already exist.
+- **Bundle with the SAM build image, not the Lambda runtime image.** `public.ecr.aws/lambda/python:3.11` is for *running* Lambdas; its runtime-interface `ENTRYPOINT` swallows any bundling command and docker exits 142. Use `Runtime.PYTHON_3_11.bundlingImage`.
+- **Keep CDK's own output out of the asset source.** Both assets here are rooted at the repo (`Code.fromAsset('.')` and the docker context) while CDK stages into `.amplify/artifacts/cdk.out/` *inside* that root, so staging copies its output into itself until `ENAMETOOLONG`. Both exclude lists need `.amplify/` and `cdk.out/` — and note `.dockerignore`'s `amplify/` does **not** match `.amplify/`.
+- **`pip --target /asset-output` fails on the bind mount** with "Invalid cross-device link" (pip finishes with a hard-link move). Install container-side, then `cp` across.
+- The asset `exclude` shapes the asset **hash**; bundling still mounts the raw source tree at `/asset-input`. Anything the bundling command copies must prune tests/`__pycache__` itself.
 - The Docker asset rebuild is the slow step of every deploy. The root `.dockerignore` and `API_ASSET_EXCLUDE` keep the hashes stable so unchanged code skips it.
 - Use `npm install`, not `npm ci`, at the repo root. `@aws-amplify/backend` pulls `@aws-amplify/data-construct` and `@aws-amplify/graphql-api-construct`, whose bundled nested dependencies npm reports as "Missing from lock file" even immediately after a clean install. Amplify CI runs `npm install` plus a `git diff --exit-code package-lock.json` drift check; `web/` is unaffected and still uses `npm ci`.
 - If the install skipped install scripts (esbuild, `@parcel/watcher`), `ampx` will fail to start — approve them with `npm install-scripts approve <pkg>`.
