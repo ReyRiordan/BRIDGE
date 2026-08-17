@@ -9,7 +9,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `api/` | Thin FastAPI control plane (Mangum): `/scenario` + the voice signaling router. Deliberately **pipecat-free**. | Lambda |
 | `runtime/voice_kit/` | Vendored voice pipeline kit — control plane (router, config, KVS, errors) + pipeline (pipecat, providers, processors). | Lambda (control-plane half) + container (pipeline half) |
 | `runtime/bridge/` | BRIDGE's own runtime code: the game engine and the wire contract. Container-only. | AgentCore container |
-| `amplify/` | Amplify Gen 2 / CDK infra (`voice-runtime.ts` today; `backend.ts` in [Rewrite B]). | Deploy time |
+| `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
 | `resources/` | Scenario config + prompts. Shared with the legacy app; COPYed into the runtime image at `/app/resources`. | Both |
 | `scripts/` | `gen_event_types.py` (event-contract codegen), `make_transparent.py` (visual asset tool). | Local / CI |
 
@@ -17,6 +17,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 
 | Doc | Read it for |
 |---|---|
+| `deployment.md` | Environment topology, the AZ record, secrets, the deploy runbook, cost |
 | `voice-kit/00-architecture.md` | Topology, the pipeline chain, the two session ids, extension points |
 | `voice-kit/01-integration-guide.md` | How the halves wire together; the verification gates |
 | `voice-kit/02-configuration.md` | Every env var, provider tables, the SSM secrets mechanism |

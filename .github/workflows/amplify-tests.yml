@@ -5,11 +5,17 @@ on:
     branches: [main]
     paths:
       - 'amplify/**'
+      - 'amplify.yml'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/amplify-tests.yml'
   pull_request:
     branches: [main]
     paths:
       - 'amplify/**'
+      - 'amplify.yml'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/amplify-tests.yml'
 
 jobs:
