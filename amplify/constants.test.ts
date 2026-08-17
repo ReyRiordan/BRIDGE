@@ -123,9 +123,22 @@ describe('API_LAMBDA', () => {
 })
 
 describe('ALLOWED_ORIGINS', () => {
-  test('includes the Vite dev server and no wildcard', () => {
+  test('includes the Vite dev server and the Hosting origin', () => {
     expect(ALLOWED_ORIGINS).toContain('http://localhost:5173')
+    expect(ALLOWED_ORIGINS).toContain('https://main.d8vcc5ya6qjw1.amplifyapp.com')
+  })
+
+  test('is never a wildcard — the Function URL sets no CORS of its own', () => {
     expect(ALLOWED_ORIGINS).not.toContain('*')
+  })
+
+  test('every entry is a scheme-qualified origin with no trailing slash', () => {
+    // A trailing slash or bare host silently fails to match the browser's
+    // Origin header, which surfaces only as a CORS error in the SPA.
+    for (const o of ALLOWED_ORIGINS) {
+      expect(o).toMatch(/^https?:\/\//)
+      expect(o).not.toMatch(/\/$/)
+    }
   })
 })
 

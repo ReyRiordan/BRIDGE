@@ -110,11 +110,15 @@ export const API_LAMBDA = {
  * the Function URL is deliberately configured WITHOUT `cors`, since configuring
  * both duplicates the headers and browsers reject the response.
  *
- * The Amplify Hosting origin is only known after the app is created, so it is
- * added here and the backend redeployed once (chicken-and-egg; expected — see
- * docs/backend/deployment.md).
+ * Amplify Hosting origins are deterministic —
+ * `https://<branch>.<appId>.amplifyapp.com` — so the branch origin can be added
+ * as soon as the app id is known, rather than waiting for the first build and
+ * redeploying the backend afterwards.
  */
-export const ALLOWED_ORIGINS = ['http://localhost:5173'];
+export const ALLOWED_ORIGINS = [
+  'http://localhost:5173', // Vite dev server
+  'https://main.d8vcc5ya6qjw1.amplifyapp.com', // Amplify Hosting, `main` branch
+];
 
 /**
  * Paths excluded from the API Lambda's bundling asset. Keeps the asset small so
