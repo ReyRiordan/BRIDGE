@@ -15,6 +15,10 @@ The repo is mid-rewrite from a single-process prototype (FastAPI + FastRTC + Gra
 - The rewrite is tracked as GitHub issues `[Rewrite A]`–`[Rewrite I]`; see the tracking issue for wave ordering.
 - Every rewrite change follows: **implement → write tests → update docs → tests/lint green in CI** (`.github/workflows/`).
 
+## Commands
+
+Use 'python3' to run any python files. Use the GitHub CLI ('gh') for all GitHub-related tasks.
+
 ## Exploration Workflow
 
 When working on or exploring the codebase from a fresh start, ALWAYS start by reading the README of the relevant layer's documentation folder (frontend/, backend/). Then, use the documentation map in this README to navigate to the specific docs relevant to the current task. These docs will provide you with the core context and point to specific code files that you can read as necessary. Always do this relevant doc reading BEFORE you do actual codebase exploration.
