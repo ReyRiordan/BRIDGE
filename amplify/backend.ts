@@ -69,24 +69,23 @@ const apiFn = new LambdaFunction(stack, 'BridgeApi', {
   handler: API_LAMBDA.handler,
   memorySize: API_LAMBDA.memorySizeMb,
   timeout: Duration.seconds(API_LAMBDA.timeoutSeconds),
-  environment: {
-    ALLOWED_ORIGINS: ALLOWED_ORIGINS.join(','),
-    SCENARIO_PATH: VOICE_CONFIG.SCENARIO_PATH,
-  },
+  // Deliberately no SCENARIO_PATH: VOICE_CONFIG's value is the *container's*
+  // /app/resources path. The Lambda reads the copy inside its own bundle.
+  environment: { ALLOWED_ORIGINS: ALLOWED_ORIGINS.join(',') },
   code: Code.fromAsset('.', {
     exclude: API_ASSET_EXCLUDE,
     bundling: {
       image: DockerImage.fromRegistry('public.ecr.aws/lambda/python:3.11'),
       platform: 'linux/arm64',
-      // The tooling pins (ruff/pytest) live in api/requirements.txt for CI to
-      // grep; they have no business in the deployed package. resources/ is
-      // copied in so /health (and [Rewrite C]'s /scenario) can read the
+      // The tooling pins (ruff/pytest/httpx) live in api/requirements.txt for
+      // CI to grep; they have no business in the deployed package. resources/
+      // is copied in so /health (and [Rewrite C]'s /scenario) can read the
       // scenario JSON from the bundle.
       command: [
         'bash',
         '-c',
         [
-          "sed '/^ruff==/d;/^pytest==/d' api/requirements.txt > /tmp/requirements.txt",
+          "sed '/^ruff==/d;/^pytest==/d;/^httpx==/d' api/requirements.txt > /tmp/requirements.txt",
           'pip install --no-cache-dir -r /tmp/requirements.txt --target /asset-output',
           'cp -r api /asset-output/api',
           'cp -r resources /asset-output/resources',
