@@ -93,6 +93,15 @@ One NAT gateway is the fixed floor (~$32/month, always on) — the reason the sa
 - `ampx pipeline-deploy` needs `CI=1` and an app + branch that already exist.
 - **Name every per-account resource off the backend identifier.** Both the KVS channel and the AgentCore runtime are unique per account, and sandbox + branch stacks coexist, so the kit's shared defaults (`VoiceKitSignalingChannel`, `VoiceRuntime`) make the second deploy fail with `AlreadyExists`. `voiceRuntimeName()` in `constants.ts` also sanitizes: AgentCore accepts only `[a-zA-Z][a-zA-Z0-9_]{0,47}`, so hyphenated stack names cannot be passed through.
 - A stack left in `ROLLBACK_COMPLETE` cannot be updated — delete it before redeploying.
+- **Teardown usually fails on the first attempt.** AgentCore keeps service-managed `agentic_ai` ENIs in the private subnets for a while after the runtime is deleted, so `ampx sandbox delete` ends in `DELETE_FAILED` on the security group and private subnets ("has a dependent object" / "has dependencies and cannot be deleted"). The ENIs are AWS-owned and cannot be force-deleted; wait for them to release and re-run the delete:
+
+  ```bash
+  aws ec2 describe-network-interfaces --filters Name=interface-type,Values=agentic_ai \
+    --query 'NetworkInterfaces[?VpcId==`<vpc>`].NetworkInterfaceId'
+  aws cloudformation delete-stack --stack-name <stack>   # once the list is empty
+  ```
+
+  Cost-wise this is not urgent: the NAT gateway and Elastic IP — the only meaningful charges — delete successfully in the first pass. What lingers is a free, empty VPC shell.
 - **Bundle with the SAM build image, not the Lambda runtime image.** `public.ecr.aws/lambda/python:3.11` is for *running* Lambdas; its runtime-interface `ENTRYPOINT` swallows any bundling command and docker exits 142. Use `Runtime.PYTHON_3_11.bundlingImage`.
 - **Keep CDK's own output out of the asset source.** Both assets here are rooted at the repo (`Code.fromAsset('.')` and the docker context) while CDK stages into `.amplify/artifacts/cdk.out/` *inside* that root, so staging copies its output into itself until `ENAMETOOLONG`. Both exclude lists need `.amplify/` and `cdk.out/` — and note `.dockerignore`'s `amplify/` does **not** match `.amplify/`.
 - **`pip --target /asset-output` fails on the bind mount** with "Invalid cross-device link" (pip finishes with a hard-link move). Install container-side, then `cp` across.
