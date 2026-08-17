@@ -8,9 +8,12 @@
 #   - uvicorn --workers 1: peer-connection state is shared in-process and must
 #     not be sharded across workers.
 #
+# Build context is the REPO ROOT (the image needs both runtime/ and resources/);
+# the root .dockerignore keeps that context small while the legacy tree coexists.
+#
 # Local build smoke test (run before every deploy):
-#   docker build --platform linux/arm64 -f Dockerfile.voice -t voice-kit .
-#   docker run --rm -p 8080:8080 voice-kit   # then: curl localhost:8080/ping
+#   docker build --platform linux/arm64 -f runtime/Dockerfile.voice -t bridge-voice .
+#   docker run --rm -p 8080:8080 bridge-voice   # then: curl localhost:8080/ping
 FROM --platform=linux/arm64 python:3.11-slim
 
 # System libs aiortc / onnxruntime / soundfile / opencv need at runtime.
@@ -30,14 +33,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install dependencies first for better layer caching.
-COPY requirements-voice.txt ./
+COPY runtime/requirements-voice.txt ./
 RUN pip install --no-cache-dir -r requirements-voice.txt
 
-# The kit package. Add a COPY line for your own wrapper module (the one that
-# registers a context provider + transcript handler — see
-# docs/01-integration-guide.md), e.g.:
-#   COPY my_voice_app.py /app/my_voice_app.py
-COPY voice_kit /app/voice_kit
+# The kit package + BRIDGE's own runtime code, plus the scenario/prompt files
+# the game engine reads at runtime.
+COPY runtime/voice_kit /app/voice_kit
+COPY runtime/bridge /app/bridge
+COPY resources /app/resources
 ENV PYTHONPATH=/app
 
 EXPOSE 8080
@@ -45,7 +48,7 @@ EXPOSE 8080
 # Run the BedrockAgentCoreApp via uvicorn. --workers 1 is mandatory: the voice
 # runtime keeps WebRTC peer-connection state in this process's memory.
 #
-# With a host wrapper module, point uvicorn at it instead so your context
-# provider/transcript handler are registered at import:
-#   CMD ["uvicorn", "my_voice_app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
+# Still the bare kit app: the BRIDGE wrapper module (which registers the game
+# engine's context provider + transcript handler) becomes the uvicorn target in
+# [Rewrite D].
 CMD ["uvicorn", "voice_kit.runtime:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
