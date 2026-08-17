@@ -109,13 +109,16 @@ class VoiceKitSettings(BaseSettings):
     # must stay unset so boto3's default chain resolves the task/execution role —
     # see infra/voice-runtime.ts and docs/05-gotchas.md #1.
     aws_access_key_id: Optional[str] = Field(
-        default=None, description="AWS access key ID for Polly and Transcribe (local dev only)"
+        default=None,
+        description="AWS access key ID for Polly and Transcribe (local dev only)",
     )
     aws_secret_access_key: Optional[str] = Field(
-        default=None, description="AWS secret access key for Polly and Transcribe (local dev only)"
+        default=None,
+        description="AWS secret access key for Polly and Transcribe (local dev only)",
     )
     aws_region: str = Field(
-        default="us-east-1", description="AWS region for Polly, Transcribe, KVS, and Bedrock"
+        default="us-east-1",
+        description="AWS region for Polly, Transcribe, KVS, and Bedrock",
     )
 
     # Kinesis Video Streams (voice runtime ICE/TURN)

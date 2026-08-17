@@ -6,16 +6,16 @@ Usage: python3 make_transparent.py <image_path>
 Output: visuals/<stem>.png (transparent RGBA PNG)
 """
 
-import sys
-import os
 import base64
 import io
+import os
+import sys
 from pathlib import Path
 
-import requests
 import numpy as np
-from PIL import Image
+import requests
 from dotenv import load_dotenv
+from PIL import Image
 
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -82,9 +82,16 @@ def step1_white_bg(image_path: str) -> bytes:
 
     if BACKGROUND_PATH.exists():
         bg_b64 = image_to_base64(str(BACKGROUND_PATH))
-        content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{bg_b64}"}})
+        content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{bg_b64}"},
+            }
+        )
 
-    content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}})
+    content.append(
+        {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
+    )
     content.append({"type": "text", "text": PROMPT_WHITE_BG})
 
     messages = [{"role": "user", "content": content}]
@@ -98,7 +105,10 @@ def step2_black_bg(white_bytes: bytes) -> bytes:
         {
             "role": "user",
             "content": [
-                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{b64}"},
+                },
                 {"type": "text", "text": PROMPT_BLACK_BG},
             ],
         }
@@ -119,7 +129,7 @@ def difference_matte(white_bytes: bytes, black_bytes: bytes) -> Image.Image:
 
     # alpha per channel: alpha = 1 - (white - black) / 255
     alpha = 1.0 - (w - b) / 255.0
-    alpha = np.mean(alpha, axis=2)          # average across RGB
+    alpha = np.mean(alpha, axis=2)  # average across RGB
     alpha = np.clip(alpha, 0.0, 1.0)
 
     # recover foreground via un-premultiplication: fg = black / alpha
@@ -136,11 +146,11 @@ def difference_matte(white_bytes: bytes, black_bytes: bytes) -> Image.Image:
 
 
 def process_image(image_path: str, output_dir: Path) -> None:
-    print(f"Step 1: rendering on white background...")
+    print("Step 1: rendering on white background...")
     white_bytes = step1_white_bg(image_path)
-    print(f"Step 2: converting to black background...")
+    print("Step 2: converting to black background...")
     black_bytes = step2_black_bg(white_bytes)
-    print(f"Step 3: applying difference matting...")
+    print("Step 3: applying difference matting...")
     result = difference_matte(white_bytes, black_bytes)
     stem = Path(image_path).stem
     out_path = output_dir / f"{stem}.png"

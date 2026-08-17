@@ -1,0 +1,16 @@
+# Lints the rewrite trees only. CI runs `ruff check api runtime` /
+# `ruff format --check api runtime`; the exclude below keeps local
+# whole-repo invocations from flagging the legacy app, which is frozen
+# until its teardown.
+target-version = "py311"
+
+exclude = [
+    "backend",
+    "app.py",
+]
+
+[lint]
+# Ruff's classic default set (pycodestyle errors + pyflakes) plus isort, spelled
+# out rather than inherited: the vendored voice_kit code is relocated verbatim
+# and must not be rewritten by a lint rule a ruff upgrade turns on by default.
+select = ["E4", "E7", "E9", "F", "I"]
