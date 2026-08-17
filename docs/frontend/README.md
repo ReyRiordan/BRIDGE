@@ -13,6 +13,7 @@
 | `src/index.css` | `@import 'tailwindcss'` — Tailwind v4 has no config file; the `@tailwindcss/vite` plugin in `vite.config.ts` is the whole setup |
 | `src/voice/` | The voice client (vendored) + the generated event types |
 | `public/visuals/` | Layered scene art: `patient_{escalation}.png` + per-action active/inactive layers |
+| `public/amplify_outputs.json` | Backend outputs (`custom.apiUrl`). **Generated, never committed** — the Hosting build writes it (see `../backend/deployment.md`); the SPA fetches it at runtime |
 | `vite.config.ts` | Vite plugins + the Vitest (jsdom, globals) config |
 | `eslint.config.js` | ESLint flat config: typescript-eslint, react-hooks, react-refresh, prettier |
 

@@ -5,8 +5,13 @@
 # and this is the only requirements file that installs pytest — keep both.
 
 fastapi==0.141.1
+# ASGI -> Lambda adapter. The Function URL invokes `api.main.handler`.
+mangum==0.21.0
 
 # Tooling (CI + local): the lint job installs the ruff line, the test job runs
-# pytest over both api/tests and runtime/tests.
+# pytest over both api/tests and runtime/tests, and httpx backs fastapi's
+# TestClient. The Lambda bundling step in amplify/backend.ts strips these three
+# lines by name — add a tooling pin here and add it there too.
 ruff==0.16.3
 pytest==9.1.1
+httpx==0.28.1
