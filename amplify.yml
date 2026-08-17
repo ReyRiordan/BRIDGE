@@ -14,7 +14,10 @@ frontend:
     preBuild:
       commands:
         # Root install is for `ampx` only; the SPA is a separate npm project.
-        - npm ci
+        # `npm install`, not `npm ci`: @aws-amplify/backend's bundled nested
+        # deps make `npm ci` fail with spurious "Missing from lock file" errors
+        # (Amplify CI guards lockfile drift instead).
+        - npm install --no-audit --no-fund
         # Pull the deployed backend's outputs (apiUrl) and serve them as a
         # static file the SPA fetches at runtime ([Rewrite F]/[Rewrite G]).
         - npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID

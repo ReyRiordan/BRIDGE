@@ -74,5 +74,6 @@ One NAT gateway is the fixed floor (~$32/month, always on) — the reason the sa
 
 - `ampx pipeline-deploy` needs `CI=1` and an app + branch that already exist.
 - The Docker asset rebuild is the slow step of every deploy. The root `.dockerignore` and `API_ASSET_EXCLUDE` keep the hashes stable so unchanged code skips it.
-- If `npm ci` skipped install scripts (esbuild, `@parcel/watcher`), `ampx` will fail to start — approve them with `npm install-scripts approve <pkg>`.
+- Use `npm install`, not `npm ci`, at the repo root. `@aws-amplify/backend` pulls `@aws-amplify/data-construct` and `@aws-amplify/graphql-api-construct`, whose bundled nested dependencies npm reports as "Missing from lock file" even immediately after a clean install. Amplify CI runs `npm install` plus a `git diff --exit-code package-lock.json` drift check; `web/` is unaffected and still uses `npm ci`.
+- If the install skipped install scripts (esbuild, `@parcel/watcher`), `ampx` will fail to start — approve them with `npm install-scripts approve <pkg>`.
 - `api/main.py` is the [Rewrite C] placeholder. It proves bundling and CORS only, and gets replaced wholesale.
