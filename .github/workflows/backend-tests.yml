@@ -1,0 +1,84 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'runtime/**'
+      - 'resources/**'
+      - 'scripts/gen_event_types.py'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'runtime/**'
+      - 'resources/**'
+      - 'scripts/gen_event_types.py'
+      - '.github/workflows/backend-tests.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install ruff (version pinned in requirements.txt)
+        run: pip install "$(grep -E '^ruff==' api/requirements.txt)"
+
+      - name: Ruff lint
+        run: ruff check api runtime
+
+      - name: Ruff format check
+        run: ruff format --check api runtime
+
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      OPENROUTER_API_KEY: test-openrouter-key
+      TOGETHER_API_KEY: test-together-key
+      INWORLD_API_KEY: test-inworld-key
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            api/requirements.txt
+            runtime/requirements-voice.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r api/requirements.txt
+          pip install -r runtime/requirements-voice.txt
+
+      - name: Control plane stays pipecat-free
+        # The API Lambda must import the voice control plane without any
+        # pipeline dependencies installed — guarded here by importing it
+        # before the runtime requirements would matter at runtime.
+        run: python3 -c "import voice_kit; voice_kit.create_voice_router()"
+        working-directory: runtime
+
+      - name: Run tests
+        run: |
+          pytest api/tests/
+          pytest runtime/tests/
+
+      - name: Event contract freshness
+        # The committed web/src/voice/gameEvents.gen.ts is generated from the
+        # pydantic event models in runtime/bridge/events.py (the data-channel
+        # wire contract shared with the SPA). Fails when it drifts from the
+        # code — regenerate with `python3 scripts/gen_event_types.py`.
+        run: python3 scripts/gen_event_types.py --check

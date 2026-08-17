@@ -1,0 +1,36 @@
+name: Amplify CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'amplify/**'
+      - '.github/workflows/amplify-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'amplify/**'
+      - '.github/workflows/amplify-tests.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check infra
+        run: npx tsc --noEmit -p amplify
+
+      - name: Run infra tests
+        run: npm test

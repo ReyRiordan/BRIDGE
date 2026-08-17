@@ -1,16 +1,44 @@
-# MEWAI — Behavioral De-escalation Simulation
+# BRIDGE — Behavioral Response and Interactive De-escalation Guided Education
 
 ## What This Is
 
 A voice-to-voice medical training simulation where medical students practice behavioral de-escalation with an AI patient. The student speaks aloud; their words are transcribed, analyzed for de-escalation actions, and used to drive a patient AI response. An escalation bar tracks patient agitation. The goal is to reduce it to zero before time runs out.
 
-Stack: **FastAPI + FastRTC + Gradio** (backend), **vanilla JS + HTML/CSS** (frontend), deployed as a single `python3 app.py` process.
+> Formerly known as **MEWAI**. Renamed to BRIDGE as part of the ongoing rewrite; legacy references to MEWAI may persist in older files until final teardown.
 
-## How to Run
+## ⚠️ Rewrite In Progress
+
+The repo is mid-rewrite from a single-process prototype (FastAPI + FastRTC + Gradio) to a production app on AWS:
+
+- **New architecture:** Vite + React + TS + Tailwind SPA (`web/`) on Amplify Hosting; a thin FastAPI control-plane Lambda (`api/`, via Mangum); the voice pipeline on **Bedrock AgentCore + pipecat** (`runtime/`, built from the vendored `voice-pipeline-kit/`); Amplify Gen 2 TS CDK infra (`amplify/`).
+- The rewrite is **additive**: the legacy app stays runnable until the final teardown issue. Old and new trees coexist (`frontend/` = legacy, `web/` = new).
+- The rewrite is tracked as GitHub issues `[Rewrite A]`–`[Rewrite I]`; see the tracking issue for wave ordering.
+- Every rewrite change follows: **implement → write tests → update docs → tests/lint green in CI** (`.github/workflows/`).
+
+## Exploration Workflow
+
+When working on or exploring the codebase from a fresh start, ALWAYS start by reading the README of the relevant layer's documentation folder (frontend/, backend/). Then, use the documentation map in this README to navigate to the specific docs relevant to the current task. These docs will provide you with the core context and point to specific code files that you can read as necessary. Always do this relevant doc reading BEFORE you do actual codebase exploration.
+
+This workflow is MANDATORY as it ensures a clear top-down understanding of codebase, maximizes exploration efficiency, and minimizes unnecessary code file reads.
+
+You MUST keep the docs up to date at all times because they are such a core part of this workflow - do not end a session where you made changes without updating the relevant docs as needed. The docs should only concisely reflect the current state, not how we got there (do not reference any specific issues/PRs).
+
+**Documentation layers** (context path: `CLAUDE.md → layer README → specific docs → code`):
+
+| Layer | Doc folder | Covers |
+|---|---|---|
+| frontend | `docs/frontend/` | `web/` (SPA screens, game UI, voice client) |
+| backend | `docs/backend/` | `api/` (control-plane Lambda), `runtime/` (AgentCore voice pipeline + game engine), `amplify/` (infra). Includes `docs/backend/voice-kit/` ops docs (architecture, configuration, infrastructure, deploy runbook, gotchas). |
+
+Until the doc folders are scaffolded (rewrite issue A), the kit's docs live at `voice-pipeline-kit/docs/` and the legacy app is documented in the section below.
+
+## Legacy App (still runnable during the rewrite)
+
+Stack: FastAPI + FastRTC + Gradio, deployed as a single process.
 
 ```
 pip install -r requirements.txt
-# Add API keys to .env (see .env section below)
+# Add API keys to .env (see below)
 python3 app.py
 # Visit http://localhost:7860
 ```
@@ -24,83 +52,30 @@ INWORLD_API_KEY      # Inworld TTS (streaming audio)
 
 ### Optional .env keys (per-agent model + reasoning effort)
 Each defaults to `anthropic/claude-haiku-4.5` / effort `none` if unset.
-Effort values: `none | low | medium | high` (passed directly to OpenRouter's `reasoning.effort`).
+Effort values: `none | low | medium | high` (passed to OpenRouter's `reasoning.effort`).
 ```
-SYSTEM_AGENT_MODEL    # OpenRouter model ID for the system (referee) agent
-SYSTEM_AGENT_EFFORT   # Reasoning effort for the system agent
-PATIENT_AGENT_MODEL   # OpenRouter model ID for the patient agent
-PATIENT_AGENT_EFFORT  # Reasoning effort for the patient agent
+SYSTEM_AGENT_MODEL / SYSTEM_AGENT_EFFORT     # system (referee) agent
+PATIENT_AGENT_MODEL / PATIENT_AGENT_EFFORT   # patient agent
 ```
 
-## File Map
+### Legacy file map
 
 | File | Responsibility |
 |------|---------------|
-| `app.py` | Entry point. Loads env/resources, instantiates AI clients, wires modules together, starts uvicorn. |
-| `backend/agents.py` | Three AI wrapper classes: `ParakeetSTT`, `OpenRouterChat`, `InworldTTS`. No game logic. |
-| `backend/game.py` | `GameState` dataclass + module-level singletons (`GAME_STATE`, `STATE_LOCK`, `CONVERSATION_HISTORY`, `HISTORY_LOCK`). Also contains `load_scenario()` and `load_patient_prompt()`. |
-| `backend/handlers.py` | Core simulation loop. Per-turn pipeline: STT → system agent → apply actions → check terminal → patient agent → TTS. Depends on singletons injected from `app.py`. |
-| `backend/routes.py` | FastAPI endpoints (`/`, `/scenario`, `/ws`), WebSocket broadcast loop, timer coroutine, `reset_game()`. Registers all routes via `register_routes(app, scenario)`. |
-| `frontend/index.html` | HTML skeleton — 4 screens (start, intro, game, end). |
-| `frontend/style.css` | All UI styles: dark theme, escalation bar colors, badge animation, transcript bubbles. |
-| `frontend/app.js` | Frontend logic: WebSocket client, event handlers, screen transitions, DOM updates. |
-| `resources/scenario_1.json` | Scenario config (actions, escalation bar, time limit, scene filenames, TTS settings). |
-| `resources/patient.txt` | System prompt for the patient AI agent. |
-| `resources/patient.json` | Patient case file (demographics, free/locked information). |
-| `resources/system.txt` | System prompt for the system (referee) AI agent. |
-| `scenes/*.jpg` | Background images that change based on detected actions. |
+| `app.py` | Entry point. Loads env/resources, instantiates AI clients, wires modules, starts uvicorn. |
+| `backend/agents.py` | AI wrappers: `ParakeetSTT`, `OpenRouterChat`, `InworldTTS`. No game logic. |
+| `backend/game.py` | `GameState` dataclass + module singletons; `load_scenario()`, `load_patient_prompt()`. |
+| `backend/handlers.py` | Per-turn pipeline: STT → system agent → apply actions → check terminal → patient agent → TTS. |
+| `backend/routes.py` | FastAPI endpoints (`/`, `/scenario`, `/ws`), WebSocket broadcast, timer, `reset_game()`. |
+| `frontend/` | Legacy vanilla-JS UI (4 screens, WebSocket client, layered scene compositing). |
+| `resources/scenario_1.json` | Scenario config (actions with `point_change`/`persist`/`layer`/`active`/`inactive` visuals, point bar, time limit, TTS settings). **Shared with the new app.** |
+| `resources/patient.txt` / `patient.json` | Patient agent system prompt + case file. |
+| `resources/system.txt` | System (referee) agent prompt. |
+| `visuals/*.png` | Layered scene art: `patient_{escalation}.png` + per-action active/inactive layers composited by the frontend. |
 
-## Key Architectural Patterns
+### Legacy key mechanics
 
-### Thread-safe state + async bridge
-FastRTC runs the audio handler (`handlers.response`) in a sync thread. Game state is protected by `STATE_LOCK` and `HISTORY_LOCK` (threading.Lock). WebSocket broadcast is async. `enqueue()` in `routes.py` bridges the two worlds via `asyncio.run_coroutine_threadsafe`.
-
-### WebSocket event types
-All real-time frontend updates flow through `/ws`. The backend pushes these event types:
-- `state_update` — new escalation value, scene filename, game status
-- `action_detected` — action type, description, point change (triggers badge flash)
-- `timer` — elapsed/limit in seconds
-- `game_over` — status (success/fail), reason string
-- `transcript_update` — role (student/patient), content string
-
-Frontend sends:
-- `begin` — starts the simulation (called when student clicks "Begin Simulation")
-- `reset` — resets game state (called on "Play Again")
-
-### Two AI agents, one LLM class
-Both agents use `OpenRouterChat` (Claude Haiku via OpenRouter) but with different system prompts and input formats:
-- **System agent** (`resources/system.txt`): receives JSON `{utterance, escalation, actions}`, returns JSON `{detected_actions: [{type, point_change, scene_change}]}`. Detects which scenario actions the student performed.
-- **Patient agent** (`resources/patient.txt`): receives conversation history + escalation context as a system message. Responds in character. Verbosity and cooperativeness scale with escalation level.
-
-### Escalation as the central mechanic
-`GAME_STATE.escalation` (int, 0–10) controls:
-- Patient response style (high = terse/hostile, low = cooperative)
-- What patient information is revealed (locked info only at escalation = 0)
-- Win/loss: reaches 0 → success; reaches 10 → fail; timer hits 0 → fail
-- Scene image shown (actions trigger `scene_change` in scenario JSON)
-
-## Scenario File Format (`resources/scenario_1.json`)
-
-```json
-{
-  "speech": { "voice": "Mark", "speed": 1.2 },
-  "intro": "...",
-  "goal": "...",
-  "background": "background.jpg",
-  "start": "start.jpg",
-  "success": "success.jpg",
-  "fail": "fail.jpg",
-  "point_bar": { "min": 0, "max": 10, "start": 5, "goal": 0 },
-  "time_limit": 300,
-  "actions": [
-    {
-      "type": "caregiver_involvement",
-      "desc": "Involve or acknowledge the patient's caregiver",
-      "point_change": -3,
-      "scene_change": "caregiver_involvement.jpg"
-    }
-  ]
-}
-```
-
-Positive `point_change` = bad action (escalates). Negative = good (de-escalates). The system agent returns `type` strings that must exactly match entries in `actions`.
+- **Escalation** (`0–10`) is the central mechanic: drives patient response style, locked-info reveal (only at 0), win/loss (0 → success, 10 or timeout → fail), and which visual layers render.
+- Positive `point_change` = escalating action; negative = de-escalating. The system agent returns `type` strings matching `actions` in the scenario JSON.
+- WebSocket `/ws` pushes `state_update`, `action_detected`, `timer`, `game_over`, `transcript_update`; client sends `begin` / `reset`.
+- Audio I/O runs inside a Gradio iframe mounted at `/gradio` (removed in the rewrite).
