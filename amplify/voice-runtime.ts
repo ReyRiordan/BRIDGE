@@ -5,8 +5,9 @@
 // your backend.ts and it provisions: a VPC (NAT + private subnets), the KVS
 // signaling channel, the AgentCore runtime built from Dockerfile.voice, all
 // task-role grants, and the API-Lambda-side wiring (grantInvoke + env vars +
-// browser-side KVS grants). See infra/README.md for the required imports and a
-// worked example; docs/03-infrastructure.md explains every grant.
+// browser-side KVS grants). docs/backend/voice-kit/03-infrastructure.md carries
+// the worked example and explains every grant. Wired from backend.ts in
+// [Rewrite B].
 //
 // The real-time WebRTC voice pipeline is the one workload that can't run on
 // Lambda (stateful, streaming, long sessions). It runs as a Pipecat pipeline on
@@ -46,8 +47,17 @@ export interface VoiceRuntimeProps {
    * availability zones" and roll back the whole stack.
    */
   availabilityZones: string[];
-  /** Docker build context: the directory containing Dockerfile.voice + voice_kit/. */
+  /**
+   * Docker build context. In BRIDGE this is the REPO ROOT ('.'): the image
+   * needs both runtime/ and resources/, and the root .dockerignore keeps the
+   * context small.
+   */
   dockerContext: string;
+  /**
+   * Dockerfile path, relative to `dockerContext` (default 'Dockerfile.voice').
+   * BRIDGE passes 'runtime/Dockerfile.voice' because the context is the root.
+   */
+  dockerfile?: string;
   /** Runtime construct name (default 'VoiceRuntime'). */
   runtimeName?: string;
   /**
@@ -108,7 +118,7 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
   const voiceRuntime = new AgentCoreRuntime(stack, 'VoiceKitRuntime', {
     runtimeName: props.runtimeName ?? 'VoiceRuntime',
     agentRuntimeArtifact: AgentRuntimeArtifact.fromAsset(props.dockerContext, {
-      file: 'Dockerfile.voice',
+      file: props.dockerfile ?? 'Dockerfile.voice',
       platform: Platform.LINUX_ARM64,
     }),
     networkConfiguration: RuntimeNetworkConfiguration.usingVpc(stack, {
