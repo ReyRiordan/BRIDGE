@@ -1,4 +1,4 @@
-# MEWAI — Behavioral De-escalation Simulation
+# BRIDGE — Behavioral Response and Interactive De-escalation Guided Education
 
 A voice-to-voice medical training simulation for practicing behavioral de-escalation. Medical students speak with an AI patient in real time, make de-escalation decisions, and watch an agitation meter and scene visuals respond dynamically. Built with Nethra.
 
