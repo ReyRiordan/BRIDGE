@@ -63,6 +63,25 @@ describe('EndScreen', () => {
     expect(screen.getByText('-3')).toBeDefined()
   })
 
+  it('renders the connection-lost variant without game fail copy', () => {
+    const state = foldTo(successRun)
+    render(
+      <EndScreen
+        gameOver={{
+          status: 'connection_lost',
+          reason: 'Connection lost — the session could not continue.',
+        }}
+        checklist={selectChecklist(state)}
+        onPlayAgain={() => {}}
+      />,
+    )
+    const title = screen.getByRole('heading', { level: 2 })
+    expect(title.textContent).toBe('Connection Lost')
+    expect(title.textContent).not.toBe('Simulation Ended')
+    // Same way out as any other ending.
+    expect(screen.getByRole('button', { name: 'Play Again' })).toBeDefined()
+  })
+
   it('reports Play Again', () => {
     const onPlayAgain = vi.fn()
     renderFor(successRun, onPlayAgain)
@@ -74,10 +93,7 @@ describe('EndScreen', () => {
     const state = foldTo(successRun)
     render(
       <>
-        <GameScreen
-          state={{ ...state, phase: 'end' }}
-          onGameOverSettled={() => {}}
-        />
+        <GameScreen state={{ ...state, phase: 'end' }} />
         <EndScreen
           gameOver={state.gameOver!}
           checklist={selectChecklist(state)}

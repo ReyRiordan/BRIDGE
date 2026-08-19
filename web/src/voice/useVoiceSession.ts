@@ -221,10 +221,10 @@ export function useVoiceSession(
     if (state.phase !== 'game' || state.gameOver !== null) return
 
     intentionalEndRef.current = true
-    setConnectionLost(true)
-    setStatus('ended')
     clearTimers()
     settleRef.current = 'done'
+    // Teardown first, then the flags: the drop is an external event, so the
+    // state lands with the cleanup rather than synchronously in the effect.
     void (async () => {
       try {
         await endCall()
@@ -232,6 +232,8 @@ export function useVoiceSession(
         // nothing left to close
       }
       await endSessionOnce()
+      setConnectionLost(true)
+      setStatus('ended')
     })()
   }, [
     callState,
