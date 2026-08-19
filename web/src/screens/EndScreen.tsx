@@ -2,10 +2,28 @@ import ActionChecklist from '../components/ActionChecklist'
 import Button from '../components/Button'
 import type { ChecklistRow, GameOverState } from '../state/useGame'
 
+/**
+ * A network drop is a UI-level outcome, not a wire one: the `GameOver` event
+ * type stays `success | fail`, and a lost connection must never masquerade as a
+ * failed de-escalation.
+ */
+export interface ConnectionLostState {
+  status: 'connection_lost'
+  reason: string
+}
+
+export type EndOutcome = GameOverState | ConnectionLostState
+
 interface EndScreenProps {
-  gameOver: GameOverState
+  gameOver: EndOutcome
   checklist: ChecklistRow[]
   onPlayAgain: () => void
+}
+
+const TITLES: Record<EndOutcome['status'], string> = {
+  success: 'De-escalation Successful!',
+  fail: 'Simulation Ended',
+  connection_lost: 'Connection Lost',
 }
 
 /**
@@ -28,7 +46,7 @@ function EndScreen({ gameOver, checklist, onPlayAgain }: EndScreenProps) {
             id="end-title"
             className={`text-2xl font-semibold ${success ? 'text-good' : 'text-bad'}`}
           >
-            {success ? 'De-escalation Successful!' : 'Simulation Ended'}
+            {TITLES[gameOver.status]}
           </h2>
           <p className="mt-2 text-sm text-ink-muted">{gameOver.reason}</p>
         </div>
