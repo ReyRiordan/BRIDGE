@@ -118,7 +118,7 @@ set_pipeline_canceller(end_session)        # what the grace reaper calls
 
 ## Step 4 — frontend
 
-The client files live in `web/src/voice/`. `configureVoiceApi(adapter, `${base}/voice`)` runs once in the `main.tsx` bootstrap; wiring `useWebRTC` + `startVoiceSession`/`endVoiceSession` into the simulation screen with the reconnect loop is [Rewrite G2] — see `docs/frontend/voice-client.md`.
+The client files live in `web/src/voice/`. `configureVoiceApi(adapter, `${base}/voice`)` runs once in the `main.tsx` bootstrap; `useVoiceSession.ts` wires `useWebRTC` + `startVoiceSession`/`endVoiceSession` into the screens, with a bounded reconnect policy in place of the kit's loop — see `docs/frontend/voice-integration.md`.
 
 ## End-to-end sequence (sanity reference)
 

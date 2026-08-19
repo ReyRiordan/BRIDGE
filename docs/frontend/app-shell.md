@@ -1,9 +1,9 @@
 # App shell
 
-`web/src/` — the four screens and the state machine behind them. Voice is not
-mounted here yet; the data channel already dispatches into this same reducer
-(see `voice-client.md`), and [Rewrite G2] hangs the session lifecycle off the
-game screen.
+`web/src/` — the four screens and the state machine behind them. The voice
+session hangs off this same reducer: the data channel dispatches into it
+(`voice-client.md`) and the session lifecycle around it lives in
+`voice-integration.md`.
 
 ## Phase machine
 
@@ -47,10 +47,10 @@ limit or action list is hardcoded. Editing `resources/scenario_1.json` changes
 the UI with zero code edits — `gameReducer.test.ts` asserts exactly that.
 
 **No wall-clock in the reducer.** The reducer is a pure function of
-`(state, action)`. Timed behaviour lives in the components that own it: the 3 s
-badge auto-hide in `ActionBadge`, and the 600 ms hold on the final frame in
-`GameScreen` (which then calls `onGameOverSettled` → `SHOW_END`). That callback
-must stay referentially stable in `App`, or the effect restarts every render.
+`(state, action)`. Timed behaviour lives in whatever owns it: the 3 s badge
+auto-hide in `ActionBadge`, and the end handoff in `useVoiceSession`, which
+holds the final frame until the closing patient audio has actually finished
+before dispatching `SHOW_END` (see `voice-integration.md`).
 
 **The runtime owns the clock.** `TimerPill` is stateless and the UI never ends
 the game itself — expiry arrives as a `game_over` event.
@@ -96,5 +96,9 @@ image, so asserting on image state would assert on nothing.
 `dispatch` is the seam. Wire events are already in the action union and the
 envelope tolerance lives here, so the voice client only calls
 `createGameEventHandler(dispatch)` on whatever it parsed off the channel — no
-adapter, no second filter. Mounting that handler on the game screen (and the
-session lifecycle around it) is [Rewrite G2].
+adapter, no second filter. `App` mounts `useVoiceSession(state, dispatch)`,
+which registers that handler and owns everything effectful about the session —
+ids, connect, retry, end settle, drops. The end phase is reached only through
+that hook: `game_over` sets `state.gameOver`, and `SHOW_END` follows once the
+final audio has played (`voice-integration.md`). `EndScreen` also renders a
+third, UI-only `connection_lost` variant that never comes from the wire.

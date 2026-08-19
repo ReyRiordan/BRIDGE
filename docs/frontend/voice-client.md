@@ -1,6 +1,6 @@
 # Voice client
 
-The browser half of the voice pipeline: the vendored files in `web/src/voice/`, no page component. They are kept close to their upstream (pipeline-kit) source — ESLint carries a scoped override for the folder. [Rewrite G2] mounts them on the simulation screen.
+The browser half of the voice pipeline: the vendored files in `web/src/voice/`. They are kept close to their upstream (pipeline-kit) source — ESLint carries a scoped override for the folder. BRIDGE's own session lifecycle on top of them is `useVoiceSession.ts`, documented in [`voice-integration.md`](voice-integration.md).
 
 | File | What it is |
 |---|---|
@@ -9,6 +9,7 @@ The browser half of the voice pipeline: the vendored files in `web/src/voice/`, 
 | `voiceApi.ts` | The three control-plane calls, transport-injected |
 | `webrtc.service.ts` | Singleton service: peer connection, relay-only ICE, non-trickle offer, data-channel game events, remote-audio analysis |
 | `useWebRTC.ts` | React hook: call lifecycle, ICE-stall detection, anti-echo auto-mute |
+| `useVoiceSession.ts` | **BRIDGE's own**: session lifecycle — ids, connect + retry policy, end settle, drop handling |
 | `gameEvents.ts` | `createGameEventHandler(dispatch)` — the data channel → reducer seam |
 | `gameEvents.gen.ts` | **Generated** — the v1 data-channel event envelope (see below) |
 
@@ -62,33 +63,14 @@ await connectWithFreshRuntime()
 gathering stall would otherwise hang *before* the hook's ICE-stall detection
 starts. It rejects as `CONNECTION_FAILED` through the normal cleanup path.
 
-## 3. Reconnect loop (recommended)
+## 3. Reconnect policy
 
-A cold-started runtime can stall ICE (`startCall` throws `ICE_STALL`), and a
-live call can drop (`connectionState` becomes `'failed'`/`'disconnected'`).
-Both recover the same way: exponential backoff, max 3 attempts, **fresh
-`runtime_session_id` each attempt**:
-
-```tsx
-useEffect(() => {
-  if (callState !== 'connected') return
-  if (connectionState !== 'failed' && connectionState !== 'disconnected') return
-
-  if (reconnectAttempts < 3) {
-    const delay = Math.pow(2, reconnectAttempts) * 1000 // 1s, 2s, 4s
-    const t = setTimeout(async () => {
-      setReconnectAttempts((n) => n + 1)
-      try {
-        await connectWithFreshRuntime()
-      } catch {
-        setReconnectTick((t) => t + 1) // re-fire this effect if the attempt itself throws
-      }
-    }, delay)
-    return () => clearTimeout(t)
-  }
-  surfaceError('Connection lost after 3 reconnect attempts.')
-}, [connectionState, callState, reconnectTick])
-```
+The kit's upstream advice is an exponential-backoff loop, max 3 attempts, fresh
+`runtime_session_id` each attempt. **BRIDGE does not use it.** Game state lives
+in memory on the container, so a mid-game reconnect can silently restart the
+game — the policy here is bounded and pre-`BEGIN` only (one silent `ICE_STALL`
+retry; a mid-game drop becomes an explicit connection-lost state). The full
+rules and their rationale: [`voice-integration.md`](voice-integration.md).
 
 ## 4. End flow
 

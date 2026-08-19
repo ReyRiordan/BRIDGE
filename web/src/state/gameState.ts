@@ -9,8 +9,9 @@
  *    via SCENARIO_LOADED. Editing the scenario JSON changes the UI with zero
  *    code edits.
  * 2. **No wall-clock in the reducer.** Timed behaviour (the 3 s badge auto-hide,
- *    the 600 ms end-screen handoff) lives in components. The reducer is a pure
- *    function of (state, action) and is fully exercisable in a test.
+ *    the audio-aware end-screen handoff) lives in the component or hook that
+ *    owns it. The reducer is a pure function of (state, action) and is fully
+ *    exercisable in a test.
  *
  * The control-action names are SCREAMING_SNAKE and the wire discriminants are
  * lower_snake, so the two never collide: the voice client hands the raw
@@ -190,8 +191,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         timer: { elapsed: action.elapsed, limit: action.limit },
       }
 
-    // Terminal, and deliberately NOT a phase change: GameScreen holds the final
-    // frame for 600 ms before dispatching SHOW_END.
+    // Terminal, and deliberately NOT a phase change: useVoiceSession holds the
+    // final frame until the closing patient audio has played, then dispatches
+    // SHOW_END.
     case 'game_over':
       return state.gameOver
         ? state
