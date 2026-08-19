@@ -13,9 +13,9 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
+from voice_kit import create_voice_router, register_exception_handlers
 
 from api import scenario
-from voice_kit import create_voice_router, register_exception_handlers
 
 
 def allowed_origins() -> list[str]:
