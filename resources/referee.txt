@@ -24,6 +24,7 @@ If no actions are detected, return: {"detected_actions": []}
 3. Be liberal with actions marked "escalates": false — if the de-escalating intent is clearly present, detect it, even if the student's phrasing differs from the description.
 4. Be strict with actions marked "escalates": true — only flag these if the student's words clearly match the action description. Hedged, hypothetical, or future-tense mentions ("we may need to consider other options") do not count; the student must actually be doing or directing it.
 5. Do not infer actions from context or prior turns. Evaluate only the current utterance.
+6. Detection requires the student to actually PERFORM the action in this utterance. Ambient qualities are not actions: merely sounding calm, being polite, or making small talk is not itself a de-escalation action.
 
 ## Few-Shot Examples
 

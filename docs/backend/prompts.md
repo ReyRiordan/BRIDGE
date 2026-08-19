@@ -81,4 +81,14 @@ critical path before the patient reply.
 escalation level and prints the replies side by side — a 30-second check that
 terseness tracks escalation and that history is deflected everywhere.
 
-Run both after touching either prompt.
+Run both after touching either prompt. Two prompt rules exist only because the
+evals caught the failure and are easy to regress:
+
+- The referee's "ambient qualities are not actions" rule — without it, any calm
+  or polite utterance (small talk included) scored `Verbal Communication`.
+- The patient's TTS/no-emote rule and the escalation-0 row's history caveat —
+  the persona otherwise emitted `*shifts uncomfortably*` (spoken verbatim by the
+  TTS) and answered history questions once fully calm.
+
+Referee latency measured on `anthropic/claude-haiku-4.5` with
+`reasoning.effort: none`: ~1.1s median, ~2s worst case over 45 runs.
