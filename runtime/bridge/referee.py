@@ -59,6 +59,31 @@ class RefereeVerdict(BaseModel):
     detected_actions: List[DetectedAction] = []
 
 
+def build_referee_payload(scenario: dict, utterance: str, escalation: int) -> str:
+    """The referee's user message: the utterance, the escalation, the action list.
+
+    The raw ``point_change`` is deliberately withheld — a model that cannot see
+    the numbers cannot tempt us into trusting the ones it echoes. Only its SIGN
+    is exposed, as ``escalates``, which is what lets the prompt say "be strict
+    with escalating actions" without naming any of them: adding an action to the
+    scenario never requires a prompt edit.
+    """
+    return json.dumps(
+        {
+            "utterance": utterance,
+            "escalation": escalation,
+            "actions": [
+                {
+                    "type": a["type"],
+                    "desc": a["desc"],
+                    "escalates": a["point_change"] > 0,
+                }
+                for a in scenario["actions"]
+            ],
+        }
+    )
+
+
 def build_response_format(scenario: dict) -> dict:
     """Strict json_schema for the verdict, with the enum taken from the scenario."""
     action_types = [a["type"] for a in scenario["actions"]]
@@ -199,25 +224,8 @@ class RefereeProcessor(FrameProcessor):
         Always returns a list — every failure mode scores the turn as empty.
         """
         session = self._session
-        user_message = json.dumps(
-            {
-                "utterance": utterance,
-                "escalation": session.escalation,
-                # The raw point_change is deliberately withheld: a model that
-                # cannot see the numbers cannot tempt us into trusting the ones
-                # it echoes. Only its SIGN is exposed, as `escalates` — that is
-                # what lets the prompt say "be strict with escalating actions"
-                # without naming any of them, so adding an action to the
-                # scenario never requires a prompt edit.
-                "actions": [
-                    {
-                        "type": a["type"],
-                        "desc": a["desc"],
-                        "escalates": a["point_change"] > 0,
-                    }
-                    for a in session.scenario["actions"]
-                ],
-            }
+        user_message = build_referee_payload(
+            session.scenario, utterance, session.escalation
         )
         try:
             raw = await asyncio.wait_for(
