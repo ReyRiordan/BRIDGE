@@ -1,1 +1,78 @@
 @import 'tailwindcss';
+
+/*
+ * BRIDGE design tokens.
+ *
+ * Tailwind v4 has no config file: this @theme block IS the design system, and
+ * every custom property below becomes a utility (`bg-surface`, `text-ink`,
+ * `aspect-stage`, …).
+ *
+ * ⚠ Tone/variant classes must be selected through lookup objects in TS
+ * (`Record<EscTone, string>`), NEVER template interpolation. Tailwind v4 scans
+ * source files as plain text, so `bg-esc-${tone}` produces no CSS at all.
+ */
+@theme {
+  /* Surfaces — dark slate, carried over from the legacy UI. */
+  --color-canvas: #080d17;
+  --color-surface: #0f172a;
+  --color-surface-raised: #1a2437;
+  --color-edge: #26334b;
+
+  /* Ink */
+  --color-ink: #e9eef7;
+  --color-ink-muted: #91a2bd;
+
+  /* Accent */
+  --color-accent: #38bdf8;
+  --color-accent-strong: #0284c7;
+
+  /* Escalation scale — LOW IS GOOD, so calm is the green end. */
+  --color-esc-calm: #22c55e;
+  --color-esc-watch: #eab308;
+  --color-esc-warn: #f97316;
+  --color-esc-crit: #ef4444;
+
+  /* Action outcome */
+  --color-good: #34d399;
+  --color-bad: #f87171;
+
+  /* Transcript bubbles */
+  --color-student: #075985;
+  --color-patient: #1e293b;
+
+  --radius-card: 0.875rem;
+
+  /* The scene art is a matched 1196×880 set; pinning the stage aspect is what
+     keeps the composited layers from drifting apart as the column resizes. */
+  --aspect-stage: 1196/880;
+
+  --animate-badge-in: badge-in 0.28s ease-out;
+  --animate-dot-pulse: dot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes badge-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.75rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes dot-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+}
