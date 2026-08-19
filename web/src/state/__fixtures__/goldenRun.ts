@@ -89,14 +89,22 @@ export const successRun: GameEvent[] = [
   // The Force IV layer clears here; the caregiver layer persists from now on.
   student('I can see this is overwhelming. Could you help me calm him?'),
   tick(12),
-  detected(CAREGIVER, 'Ask caregiver for guidance or involve them in calming', -3),
+  detected(
+    CAREGIVER,
+    'Ask caregiver for guidance or involve them in calming',
+    -3,
+  ),
   detected('Acknowledge distress', 'E.g. “I see this is overwhelming”', -1),
   state(5, [CAREGIVER], 'settling'),
   patient('...he does that when it gets loud.'),
 
   // Turn 3 — Verbal Communication, first time.
   student('I am going to explain everything before I do it, okay?'),
-  detected('Verbal Communication', 'Calm tone, simple explanations, reassurance', -1),
+  detected(
+    'Verbal Communication',
+    'Calm tone, simple explanations, reassurance',
+    -1,
+  ),
   state(4, [CAREGIVER], 'settling'),
   patient('Okay. Slow.'),
 
@@ -109,7 +117,11 @@ export const successRun: GameEvent[] = [
   // Turn 5 — Verbal Communication REPEATS (dedupes in actionsTaken, new badge
   // id), and game_over lands before the closing patient line.
   student('You are safe here. Would you like me to explain or show you first?'),
-  detected('Verbal Communication', 'Calm tone, simple explanations, reassurance', -1),
+  detected(
+    'Verbal Communication',
+    'Calm tone, simple explanations, reassurance',
+    -1,
+  ),
   detected('Offer Control', 'Give choices (explain vs show)', -1),
   state(0, [CAREGIVER, ENVIRONMENTAL], 'calm'),
   {
@@ -148,18 +160,37 @@ export const failRun: GameEvent[] = [
  * envelope version, and an event type this build has never heard of.
  */
 export const noisyEvents = [
-  { v: 2, type: 'state_update', escalation: 3, max: 10, active_actions: [], status: 'x' },
+  {
+    v: 2,
+    type: 'state_update',
+    escalation: 3,
+    max: 10,
+    active_actions: [],
+    status: 'x',
+  },
   { v: 1, type: 'vitals_update', hr: 120 },
-  { type: 'state_update', escalation: 1, max: 10, active_actions: [], status: 'y' },
+  {
+    type: 'state_update',
+    escalation: 1,
+    max: 10,
+    active_actions: [],
+    status: 'y',
+  },
 ] as unknown as GameEvent[]
 
 /** A state that has loaded the scenario and begun — where every run starts. */
 export const gameBaseState: GameState = gameReducer(
-  gameReducer(initialState, { type: 'SCENARIO_LOADED', scenario: scenarioFixture }),
+  gameReducer(initialState, {
+    type: 'SCENARIO_LOADED',
+    scenario: scenarioFixture,
+  }),
   { type: 'BEGIN' },
 )
 
 /** Fold the first `n` events of a run (default: all of them). */
-export function foldTo(events: GameEvent[], n: number = events.length): GameState {
+export function foldTo(
+  events: GameEvent[],
+  n: number = events.length,
+): GameState {
   return events.slice(0, n).reduce(gameReducer, gameBaseState)
 }

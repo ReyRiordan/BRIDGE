@@ -7,7 +7,12 @@
  * `dispatch(JSON.parse(message.data))` directly.
  */
 import { useReducer } from 'react'
-import { gameReducer, initialState, type GameAction, type GameState } from './gameState'
+import {
+  gameReducer,
+  initialState,
+  type GameAction,
+  type GameState,
+} from './gameState'
 
 export * from './gameState'
 export * from './selectors'

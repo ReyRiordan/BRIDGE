@@ -82,7 +82,9 @@ describe('selectLayers', () => {
   })
 
   it('is empty-safe before the scenario loads', () => {
-    expect(selectLayers(initialState).map((l) => l.key)).toEqual(['__patient__'])
+    expect(selectLayers(initialState).map((l) => l.key)).toEqual([
+      '__patient__',
+    ])
   })
 })
 
@@ -92,9 +94,18 @@ describe('selectChecklist', () => {
       base({ actionsTaken: new Set(['Environmental', 'Restraint']) }),
     )
     const row = (type: string) => rows.find((r) => r.type === type)
-    expect(row('Environmental')).toMatchObject({ status: 'found-good', delta: '-2' })
-    expect(row('Restraint')).toMatchObject({ status: 'found-bad', delta: '+10' })
-    expect(row('Offer Control')).toMatchObject({ status: 'missed', delta: '-1' })
+    expect(row('Environmental')).toMatchObject({
+      status: 'found-good',
+      delta: '-2',
+    })
+    expect(row('Restraint')).toMatchObject({
+      status: 'found-bad',
+      delta: '+10',
+    })
+    expect(row('Offer Control')).toMatchObject({
+      status: 'missed',
+      delta: '-1',
+    })
     expect(rows).toHaveLength(scenarioFixture.actions.length)
   })
 })

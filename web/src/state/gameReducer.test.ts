@@ -4,10 +4,18 @@ import {
   scenarioFixture,
   withPointBarStart,
 } from './__fixtures__/scenario.fixture'
-import { failRun, foldTo, noisyEvents, successRun } from './__fixtures__/goldenRun'
+import {
+  failRun,
+  foldTo,
+  noisyEvents,
+  successRun,
+} from './__fixtures__/goldenRun'
 
 const loaded = (): GameState =>
-  gameReducer(initialState, { type: 'SCENARIO_LOADED', scenario: scenarioFixture })
+  gameReducer(initialState, {
+    type: 'SCENARIO_LOADED',
+    scenario: scenarioFixture,
+  })
 
 describe('control transitions', () => {
   it('SCENARIO_LOADED derives the whole starting frame from the payload', () => {

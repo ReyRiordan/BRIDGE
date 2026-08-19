@@ -6,7 +6,8 @@
 import type { Scenario } from '../../types/scenario'
 
 export const scenarioFixture: Scenario = {
-  intro: 'A 22-year-old male with autism spectrum disorder presents with abdominal pain.',
+  intro:
+    'A 22-year-old male with autism spectrum disorder presents with abdominal pain.',
   goal: 'Reduce the patient’s agitation using appropriate de-escalation strategies.',
   time_limit: 300,
   point_bar: { max: 10, start: 5, goal: 0 },
