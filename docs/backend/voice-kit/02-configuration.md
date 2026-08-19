@@ -14,7 +14,8 @@ All config is env-driven through `runtime/voice_kit/config.py` (pydantic-setting
 | `VOICE_RUNTIME_ARN` | control-plane | — | `invoke_agent_runtime` target; set by infra on the API host |
 | `VOICE_INVOKER` | control-plane | `agentcore` | Router→runtime backend: `agentcore` \| `local` (`local` lands in [Rewrite H]) |
 | `RUNTIME_SESSION_ID_PREFIX` | control-plane | `voicekit-` | prefix + 32 hex must land in AgentCore's 33–256 char window |
-| `SESSION_TIME_LIMIT_MINUTES` | runtime | `30` | Pipeline idle-timeout self-termination; keep the frontend timer aligned |
+| `SESSION_TIME_LIMIT_MINUTES` | runtime | `30` | Default `SessionContext.time_limit_seconds` — the app's conversation cap, informational only (the kit never enforces it). Keep the frontend timer aligned |
+| `IDLE_TIMEOUT_SECS` | runtime | `180` | `PipelineWorker` self-termination after this much speech-free time — the abandoned-container backstop, independent of the app's time limit |
 | `SYSTEM_PROMPT` / `SYSTEM_PROMPT_PATH` | runtime | — | Only used by the *default* context provider; ignored once you register your own |
 
 ## LLM

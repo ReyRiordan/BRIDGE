@@ -154,8 +154,16 @@ class VoiceKitSettings(BaseSettings):
     # Session Configuration
     session_time_limit_minutes: int = Field(
         default=30,
-        description="Conversation cap in minutes, applied as the PipelineWorker idle timeout "
-        "(the runtime's self-termination backstop). Keep any frontend timer aligned.",
+        description="Default conversation cap in minutes, exposed to the host as "
+        "SessionContext.time_limit_seconds when the context provider leaves it unset. "
+        "Informational only — the kit never enforces it; the host app owns its own "
+        "clock. NOT the pipeline idle timeout (see idle_timeout_secs).",
+    )
+    idle_timeout_secs: int = Field(
+        default=180,
+        description="PipelineWorker self-termination timeout: seconds of no speaking "
+        "activity before the runtime tears the pipeline down. Independent of any "
+        "application time limit — it exists to reclaim abandoned containers.",
     )
 
     # Default system prompt for the built-in static context provider. Host apps

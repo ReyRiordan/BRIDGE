@@ -12,7 +12,11 @@ Host apps normally wrap this module (see docs/01-integration-guide.md): a tiny
 (``voice_kit.context``) and re-exports ``app``. Running this module directly
 uses the default static context provider.
 
-Per-invoke flow (``@app.entrypoint``):
+The entrypoint dispatches on ``payload["action"]`` (default ``"signal"``):
+``"signal"`` runs the offer flow below; ``"end"`` tears the session down
+(``end_session``) and carries no ``sdp``.
+
+Per-invoke flow for ``"signal"`` (``@app.entrypoint``):
   1. Receive ``{session_id, sdp, type}`` (the only context pointer — everything
      else is resolved by the registered context provider).
   2. Hand the SDP offer to a ``SmallWebRTCRequestHandler`` configured with the
@@ -48,6 +52,7 @@ import threading
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
+from .context import get_session_end_hook, get_session_start_hook
 from .kvs import build_ice_servers, fetch_ice_servers, filter_relay_only_sdp
 from .pipeline import build_pipeline_for_session
 
@@ -81,19 +86,31 @@ OFFER_TIMEOUT_SECONDS = 30
 
 @app.entrypoint
 def handle_offer(payload: dict):
-    """AgentCore entrypoint: SDP offer in → relay-only SDP answer out.
+    """AgentCore entrypoint: dispatch on ``action``, blocking for the result.
 
     Synchronous shim: submits the async handler to the persistent loop (running
-    in the background thread) and blocks for the SDP answer. The pipeline it
-    starts keeps running on that loop after this returns.
+    in the background thread) and blocks for its result. A pipeline started by
+    the ``"signal"`` path keeps running on that loop after this returns.
+
+    ``action`` is read BEFORE any ``sdp`` access — the ``"end"`` payload has no
+    SDP, so an unconditional ``payload["sdp"]`` would KeyError on teardown.
     """
-    future = asyncio.run_coroutine_threadsafe(_handle_offer(payload), _loop)
+    action = payload.get("action", "signal")
+    if action == "signal":
+        coro = _handle_offer(payload)
+    elif action == "end":
+        coro = end_session(payload["session_id"])
+    else:
+        logger.error("Unknown invoke action %r", action)
+        return {"error": f"unknown action: {action}"}
+
+    future = asyncio.run_coroutine_threadsafe(coro, _loop)
     try:
         return future.result(timeout=OFFER_TIMEOUT_SECONDS)
     except concurrent.futures.TimeoutError:
         future.cancel()
         session_id = payload.get("session_id")
-        logger.error("Offer negotiation timed out for session %s", session_id)
+        logger.error("Invoke action %r timed out for session %s", action, session_id)
         return {"error": "voice runtime timed out negotiating the connection"}
 
 
@@ -139,6 +156,10 @@ async def _handle_offer(payload: dict) -> dict:
         context = await build_pipeline_for_session(session_id, transport, emit=emit)
         _loop.create_task(_run_task(context.task, session_id))
 
+        start_hook = get_session_start_hook()
+        if start_hook is not None:
+            await start_hook(session_id, context, transport, emit)
+
     answer = await handler.handle_web_request(
         SmallWebRTCRequest(sdp=sdp, type=sdp_type),
         webrtc_connection_callback=on_connection,
@@ -149,6 +170,41 @@ async def _handle_offer(payload: dict) -> dict:
     filtered_sdp = filter_relay_only_sdp(answer["sdp"])
     logger.info("Returning relay-only answer for session %s", session_id)
     return {"sdp": filtered_sdp, "type": answer["type"]}
+
+
+async def end_session(session_id: str) -> dict:
+    """Tear down a session: cancel its pipeline, then run the host's end hook.
+
+    Idempotent — a second ``end`` (or one for a session that already
+    self-terminated) finds no task, still runs the hook, and returns ok.
+
+    Deliberately NOT called from ``_run_task``'s ``finally``: that path also
+    runs when a reconnect supersedes a pipeline, and firing the end hook there
+    would wipe the host's session state mid-conversation.
+    """
+    logger.info("Ending session %s", session_id)
+    task = _pipeline_tasks.pop(session_id, None)
+    if task is not None:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            logger.warning(
+                "Pipeline for session %s raised during end", session_id, exc_info=True
+            )
+
+    end_hook = get_session_end_hook()
+    if end_hook is not None:
+        try:
+            await end_hook(session_id)
+        except Exception:  # host teardown failure must not fail the invoke
+            logger.warning(
+                "Session end hook failed for session %s", session_id, exc_info=True
+            )
+
+    return {"status": "ok", "session_id": session_id}
 
 
 async def _run_task(task, session_id: str) -> None:

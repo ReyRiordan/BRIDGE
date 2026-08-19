@@ -119,6 +119,9 @@ The five client files live in `web/src/voice/`. Call `configureVoiceApi(adapter,
 |---|---|---|---|
 | Context provider | `async (session_id) -> SessionContext` | `set_context_provider` | runtime, pipeline loop |
 | Transcript handler | `async (session_id, TranscriptMessage) -> None` | `set_transcript_handler` | runtime, pipeline loop |
+| Processor factory | `(ProcessorFactoryArgs) -> list` | `set_processor_factory` | runtime, pipeline build |
+| Session start hook | `async (session_id, PipelineContext, transport, emit) -> None` | `set_session_start_hook` | runtime, pipeline loop |
+| Session end hook | `async (session_id) -> None` | `set_session_end_hook` | runtime, pipeline loop |
 | `authorize` | `async (Request, session_id) -> None` | `create_voice_router` | API host |
 | `on_start` | `async (session_id) -> None` | `create_voice_router` | API host |
 | `on_end` | `async (session_id) -> list[TranscriptMessage]` | `create_voice_router` | API host |
