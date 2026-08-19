@@ -17,6 +17,7 @@
     "@aws-amplify/backend": "^1.24.0",
     "@aws-amplify/backend-cli": "^1.9.0",
     "@aws-amplify/platform-core": "^1.11.1",
+    "@types/node": "^24.13.3",
     "aws-cdk-lib": "^2.265.0",
     "concurrently": "^9.2.1",
     "constructs": "^10.8.1",

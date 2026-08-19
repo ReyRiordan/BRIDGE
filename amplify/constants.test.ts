@@ -86,6 +86,16 @@ describe('VOICE_CONFIG', () => {
   test('idle timeout is set independently of the session limit', () => {
     expect(VOICE_CONFIG.IDLE_TIMEOUT_SECS).toBe('180')
   })
+
+  test('carries no local-dev flag, and pins ENV=production as the backstop', () => {
+    // Two independent locks on local mode. Absent flag: the container never
+    // starts with the KVS fetch and the relay-only SDP filter switched off.
+    // ENV=production: even a leaked BRIDGE_LOCAL makes VoiceKitSettings raise
+    // at container start rather than silently degrade the deployed ICE path.
+    expect(Object.keys(VOICE_CONFIG)).not.toContain('BRIDGE_LOCAL')
+    expect(Object.keys(VOICE_CONFIG)).not.toContain('VOICE_INVOKER')
+    expect(VOICE_CONFIG.ENV).toBe('production')
+  })
 })
 
 describe('voiceRuntimeName', () => {
