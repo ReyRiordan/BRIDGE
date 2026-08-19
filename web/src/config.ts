@@ -15,12 +15,46 @@
 export const BRIDGE_LOCAL = import.meta.env.VITE_BRIDGE_LOCAL === '1'
 
 /**
- * Base URL for control-plane calls. Empty means same-origin: locally the Vite
- * dev server proxies /voice and /scenario to the API on :8000, so no CORS is
- * involved on the local path. [Rewrite G] extends this with the deployed
- * `amplify_outputs.json` fetch.
+ * Base URL for control-plane calls, resolved once at startup.
+ *
+ * Local mode is same-origin: the Vite dev server proxies /voice and /scenario
+ * to the API on :8000, so the base stays empty and no CORS is involved. In
+ * every deployed mode the Lambda Function URL is a different origin and is
+ * only known after the backend deploys, so it is resolved at RUNTIME from the
+ * `amplify_outputs.json` the Hosting build copies into web/public/ — a
+ * build-time VITE_API_URL would couple the SPA build to deploy ordering.
  */
-export const API_BASE_URL = ''
+let apiBaseUrl = ''
+
+/** The resolved base. Empty until `resolveApiBaseUrl()` has run (and in local mode). */
+export const getApiBaseUrl = (): string => apiBaseUrl
+
+/**
+ * Resolve and memoize the control-plane base URL. Called once from the
+ * `main.tsx` bootstrap before anything renders or talks to the API.
+ *
+ * @throws if the outputs file is unreachable or carries no `custom.apiUrl` —
+ *   the bootstrap surfaces that as a load error rather than rendering an app
+ *   whose every request would fail.
+ */
+export async function resolveApiBaseUrl(): Promise<string> {
+  if (BRIDGE_LOCAL) {
+    apiBaseUrl = ''
+    return apiBaseUrl
+  }
+
+  const res = await fetch('/amplify_outputs.json')
+  if (!res.ok) {
+    throw new Error(`Failed to load amplify_outputs.json (HTTP ${res.status})`)
+  }
+  const body: unknown = await res.json()
+  const url = (body as { custom?: { apiUrl?: unknown } })?.custom?.apiUrl
+  if (typeof url !== 'string' || url === '') {
+    throw new Error('amplify_outputs.json has no custom.apiUrl')
+  }
+  apiBaseUrl = url.replace(/\/+$/, '')
+  return apiBaseUrl
+}
 
 /**
  * Whether the browser pins `iceTransportPolicy: 'relay'`. True everywhere

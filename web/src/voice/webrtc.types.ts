@@ -22,13 +22,6 @@ export interface IceServerConfig {
   credential?: string | null
 }
 
-/** One finalized conversation turn, streamed over the WebRTC data channel. */
-export interface TranscriptItem {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: string
-}
-
 /**
  * Start-session response.
  *
@@ -61,14 +54,29 @@ export interface SignalResponse {
   type: string
 }
 
-/** End-session response: whatever transcript the backend's on_end hook returned. */
+/**
+ * End-session response: whatever transcript the backend's on_end hook returned.
+ * BRIDGE registers no `on_end` hook, so this is always `[]` — the live game
+ * events are the transcript of record.
+ */
 export interface EndSessionResponse {
   message: string
-  transcript: TranscriptItem[]
+  transcript: unknown[]
+}
+
+/** Optional body for the end endpoint — lets the runtime tear down immediately. */
+export interface EndSessionRequest {
+  runtime_session_id: string
 }
 
 /** WebRTC service interface. */
 export interface WebRTCService {
+  /**
+   * Fired with each JSON payload parsed off the data channel. Deliberately
+   * `unknown`: the reducer is the single validation point (see
+   * ./gameEvents.ts).
+   */
+  onGameEvent: ((event: unknown) => void) | null
   requestMicrophonePermission(): Promise<MediaStream>
   /**
    * @param relayOnly - pin `iceTransportPolicy: 'relay'`. Defaults to TRUE and
