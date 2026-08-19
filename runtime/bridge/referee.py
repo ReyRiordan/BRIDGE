@@ -45,8 +45,8 @@ _FENCE_RE = re.compile(r"```(?:json)?\s*")
 
 
 class DetectedAction(BaseModel):
-    """One scored action. ``extra="ignore"`` so a model still emitting the legacy
-    ``point_change`` / ``scene_change`` fields validates instead of failing the turn."""
+    """One scored action. ``extra="ignore"`` so a model that also echoes the
+    legacy point/visual fields validates instead of failing the turn."""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -203,10 +203,18 @@ class RefereeProcessor(FrameProcessor):
             {
                 "utterance": utterance,
                 "escalation": session.escalation,
-                # point_change is deliberately withheld: a model that cannot see
-                # the numbers cannot tempt us into trusting the ones it echoes.
+                # The raw point_change is deliberately withheld: a model that
+                # cannot see the numbers cannot tempt us into trusting the ones
+                # it echoes. Only its SIGN is exposed, as `escalates` — that is
+                # what lets the prompt say "be strict with escalating actions"
+                # without naming any of them, so adding an action to the
+                # scenario never requires a prompt edit.
                 "actions": [
-                    {"type": a["type"], "desc": a["desc"]}
+                    {
+                        "type": a["type"],
+                        "desc": a["desc"],
+                        "escalates": a["point_change"] > 0,
+                    }
                     for a in session.scenario["actions"]
                 ],
             }
