@@ -46,9 +46,10 @@ ENV PYTHONPATH=/app
 EXPOSE 8080
 
 # Run the BedrockAgentCoreApp via uvicorn. --workers 1 is mandatory: the voice
-# runtime keeps WebRTC peer-connection state in this process's memory.
+# runtime keeps WebRTC peer-connection state AND the in-memory game sessions in
+# this process's memory.
 #
-# Still the bare kit app: the BRIDGE wrapper module (which registers the game
-# engine's context provider + transcript handler) becomes the uvicorn target in
-# [Rewrite D].
-CMD ["uvicorn", "voice_kit.runtime:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
+# bridge.app registers the game engine on the kit's extension points at import
+# and re-exports voice_kit.runtime:app — importing it is what wires the referee,
+# the clock and the session registry into the pipeline.
+CMD ["uvicorn", "bridge.app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]

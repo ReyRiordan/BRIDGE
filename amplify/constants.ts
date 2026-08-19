@@ -41,9 +41,9 @@ export const SECRET_NAMES = [
  * audio off-AWS, which is acceptable for a training sim carrying no PHI;
  * switching to Amazon Transcribe later is a pure env change.
  *
- * The REFEREE_* / SCENARIO_PATH vars are the contract consumed by the game
- * engine in [Rewrite D]; everything else about the game (time limit, point
- * values, actions) comes from the scenario JSON itself.
+ * The REFEREE_* / SCENARIO_PATH / GAME_* vars are the game engine's contract
+ * (`runtime/bridge/config.py`); everything else about the game (time limit,
+ * point values, actions) comes from the scenario JSON itself.
  */
 export const VOICE_CONFIG: Record<string, string> = {
   ENV: 'production',
@@ -67,11 +67,19 @@ export const VOICE_CONFIG: Record<string, string> = {
   SESSION_TIME_LIMIT_MINUTES: '30',
   IDLE_TIMEOUT_SECS: '180',
 
-  // --- Game engine ([Rewrite D]). REFEREE_* replaces the legacy SYSTEM_AGENT_*
-  // naming — "system agent" terminology is retired.
+  // --- Game engine. REFEREE_* replaces the legacy SYSTEM_AGENT_* naming —
+  // "system agent" terminology is retired. The paths are the image's copies
+  // (Dockerfile.voice COPYs resources/ to /app/resources).
   REFEREE_MODEL: 'anthropic/claude-haiku-4.5',
   REFEREE_EFFORT: 'none',
+  // The referee is on the serial critical path of every turn, so it fails open
+  // rather than making the student wait.
+  REFEREE_TIMEOUT_SECONDS: '7',
   SCENARIO_PATH: '/app/resources/scenario_1.json',
+  REFEREE_PROMPT_PATH: '/app/resources/referee.txt',
+  // Grace window between `game_over` and tearing the pipeline down, so the
+  // client can render the debrief.
+  GAME_GRACE_SECONDS: '45',
 };
 
 /**

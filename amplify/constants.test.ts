@@ -59,13 +59,21 @@ describe('VOICE_CONFIG', () => {
     expect(VOICE_CONFIG.TTS_PROVIDER).toBe('inworld')
   })
 
-  test('exposes the [Rewrite D] game-engine contract', () => {
+  test('exposes the game-engine contract', () => {
     expect(VOICE_CONFIG.REFEREE_MODEL).toBeTruthy()
     expect(VOICE_CONFIG.REFEREE_EFFORT).toBeTruthy()
     // Must match the image layout: Dockerfile.voice COPYs resources/ to /app.
     expect(VOICE_CONFIG.SCENARIO_PATH).toBe('/app/resources/scenario_1.json')
+    expect(VOICE_CONFIG.REFEREE_PROMPT_PATH).toBe('/app/resources/referee.txt')
     // Legacy SYSTEM_AGENT_* naming is retired.
     expect(Object.keys(VOICE_CONFIG)).not.toContain('SYSTEM_AGENT_MODEL')
+  })
+
+  test('game-engine timings are positive numeric strings', () => {
+    expect(VOICE_CONFIG.REFEREE_TIMEOUT_SECONDS).toMatch(/^\d+(\.\d+)?$/)
+    expect(Number(VOICE_CONFIG.REFEREE_TIMEOUT_SECONDS)).toBeGreaterThan(0)
+    expect(VOICE_CONFIG.GAME_GRACE_SECONDS).toMatch(/^\d+(\.\d+)?$/)
+    expect(Number(VOICE_CONFIG.GAME_GRACE_SECONDS)).toBeGreaterThan(0)
   })
 
   test('session limit is a positive integer string', () => {
