@@ -70,10 +70,17 @@ export interface EndSessionResponse {
 /** WebRTC service interface. */
 export interface WebRTCService {
   requestMicrophonePermission(): Promise<MediaStream>
+  /**
+   * @param relayOnly - pin `iceTransportPolicy: 'relay'`. Defaults to TRUE and
+   *   must stay true for every deployed path (the runtime is in a VPC with no
+   *   browser-reachable host candidates). Pass false ONLY for local dev, where
+   *   both peers are on loopback and there is no TURN at all.
+   */
   initializeConnection(
     sessionId: string,
     runtimeSessionId: string,
     iceServers?: IceServerConfig[],
+    relayOnly?: boolean,
   ): Promise<void>
   closeConnection(): Promise<void>
   setMuted(muted: boolean): void

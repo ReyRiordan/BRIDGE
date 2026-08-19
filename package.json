@@ -5,6 +5,11 @@
   "type": "module",
   "description": "Root project for the BRIDGE Amplify Gen 2 backend (amplify/). The SPA is a self-contained npm project under web/.",
   "scripts": {
+    "dev": "concurrently -n web,api,rt -c cyan,green,magenta \"npm run dev:web\" \"npm run dev:api\" \"npm run dev:runtime\"",
+    "dev:web": "npm --prefix web run dev",
+    "dev:api": "npm run dev:venv && PYTHONPATH=runtime .venv/bin/python -m uvicorn api.local:app --host 127.0.0.1 --port 8000 --reload --reload-dir api --reload-dir runtime/voice_kit",
+    "dev:runtime": "npm run dev:venv && BRIDGE_LOCAL=1 PYTHONPATH=runtime .venv/bin/python -m uvicorn bridge.app:app --host 127.0.0.1 --port 8080 --reload --reload-dir runtime --reload-dir resources --reload-include \"*.txt\" --reload-include \"*.json\"",
+    "dev:venv": "[ -x .venv/bin/python ] || { echo 'Missing .venv — run: python3 -m venv .venv && .venv/bin/pip install -r api/requirements.txt -r runtime/requirements-voice.txt' >&2; exit 1; }",
     "test": "vitest run",
     "type-check": "tsc --noEmit -p amplify"
   },
@@ -12,7 +17,9 @@
     "@aws-amplify/backend": "^1.24.0",
     "@aws-amplify/backend-cli": "^1.9.0",
     "@aws-amplify/platform-core": "^1.11.1",
+    "@types/node": "^24.13.3",
     "aws-cdk-lib": "^2.265.0",
+    "concurrently": "^9.2.1",
     "constructs": "^10.8.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.10"

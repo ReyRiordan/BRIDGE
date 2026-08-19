@@ -12,12 +12,13 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
 | `resources/` | Scenario config + prompts. Shared with the legacy app; COPYed into the runtime image at `/app/resources`. | Both |
 | `runtime/evals/` | Manual, network-hitting prompt evals (referee eval + patient probe). Never run by CI; still linted. See `prompts.md`. | Local |
-| `scripts/` | `gen_event_types.py` (event-contract codegen), `make_transparent.py` (visual asset tool). | Local / CI |
+| `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke), `make_transparent.py` (visual asset tool). | Local / CI |
 
 ## Doc map
 
 | Doc | Read it for |
 |---|---|
+| `local-dev.md` | `BRIDGE_LOCAL=1`: the one-machine dev loop, what the flag changes, the Tier-1 smoke |
 | `prompts.md` | The referee + patient prompts, what the model is (and is not) shown, the manual evals |
 | `deployment.md` | Environment topology, the AZ record, secrets, the deploy runbook, cost |
 | `voice-kit/00-architecture.md` | Topology, the pipeline chain, the two session ids, extension points |
@@ -49,7 +50,7 @@ python3 scripts/gen_event_types.py           # write
 python3 scripts/gen_event_types.py --check   # verify
 ```
 
-**Invoker interface** (control plane → runtime): `voice_kit.Invoker`, both methods async — `await invoker.signal(session_id, runtime_session_id, sdp, type="offer") -> dict` and `await invoker.end(session_id, runtime_session_id) -> dict`. Selected by `VOICE_INVOKER` via `get_invoker()`: `AgentCoreInvoker` (boto3 `invoke_agent_runtime` in `asyncio.to_thread`, hides the streaming-body response) or `LocalInvoker` (localhost `/invocations`, [Rewrite H] — raises until then). `create_voice_router(invoker=...)` accepts an override for tests/custom backends. Teardown is router-owned: `/end` with a `SessionEndRequest` body (`{runtime_session_id}`) best-effort invokes `end()` (payload `{"session_id", "action": "end"}`) before the `on_end` hook; no body skips it. The runtime entrypoint dispatches on `payload.action`: `"signal"` (default) | `"end"`.
+**Invoker interface** (control plane → runtime): `voice_kit.Invoker`, both methods async — `await invoker.signal(session_id, runtime_session_id, sdp, type="offer") -> dict` and `await invoker.end(session_id, runtime_session_id) -> dict`. Selected by `VOICE_INVOKER` via `get_invoker()`: `AgentCoreInvoker` (boto3 `invoke_agent_runtime` in `asyncio.to_thread`, hides the streaming-body response) or `LocalInvoker` (aiohttp POST to `{VOICE_RUNTIME_URL}/invocations`, same payloads and same error contract; implied by `BRIDGE_LOCAL=1` — see `local-dev.md`). `create_voice_router(invoker=...)` accepts an override for tests/custom backends. Teardown is router-owned: `/end` with a `SessionEndRequest` body (`{runtime_session_id}`) best-effort invokes `end()` (payload `{"session_id", "action": "end"}`) before the `on_end` hook; no body skips it. The runtime entrypoint dispatches on `payload.action`: `"signal"` (default) | `"end"`.
 
 ## Game engine (`runtime/bridge/`)
 
@@ -79,6 +80,10 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 ## Commands
 
 ```bash
+# The whole stack on localhost, zero AWS calls (see local-dev.md).
+npm run dev                                    # SPA :5173 + API :8000 + runtime :8080
+.venv/bin/python scripts/local_voice_smoke.py  # Tier-1 acceptance smoke
+
 # Two invocations, not one: `api/` tests the INSTALLED voice_kit package while
 # runtime/ tests the tree, and collecting both at once lets the installed copy
 # shadow the repo. CI runs them separately for the same reason.

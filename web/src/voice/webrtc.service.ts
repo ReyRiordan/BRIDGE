@@ -11,6 +11,12 @@
  * own TURN allocation; without them the browser offers only private host
  * candidates and the runtime's relay is rejected, stalling ICE. The live
  * transcript arrives as JSON `TranscriptItem`s over the WebRTC data channel.
+ *
+ * The one exception is local dev (`VITE_BRIDGE_LOCAL=1`), which passes
+ * `relayOnly: false`: browser and runtime are both on loopback, so there is no
+ * TURN to relay through. That divergence is also the mode's biggest trap — a
+ * feature that works on host candidates can still stall behind TURN in the
+ * cloud, so the relay-only post-deploy check stays mandatory.
  */
 
 import { signalVoiceSession } from './voiceApi'
@@ -78,7 +84,8 @@ class WebRTCServiceClass implements WebRTCService {
    *
    * Flow (non-trickle, single round-trip):
    * 1. Ensure microphone access.
-   * 2. Create RTCPeerConnection with the browser's own KVS TURN servers, relay-only.
+   * 2. Create RTCPeerConnection with the browser's own KVS TURN servers, relay-only
+   *    (or `'all'` when relayOnly is false — local dev).
    * 3. Add local audio track + create the `data` channel (transcript + runtime handshake).
    * 4. Create the SDP offer, set local description, wait for ICE gathering to complete.
    * 5. POST the offer to `{basePath}/{id}/signal { runtime_session_id, sdp, type }`.
@@ -87,11 +94,14 @@ class WebRTCServiceClass implements WebRTCService {
    * @param iceServers - the browser's own KVS managed-TURN servers. REQUIRED for
    *   the relay path to establish; if empty, ICE will stall (each WebRTC peer
    *   needs its own TURN allocation — the runtime's candidates are not reusable).
+   * @param relayOnly - defaults to true. False only for local dev (loopback
+   *   host candidates, no TURN); never for a deployed backend.
    */
   async initializeConnection(
     sessionId: string,
     runtimeSessionId: string,
     iceServers?: IceServerConfig[],
+    relayOnly: boolean = true,
   ): Promise<void> {
     try {
       // Ensure we have microphone access
@@ -107,7 +117,9 @@ class WebRTCServiceClass implements WebRTCService {
         ...(s.username ? { username: s.username } : {}),
         ...(s.credential ? { credential: s.credential } : {}),
       }))
-      if (rtcIceServers.length === 0) {
+      // Only a warning under relay-only: with no TURN servers there is
+      // nothing to relay through. In local mode empty is the expected state.
+      if (relayOnly && rtcIceServers.length === 0) {
         console.warn(
           'No ICE servers provided to voice connection; ICE will likely stall.',
         )
@@ -120,7 +132,7 @@ class WebRTCServiceClass implements WebRTCService {
       }
       this.peerConnection = new RTCPeerConnection({
         iceServers: rtcIceServers,
-        iceTransportPolicy: 'relay',
+        iceTransportPolicy: relayOnly ? 'relay' : 'all',
       })
 
       // Add local audio track

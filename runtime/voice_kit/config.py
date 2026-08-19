@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 from typing import List, Literal, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Canonical reasoning-effort levels — the union across current LLM models. Not every
@@ -34,6 +34,16 @@ class VoiceKitSettings(BaseSettings):
     env: str = Field(
         default="development",
         description="Environment: development, staging, production",
+    )
+
+    # Local dev mode — the single umbrella flag for running the whole stack on
+    # one machine (see docs/backend/local-dev.md). It implies
+    # voice_invoker="local" and gates every AWS-only path: the KVS ICE fetch in
+    # both the router and the runtime, and the relay-only SDP filter. Refused
+    # outright when env == "production" (validated below).
+    bridge_local: bool = Field(
+        default=False,
+        description="Run the whole stack locally with zero AWS calls (BRIDGE_LOCAL=1)",
     )
 
     # LLM Configuration
@@ -136,9 +146,14 @@ class VoiceKitSettings(BaseSettings):
         default=None,
         description="AgentCore Runtime ARN for the voice pipeline (invoke_agent_runtime target)",
     )
+    # Where LocalInvoker posts /invocations when voice_invoker == "local".
+    voice_runtime_url: str = Field(
+        default="http://localhost:8080",
+        description="Base URL of the locally running voice runtime (LocalInvoker target)",
+    )
     # How the control-plane router reaches the runtime: "agentcore" invokes the
-    # deployed AgentCore runtime via boto3; "local" targets a localhost
-    # /invocations container ([Rewrite H] — raises NotImplementedError today).
+    # deployed AgentCore runtime via boto3; "local" posts to voice_runtime_url's
+    # /invocations (LocalInvoker — implied by bridge_local).
     voice_invoker: Literal["agentcore", "local"] = Field(
         default="agentcore",
         description="Invoker backend for the signaling router: agentcore or local",
@@ -178,8 +193,72 @@ class VoiceKitSettings(BaseSettings):
         "(used when system_prompt is unset)",
     )
 
+    @model_validator(mode="after")
+    def _enforce_local_mode(self):
+        """
+        Make BRIDGE_LOCAL=1 mean exactly one thing, and make it impossible to
+        get wrong.
+
+        Three guarantees:
+
+        1. **Never in production.** A leaked flag on a deployed runtime would
+           disable the relay-only SDP filter, so ``ENV=production`` refuses to
+           start rather than degrade silently.
+        2. **Implies the local invoker.** ``voice_invoker`` is still the
+           fine-grained selector: an explicitly-set value wins (checked via
+           ``model_fields_set``), so ``BRIDGE_LOCAL=1 VOICE_INVOKER=agentcore``
+           points a local control plane at a deployed runtime.
+        3. **Zero AWS calls, machine-enforced.** The AWS-backed providers are
+           rejected by name with the fix in the message. ``REFEREE_PROVIDER``
+           belongs to ``bridge.config`` (container-only), so it is read from
+           ``os.environ`` — voice_kit must never import ``bridge``, and both
+           processes share this env anyway.
+
+        NOTE: ``configure(**overrides)`` assigns with ``setattr`` and therefore
+        bypasses this validator — a documented gap, unchanged by this flag.
+        """
+        if not self.bridge_local:
+            return self
+        if self.env == "production":
+            raise ValueError(
+                "BRIDGE_LOCAL=1 is refused when ENV=production — local mode "
+                "disables the relay-only SDP filter and the KVS ICE fetch. "
+                "Unset BRIDGE_LOCAL on any deployed environment."
+            )
+        if "voice_invoker" not in self.model_fields_set:
+            self.voice_invoker = "local"
+
+        aws_backed = [
+            ("STT_PROVIDER", self.stt_provider, "transcribe", "together"),
+            ("TTS_PROVIDER", self.tts_provider, "polly", "inworld"),
+            ("LLM_PROVIDER", self.llm_provider, "bedrock", "openrouter"),
+            (
+                "REFEREE_PROVIDER",
+                os.environ.get("REFEREE_PROVIDER", "openrouter"),
+                "bedrock",
+                "openrouter",
+            ),
+        ]
+        offenders = [
+            f"{name}={value} (use {fix})"
+            for name, value, banned, fix in aws_backed
+            if value == banned
+        ]
+        if offenders:
+            raise ValueError(
+                "BRIDGE_LOCAL=1 forbids AWS-backed providers so local runs make "
+                "zero AWS calls: " + "; ".join(offenders)
+            )
+        return self
+
+    # Two env files, package-adjacent first and CWD (the repo root) second —
+    # LATER WINS in pydantic-settings, and real env vars beat both. The
+    # package-adjacent path resolves into site-packages for the installed api/
+    # copy, so without the second entry the repo-root .env that .env.example
+    # advertises would be invisible to the control plane. Missing files are
+    # inert, so deploys are unaffected.
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).parent / ".env"),
+        env_file=(str(Path(__file__).parent / ".env"), ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",

@@ -35,6 +35,7 @@ export interface UseWebRTCReturn {
     sessionId: string,
     runtimeSessionId: string,
     iceServers?: IceServerConfig[],
+    relayOnly?: boolean,
   ) => Promise<() => void>
   endCall: () => Promise<void>
   toggleMute: () => void
@@ -106,6 +107,8 @@ export const useWebRTC = (): UseWebRTCReturn => {
    * @param sessionId - host session id
    * @param runtimeSessionId - AgentCore affinity key from the start endpoint
    * @param iceServers - the browser's own KVS managed-TURN servers (relay-only)
+   * @param relayOnly - defaults to true; callers pass `RELAY_ONLY` from
+   *   src/config.ts, which is false only under VITE_BRIDGE_LOCAL=1
    * @returns cleanup fn that clears the connection-state poll
    */
   const startCall = useCallback(
@@ -113,6 +116,7 @@ export const useWebRTC = (): UseWebRTCReturn => {
       sessionId: string,
       runtimeSessionId: string,
       iceServers?: IceServerConfig[],
+      relayOnly: boolean = true,
     ) => {
       try {
         setError(null)
@@ -122,6 +126,7 @@ export const useWebRTC = (): UseWebRTCReturn => {
           sessionId,
           runtimeSessionId,
           iceServers,
+          relayOnly,
         )
 
         // Wait for ICE to actually connect; a cold-started runtime can fail to

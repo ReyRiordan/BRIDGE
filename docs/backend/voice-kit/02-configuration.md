@@ -1,6 +1,6 @@
 # Configuration
 
-All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-settings; a `.env` next to the package works locally); BRIDGE's game-engine vars are plain `os.environ` reads in `runtime/bridge/config.py`. Programmatic override: `voice_kit.configure(**overrides)`. the repo-root `.env.example` is the copyable template.
+All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-settings; **two** env files are read — one next to the package, then `.env` in the CWD (the repo root). Later wins, real env vars beat both, missing files are inert. The second entry exists because the package-adjacent path resolves into site-packages for the installed `api/` copy); BRIDGE's game-engine vars are plain `os.environ` reads in `runtime/bridge/config.py`. Programmatic override: `voice_kit.configure(**overrides)`. the repo-root `.env.example` is the copyable template.
 
 **Consumer** column: which process needs the var — the AgentCore **runtime** container, the API **control-plane** host, or **both**.
 
@@ -8,11 +8,13 @@ All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-set
 
 | Env var | Consumer | Default | Notes |
 |---|---|---|---|
-| `ENV` | both | `development` | |
+| `ENV` | both | `development` | `production` makes the settings validator refuse `BRIDGE_LOCAL` |
+| `BRIDGE_LOCAL` | both | `false` | Local dev mode: skips the KVS fetch + the relay-only SDP filter, implies `VOICE_INVOKER=local`, and **raises** on `ENV=production` or any AWS-backed provider. See [`../local-dev.md`](../local-dev.md) |
 | `AWS_REGION` | both | `us-east-1` | Region for KVS, Polly, Transcribe, Bedrock, AgentCore client |
 | `KVS_CHANNEL_NAME` | both | — | Set by infra on both sides (runtime + API both fetch ICE servers) |
 | `VOICE_RUNTIME_ARN` | control-plane | — | `invoke_agent_runtime` target; set by infra on the API host |
-| `VOICE_INVOKER` | control-plane | `agentcore` | Router→runtime backend: `agentcore` \| `local` (`local` lands in [Rewrite H]) |
+| `VOICE_INVOKER` | control-plane | `agentcore` | Router→runtime backend: `agentcore` \| `local`. Implied by `BRIDGE_LOCAL`; an explicit value still wins |
+| `VOICE_RUNTIME_URL` | control-plane | `http://localhost:8080` | `LocalInvoker` target (`{url}/invocations`); unused by `agentcore` |
 | `RUNTIME_SESSION_ID_PREFIX` | control-plane | `voicekit-` | prefix + 32 hex must land in AgentCore's 33–256 char window |
 | `SESSION_TIME_LIMIT_MINUTES` | runtime | `30` | Default `SessionContext.time_limit_seconds` — the app's conversation cap, informational only (the kit never enforces it). Keep the frontend timer aligned |
 | `IDLE_TIMEOUT_SECS` | runtime | `180` | `PipelineWorker` self-termination after this much speech-free time — the abandoned-container backstop, independent of the app's time limit |
@@ -93,3 +95,18 @@ Deployed runtimes never receive plain-text secret values. Instead infra injects:
 - `SECRETS_SSM_PREFIXES` — comma-separated SSM parameter path prefixes, most specific first
 
 At cold start, `_export_ssm_secrets()` (runs before `Settings` loads) resolves each name via `ssm:GetParameter` (WithDecryption) under the first prefix that has it and exports it into `os.environ`. Already-set env vars always win; unresolved names stay unset and the owning feature degrades as with any missing secret. Locally (no `SECRETS_FROM_SSM`) it's a no-op and `.env` is used. The task role needs `ssm:GetParameter` on the prefixes (handled by `amplify/voice-runtime.ts`); with Amplify, set values via `npx ampx sandbox secret set NAME`.
+
+## Local mode (`BRIDGE_LOCAL=1`)
+
+One umbrella flag, validated in `VoiceKitSettings`. It raises at startup — not silently degrades — in two cases:
+
+| Condition | Error |
+|---|---|
+| `ENV=production` | `BRIDGE_LOCAL=1 is refused when ENV=production …` |
+| `STT_PROVIDER=transcribe`, `TTS_PROVIDER=polly`, `LLM_PROVIDER=bedrock`, `REFEREE_PROVIDER=bedrock` | `BRIDGE_LOCAL=1 forbids AWS-backed providers …` (each offender named, with its fix) |
+
+`REFEREE_PROVIDER` is read from `os.environ` rather than settings: it belongs to `bridge.config`, and `voice_kit` must never import `bridge` (container-only). Both processes share the same environment, so the guard holds on either side.
+
+Note that `configure(**overrides)` assigns with `setattr` and therefore bypasses this validator — a pre-existing gap, documented rather than fixed.
+
+Full walkthrough: [`../local-dev.md`](../local-dev.md).

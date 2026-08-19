@@ -93,6 +93,19 @@ holds the current affinity key, and sending it lets the control plane tear the
 runtime's pipeline down immediately (best-effort; the idle timeout is the
 backstop). The client sends it in [Rewrite G].
 
+## Relay-only, and the one exception
+
+`initializeConnection` / `startCall` take a trailing `relayOnly` argument that **defaults to `true`**: the browser pins `iceTransportPolicy: 'relay'`, because the runtime sits in a VPC with no browser-reachable host candidates and each peer needs its own TURN allocation (gotcha #9).
+
+The single caller that passes `false` is local dev, where both peers are on loopback and there is no TURN at all. It is driven by `RELAY_ONLY` in `src/config.ts`, which is `false` only when `web/.env.local` sets `VITE_BRIDGE_LOCAL=1`:
+
+```tsx
+import { RELAY_ONLY } from '../config'
+await startCall(sessionId, runtime_session_id, ice_servers, RELAY_ONLY)
+```
+
+Never infer this from `import.meta.env.DEV`: `vite dev` against the deployed backend is a normal workflow, and handing that session host candidates hides the TURN-only reality until after deploy. Locally the SPA also reaches the control plane **same-origin**, through the Vite `server.proxy` for `/voice` and `/scenario` — so no CORS is involved and `API_BASE_URL` stays empty. See [`../backend/local-dev.md`](../backend/local-dev.md).
+
 ## Behavior notes
 
 - **Anti-echo auto-mute**: the hook mutes the mic while `isAgentSpeaking` (detected via an `AnalyserNode` on the remote stream, debounced 500 ms — not `audio.onplay`, which fires at connection time). Without this, speaker output re-triggers the server-side VAD.
