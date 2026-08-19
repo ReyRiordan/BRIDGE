@@ -18,7 +18,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from bridge.config import load_scenario  # noqa: E402
 from bridge.emitter import GameEvents  # noqa: E402
-from bridge.referee import RefereeProcessor, build_response_format  # noqa: E402
+from bridge.referee import (  # noqa: E402
+    RefereeProcessor,
+    build_referee_payload,
+    build_response_format,
+)
 from bridge.session import GameSession  # noqa: E402
 from voice_kit.errors import UpstreamServiceError  # noqa: E402
 from voice_kit.processors import TranscriptMessageFrame  # noqa: E402
@@ -249,7 +253,9 @@ def test_the_prompt_withholds_point_values_and_pins_the_schema():
     payload = json.loads(call["messages"][0]["content"])
     assert payload["utterance"] == "let me dim the lights"
     assert payload["escalation"] == 5
-    assert all(set(a) == {"type", "desc"} for a in payload["actions"])
+    assert all(set(a) == {"type", "desc", "escalates"} for a in payload["actions"])
+    # The raw numbers stay server-side; only their sign is exposed.
+    assert all("point_change" not in a for a in payload["actions"])
 
     schema = call["response_format"]["json_schema"]["schema"]
     enum = schema["properties"]["detected_actions"]["items"]["properties"]["type"][
@@ -258,6 +264,17 @@ def test_the_prompt_withholds_point_values_and_pins_the_schema():
     assert enum == [a["type"] for a in SCENARIO["actions"]]
     assert len(enum) == 9
     assert schema["additionalProperties"] is False
+
+
+def test_escalates_is_derived_from_the_point_change_sign():
+    # This flag is what lets the prompt say "be strict with escalating actions"
+    # without naming any: a new action needs no prompt edit.
+    payload = json.loads(build_referee_payload(SCENARIO, "anything", 5))
+    flags = {a["type"]: a["escalates"] for a in payload["actions"]}
+    for action in SCENARIO["actions"]:
+        assert flags[action["type"]] is (action["point_change"] > 0)
+    assert flags["Force IV"] is True
+    assert flags["Environmental"] is False
 
 
 def test_response_format_is_built_from_the_scenario():
