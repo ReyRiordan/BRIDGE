@@ -2,9 +2,9 @@
  * The single import surface for game state: `useGame()` plus a re-export of
  * everything the reducer and selectors define.
  *
- * `dispatch` is also the seam [Rewrite G] plugs the data channel into — wire
- * events are already part of the action union, so the voice client can call
- * `dispatch(JSON.parse(message.data))` directly.
+ * `dispatch` is also the seam the data channel plugs into — wire events are
+ * already part of the action union, so the voice client's
+ * `createGameEventHandler(dispatch)` needs no adapter.
  */
 import { useReducer } from 'react'
 import {

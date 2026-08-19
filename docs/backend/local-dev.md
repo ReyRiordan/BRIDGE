@@ -93,7 +93,7 @@ STT_PROVIDER=transcribe (use together); TTS_PROVIDER=polly (use inworld)
 
 ## Verifying: the Tier-1 smoke
 
-Until [Rewrite G] wires the SPA to the voice client, the browser cannot play a game locally — so the acceptance evidence is a real aiortc handshake:
+Until [Rewrite G2] mounts the voice session on the game screen, the browser cannot play a game locally — so the acceptance evidence is a real aiortc handshake:
 
 ```bash
 npm run dev                                  # in another terminal
@@ -102,7 +102,7 @@ npm run dev                                  # in another terminal
 
 It asserts `/start` returned no ICE servers, that the answer carries a **non-relay** candidate (proving the filter was skipped), that ICE reaches `connected`, and that `/end` is clean. Non-zero exit on any failure. Not wired into CI — it needs three live processes and the provider keys.
 
-### Tier 2, once [Rewrite G] lands
+### Tier 2, once [Rewrite G2] lands
 
 Play a full game in the browser and check the paths tests cannot reach: a turn that clears a transient action, the Restraint instant-fail, the timer-expiry fail, and Play Again resetting cleanly.
 

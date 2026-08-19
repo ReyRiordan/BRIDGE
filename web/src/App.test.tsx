@@ -3,7 +3,7 @@
  * and every subsequent screen is derived from that payload.
  *
  * The end phase is not reachable by clicking during [Rewrite F] — nothing
- * dispatches wire events until [Rewrite G] plugs in the data channel. The
+ * dispatches wire events until [Rewrite G2] mounts the voice session. The
  * overlay composition is covered in EndScreen.test.tsx, and the transition
  * itself in gameReducer.test.ts.
  */

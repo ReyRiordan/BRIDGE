@@ -1,28 +1,39 @@
 # Voice client
 
-The browser half of the voice pipeline: five vendored files in `web/src/voice/`, no page component. They are kept byte-close to their upstream (pipeline-kit) source — ESLint carries a scoped override for the folder instead of editing them. [Rewrite G] wires them into the simulation screen.
+The browser half of the voice pipeline: the vendored files in `web/src/voice/`, no page component. They are kept close to their upstream (pipeline-kit) source — ESLint carries a scoped override for the folder. [Rewrite G2] mounts them on the simulation screen.
 
 | File | What it is |
 |---|---|
-| `webrtc.types.ts` | All types (call state, errors, transcript, API request/response shapes) |
+| `webrtc.types.ts` | All types (call state, errors, API request/response shapes) |
 | `voiceConfig.ts` | `WEBRTC_CONFIG` (mic constraints, 16 kHz) + `SESSION_TIME_LIMIT_MINUTES` |
 | `voiceApi.ts` | The three control-plane calls, transport-injected |
-| `webrtc.service.ts` | Singleton service: peer connection, relay-only ICE, non-trickle offer, data-channel transcript, remote-audio analysis |
+| `webrtc.service.ts` | Singleton service: peer connection, relay-only ICE, non-trickle offer, data-channel game events, remote-audio analysis |
 | `useWebRTC.ts` | React hook: call lifecycle, ICE-stall detection, anti-echo auto-mute |
+| `gameEvents.ts` | `createGameEventHandler(dispatch)` — the data channel → reducer seam |
 | `gameEvents.gen.ts` | **Generated** — the v1 data-channel event envelope (see below) |
 
-## 1. Configure the API transport (once, at startup)
+## 1. Startup bootstrap (once, in `main.tsx`)
+
+Nothing renders until the control-plane base URL is known, because it is only
+known at runtime in a deployed build:
 
 ```ts
-import axios from 'axios'
-import { configureVoiceApi } from './voice/voiceApi'
-
-const api = axios.create({ baseURL: '/api/v1' /* + your auth interceptors */ })
-configureVoiceApi(
-  { post: async (path, body) => (await api.post(path, body)).data },
-  '/voice' // must match the router prefix passed to create_voice_router()
-)
+const baseUrl = await resolveApiBaseUrl()          // src/config.ts
+configureVoiceApi(createTransport(baseUrl), `${baseUrl}/voice`)
 ```
+
+- `resolveApiBaseUrl()` returns `''` under `BRIDGE_LOCAL` (same-origin, the Vite
+  proxy owns `/voice` and `/scenario`); otherwise it fetches
+  `/amplify_outputs.json` and reads `custom.apiUrl`, trailing slash trimmed.
+  It memoizes; `getApiBaseUrl()` is the sync read used by `src/api/scenario.ts`.
+  A build-time `VITE_API_URL` was rejected on purpose — it would couple the SPA
+  build to backend deploy ordering.
+- The transport is a small `fetch` adapter (no axios dependency): JSON in/out,
+  non-2xx throws carrying the server's `{detail}` (the control plane returns
+  502-with-CORS for upstream failures). An absent body stays absent — `/end`'s
+  request model is optional and `null` would fail validation.
+- `/voice` must match the router prefix passed to `create_voice_router()`.
+- Bootstrap failure renders a load-error message instead of the app.
 
 ## 2. Connect flow
 
@@ -30,8 +41,9 @@ configureVoiceApi(
 import { useWebRTC } from './voice/useWebRTC'
 import { startVoiceSession, endVoiceSession } from './voice/voiceApi'
 
-const { callState, transcript, isAgentSpeaking, isMuted, toggleMute,
-        requestPermission, startCall, endCall, connectionState, error } = useWebRTC()
+const { callState, isAgentSpeaking, isMuted, toggleMute,
+        requestPermission, startCall, endCall, connectionState, error } =
+  useWebRTC({ onGameEvent: createGameEventHandler(dispatch) })
 
 // On mount: request mic permission early so failures surface before the call.
 await requestPermission()
@@ -44,11 +56,11 @@ const connectWithFreshRuntime = async () => {
   await startCall(sessionId, runtime_session_id, ice_servers)
 }
 await connectWithFreshRuntime()
-
-// `transcript` stays empty until [Rewrite G]: the runtime now emits only the
-// v1 game envelope over the data channel (roles 'student' | 'patient'), which
-// the service's current 'user'/'assistant' filter drops. See "Game events".
 ```
+
+`initializeConnection` also caps the non-trickle ICE-gathering wait at 10 s: a
+gathering stall would otherwise hang *before* the hook's ICE-stall detection
+starts. It rejects as `CONNECTION_FAILED` through the normal cleanup path.
 
 ## 3. Reconnect loop (recommended)
 
@@ -81,17 +93,15 @@ useEffect(() => {
 ## 4. End flow
 
 ```ts
-await endCall()                                  // tear down WebRTC locally
-const { transcript } = await endVoiceSession(sessionId) // backend on_end hook: authoritative transcript
+await endCall()                                          // tear down WebRTC locally
+await endVoiceSession(sessionId, { runtime_session_id }) // best-effort runtime teardown
 ```
 
-The server-side transcript from `/end` is authoritative — the live data-channel
-copy can miss turns delivered during a reconnect gap.
-
-`/end` accepts an optional body `{ runtime_session_id }` — only the browser
-holds the current affinity key, and sending it lets the control plane tear the
-runtime's pipeline down immediately (best-effort; the idle timeout is the
-backstop). The client sends it in [Rewrite G].
+Always send the body: only the browser holds the current affinity key, and
+without it the runtime's pipeline lives on until the 180 s idle timeout. The
+call is always 200. `EndSessionResponse.transcript` is always `[]` in BRIDGE —
+no `on_end` hook is registered, and the live game events are the transcript of
+record.
 
 ## Relay-only, and the one exception
 
@@ -104,7 +114,7 @@ import { RELAY_ONLY } from '../config'
 await startCall(sessionId, runtime_session_id, ice_servers, RELAY_ONLY)
 ```
 
-Never infer this from `import.meta.env.DEV`: `vite dev` against the deployed backend is a normal workflow, and handing that session host candidates hides the TURN-only reality until after deploy. Locally the SPA also reaches the control plane **same-origin**, through the Vite `server.proxy` for `/voice` and `/scenario` — so no CORS is involved and `API_BASE_URL` stays empty. See [`../backend/local-dev.md`](../backend/local-dev.md).
+Never infer this from `import.meta.env.DEV`: `vite dev` against the deployed backend is a normal workflow, and handing that session host candidates hides the TURN-only reality until after deploy. Locally the SPA also reaches the control plane **same-origin**, through the Vite `server.proxy` for `/voice` and `/scenario` — so no CORS is involved and the resolved API base stays empty. See [`../backend/local-dev.md`](../backend/local-dev.md).
 
 ## Behavior notes
 
@@ -116,7 +126,25 @@ Never infer this from `import.meta.env.DEV`: `vite dev` against the deployed bac
 
 Everything BRIDGE pushes over the data channel is a `GameEvent` from `gameEvents.gen.ts`: `transcript_update`, `state_update`, `action_detected`, `timer`, `game_over`, each stamped `v: 1` and discriminated on `type`.
 
-**The channel now carries the v1 envelope only.** The runtime emits game events for every turn (`transcript_update` with roles `student`/`patient`, never the kit's `user`/`assistant`), so `webrtc.service.ts`'s current `role === 'user' || role === 'assistant'` filter drops all of them and the live transcript stays empty until [Rewrite G] switches the handler onto `GameEvent`.
+**The channel carries the v1 envelope only** — `transcript_update` uses roles `student`/`patient`, never the kit's `user`/`assistant`.
+
+The path from wire to UI is deliberately flat, with **one validation point**:
+
+```
+data channel → handleDataChannelMessage (JSON.parse only)
+             → onGameEvent → createGameEventHandler → dispatch → gameReducer
+```
+
+`handleDataChannelMessage` drops only unparseable payloads (DEV-only
+`console.warn`; a bad frame never ends the call) and forwards everything else
+untouched as `unknown`. `createGameEventHandler` guards only "not a plain
+object". Unknown `type` and `v !== 1` are dropped by the reducer's
+`isAcceptable` and nowhere else — duplicating that check would let the two
+definitions of "acceptable" drift apart.
+
+Ordering the reducer relies on: connect → one authoritative `state_update`;
+per turn `transcript_update{student}` → `action_detected`×N → `state_update` →
+(`game_over`?) → `transcript_update{patient}`; `timer` at 1 Hz.
 
 The file is generated from `runtime/bridge/events.py` and committed — never edit it by hand:
 

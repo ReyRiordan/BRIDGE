@@ -13,7 +13,7 @@
  *    function of (state, action) and is fully exercisable in a test.
  *
  * The control-action names are SCREAMING_SNAKE and the wire discriminants are
- * lower_snake, so the two never collide: [Rewrite G] can hand the raw
+ * lower_snake, so the two never collide: the voice client hands the raw
  * `JSON.parse(msg.data)` straight to `dispatch` with no adapter layer.
  */
 import type { GameEvent } from '../voice/gameEvents.gen'
@@ -47,7 +47,7 @@ export interface GameState {
   escalation: number
   max: number
   activeActions: string[]
-  /** The runtime's terse status string. Stored for [Rewrite G]; unrendered by design. */
+  /** The runtime's terse status string. Stored for the debrief; unrendered by design. */
   status: string
   transcript: TranscriptEntry[]
   timer: { elapsed: number; limit: number }

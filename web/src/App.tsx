@@ -9,9 +9,9 @@ import type { Scenario } from './types/scenario'
 /**
  * The whole app shell: one reducer, one switch on `state.phase`.
  *
- * `dispatch` is also the seam [Rewrite G] plugs the voice data channel into —
- * wire events are already part of the action union, so a parsed message goes
- * straight in with no adapter.
+ * `dispatch` is also the seam the voice data channel plugs into — wire events
+ * are already part of the action union, so a parsed message goes straight in
+ * with no adapter. [Rewrite G2] mounts the session on the game screen.
  */
 function App() {
   const { state, dispatch } = useGame()
