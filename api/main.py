@@ -1,37 +1,38 @@
 """
-Control-plane Lambda entry point — PLACEHOLDER for [Rewrite C].
-
-Today this is the smallest app that proves the deploy path end to end: the
-bundle installs, Mangum adapts it to the Function URL, CORS lets the SPA in,
-and `resources/scenario_1.json` really is inside the package. [Rewrite C]
-replaces this module wholesale with the real control plane (`/scenario` + the
-`voice_kit` signaling router) — deliberately no voice_kit import here, since how
-`api/` consumes the package is that issue's decision.
+Control-plane Lambda entry point: `/health`, `/scenario`, and the voice_kit
+signaling router — the thin, pipecat-free half of the BRIDGE backend. Mangum
+adapts the FastAPI app to the Function URL; keep this module free of
+startup/lifespan dependencies (Mangum compat).
 
 CORS is owned here, not by the Function URL: configuring both duplicates the
 response headers and browsers reject them.
 """
 
-import json
 import os
-from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-# Bundling copies resources/ next to api/ inside the package, so the default
-# resolves relative to this file — infra deliberately does NOT set SCENARIO_PATH
-# on the Lambda (that var carries the *container's* /app/resources path, which
-# does not exist here). The override exists for local runs.
-DEFAULT_SCENARIO_PATH = (
-    Path(__file__).resolve().parent.parent / "resources" / "scenario_1.json"
-)
+from api import scenario
+from voice_kit import create_voice_router, register_exception_handlers
 
 
 def allowed_origins() -> list[str]:
     """Browser origins from the comma-separated ALLOWED_ORIGINS set by infra."""
     return [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
+
+async def authorize(request: Request, session_id: str) -> None:
+    """
+    TODO(auth): deliberate no-op — the three /voice endpoints are OPEN.
+
+    Anyone who can reach the Function URL can attach to any session's runtime
+    or end it. Acceptable only while the app is a closed pilot behind an
+    unpublished URL; before any real rollout this must verify the caller and
+    their ownership of `session_id` (see the auth checklist item in
+    docs/backend/voice-kit/01-integration-guide.md).
+    """
 
 
 app = FastAPI(title="BRIDGE control plane")
@@ -44,22 +45,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 502s (not CORS-less 500s) for upstream failures — voice-kit gotcha #22.
+register_exception_handlers(app)
 
-def _scenario_path() -> Path:
-    configured = os.getenv("SCENARIO_PATH")
-    return Path(configured) if configured else DEFAULT_SCENARIO_PATH
+app.include_router(scenario.router)
+# No on_start/on_end: there is no session store — game state lives in the
+# runtime container and transcripts stream to the browser live over the data
+# channel, so /end returns transcript: [].
+app.include_router(create_voice_router(prefix="/voice", authorize=authorize))
 
 
 @app.get("/health")
 def health() -> dict:
-    """Liveness + a bundling check: can we actually read the scenario config?"""
-    path = _scenario_path()
-    try:
-        scenario = json.loads(path.read_text())
-        scenario_loaded = bool(scenario)
-    except (OSError, ValueError):
-        scenario_loaded = False
-    return {"status": "ok", "scenario_loaded": scenario_loaded}
+    """Liveness. Scenario bundling is proven at import time by api.scenario."""
+    return {"status": "ok", "scenario_loaded": True}
 
 
 handler = Mangum(app)
