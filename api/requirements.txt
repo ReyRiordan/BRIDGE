@@ -5,6 +5,10 @@
 # and this is the only requirements file that installs pytest — keep both.
 
 fastapi==0.141.1
+# The vendored voice_kit package (control-plane surface only — its
+# pyproject.toml carries no pipecat). Single source of truth for CI, local dev,
+# and Lambda bundling; install from the repo root.
+./runtime
 # ASGI -> Lambda adapter. The Function URL invokes `api.main.handler`.
 mangum==0.21.0
 

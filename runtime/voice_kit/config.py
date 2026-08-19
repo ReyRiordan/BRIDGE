@@ -136,6 +136,13 @@ class VoiceKitSettings(BaseSettings):
         default=None,
         description="AgentCore Runtime ARN for the voice pipeline (invoke_agent_runtime target)",
     )
+    # How the control-plane router reaches the runtime: "agentcore" invokes the
+    # deployed AgentCore runtime via boto3; "local" targets a localhost
+    # /invocations container ([Rewrite H] — raises NotImplementedError today).
+    voice_invoker: Literal["agentcore", "local"] = Field(
+        default="agentcore",
+        description="Invoker backend for the signaling router: agentcore or local",
+    )
     # AgentCore's invoke_agent_runtime requires runtimeSessionId length 33-256
     # (validated CLIENT-SIDE by botocore); uuid4().hex is only 32, so the prefix
     # lifts it to 40 and makes ids self-identifying in AgentCore logs.

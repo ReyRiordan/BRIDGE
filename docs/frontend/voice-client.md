@@ -88,6 +88,11 @@ const { transcript } = await endVoiceSession(sessionId) // backend on_end hook: 
 The server-side transcript from `/end` is authoritative — the live data-channel
 copy can miss turns delivered during a reconnect gap.
 
+`/end` accepts an optional body `{ runtime_session_id }` — only the browser
+holds the current affinity key, and sending it lets the control plane tear the
+runtime's pipeline down immediately (best-effort; the idle timeout is the
+backstop). The client sends it in [Rewrite G].
+
 ## Behavior notes
 
 - **Anti-echo auto-mute**: the hook mutes the mic while `isAgentSpeaking` (detected via an `AnalyserNode` on the remote stream, debounced 500 ms — not `audio.onplay`, which fires at connection time). Without this, speaker output re-triggers the server-side VAD.
