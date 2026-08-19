@@ -77,6 +77,8 @@ export const VOICE_CONFIG: Record<string, string> = {
   REFEREE_TIMEOUT_SECONDS: '7',
   SCENARIO_PATH: '/app/resources/scenario_1.json',
   REFEREE_PROMPT_PATH: '/app/resources/referee.txt',
+  PATIENT_PROMPT_PATH: '/app/resources/patient.txt',
+  PATIENT_CASE_PATH: '/app/resources/patient.json',
   // Grace window between `game_over` and tearing the pipeline down, so the
   // client can render the debrief.
   GAME_GRACE_SECONDS: '45',

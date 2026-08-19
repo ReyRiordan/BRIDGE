@@ -27,6 +27,14 @@ SCENARIO_PATH = os.environ.get("SCENARIO_PATH") or str(
 REFEREE_PROMPT_PATH = os.environ.get("REFEREE_PROMPT_PATH") or str(
     _REPO_ROOT / "resources" / "referee.txt"
 )
+# The patient persona is assembled from two files: the prompt template (with a
+# `{patient_name}` placeholder) and the case file it is filled from.
+PATIENT_PROMPT_PATH = os.environ.get("PATIENT_PROMPT_PATH") or str(
+    _REPO_ROOT / "resources" / "patient.txt"
+)
+PATIENT_CASE_PATH = os.environ.get("PATIENT_CASE_PATH") or str(
+    _REPO_ROOT / "resources" / "patient.json"
+)
 
 # The referee is a separate LLM call from the patient agent (LLM_* in the kit's
 # settings), so it carries its own provider/model/effort knobs.
@@ -56,3 +64,17 @@ def load_referee_prompt(path: str = None) -> str:
     """Load the referee system prompt (cached)."""
     with open(path or REFEREE_PROMPT_PATH, encoding="utf-8") as f:
         return f.read()
+
+
+@lru_cache(maxsize=None)
+def load_patient_prompt_template(path: str = None) -> str:
+    """Load the patient prompt template, `{patient_name}` unsubstituted (cached)."""
+    with open(path or PATIENT_PROMPT_PATH, encoding="utf-8") as f:
+        return f.read()
+
+
+@lru_cache(maxsize=None)
+def load_patient_case(path: str = None) -> dict:
+    """Load the patient case file (cached)."""
+    with open(path or PATIENT_CASE_PATH, encoding="utf-8") as f:
+        return json.load(f)

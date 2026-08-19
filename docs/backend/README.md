@@ -11,12 +11,14 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `runtime/bridge/` | BRIDGE's own runtime code: the game engine and the wire contract. Container-only. | AgentCore container |
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
 | `resources/` | Scenario config + prompts. Shared with the legacy app; COPYed into the runtime image at `/app/resources`. | Both |
+| `runtime/evals/` | Manual, network-hitting prompt evals (referee eval + patient probe). Never run by CI; still linted. See `prompts.md`. | Local |
 | `scripts/` | `gen_event_types.py` (event-contract codegen), `make_transparent.py` (visual asset tool). | Local / CI |
 
 ## Doc map
 
 | Doc | Read it for |
 |---|---|
+| `prompts.md` | The referee + patient prompts, what the model is (and is not) shown, the manual evals |
 | `deployment.md` | Environment topology, the AZ record, secrets, the deploy runbook, cost |
 | `voice-kit/00-architecture.md` | Topology, the pipeline chain, the two session ids, extension points |
 | `voice-kit/01-integration-guide.md` | How the halves wire together; the verification gates |
@@ -55,11 +57,11 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 
 | Module | Owns |
 |---|---|
-| `config.py` | Env reads + cached `load_scenario()` / `load_referee_prompt()` |
+| `config.py` | Env reads + the cached scenario / referee-prompt / patient-prompt / patient-case loaders |
 | `session.py` | `GameSession` (escalation, action states, transcript, clock origin) + the `_sessions` registry and its sweep |
 | `referee.py` | `RefereeProcessor` — scores each student utterance, applies the scenario's point values, emits the turn's events |
 | `emitter.py` | `GameEvents` — the v1 envelope helpers; `transcript_event` maps the sink's turns (patient only) |
-| `patient.py` | Patient prompt seam (placeholder until [Rewrite E]), voice mapping, the per-turn escalation marker |
+| `patient.py` | Patient prompt assembly (template + case file), voice mapping, the per-turn escalation marker — see `prompts.md` |
 | `timer.py` | The 1 Hz clock and the post-`game_over` grace reaper |
 | `app.py` | The uvicorn/Docker target: registers every hook and re-exports the kit's app |
 | `events.py` | The frozen v1 wire contract (above) |

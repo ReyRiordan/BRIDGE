@@ -65,6 +65,8 @@ describe('VOICE_CONFIG', () => {
     // Must match the image layout: Dockerfile.voice COPYs resources/ to /app.
     expect(VOICE_CONFIG.SCENARIO_PATH).toBe('/app/resources/scenario_1.json')
     expect(VOICE_CONFIG.REFEREE_PROMPT_PATH).toBe('/app/resources/referee.txt')
+    expect(VOICE_CONFIG.PATIENT_PROMPT_PATH).toBe('/app/resources/patient.txt')
+    expect(VOICE_CONFIG.PATIENT_CASE_PATH).toBe('/app/resources/patient.json')
     // Legacy SYSTEM_AGENT_* naming is retired.
     expect(Object.keys(VOICE_CONFIG)).not.toContain('SYSTEM_AGENT_MODEL')
   })

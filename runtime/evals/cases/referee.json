@@ -1,0 +1,121 @@
+[
+  {
+    "name": "anchor: acknowledge distress",
+    "utterance": "I can see this is really overwhelming for you right now.",
+    "escalation": 5,
+    "expected": [
+      "Acknowledge distress"
+    ]
+  },
+  {
+    "name": "anchor: environmental + caregiver",
+    "utterance": "Let me dim the lights and ask the other staff to step out. And can we get your mom to come in?",
+    "escalation": 6,
+    "expected": [
+      "Environmental",
+      "Caregiver involvement"
+    ]
+  },
+  {
+    "name": "anchor: force IV + authoritative tone",
+    "utterance": "We need to get this IV in right now, just hold still.",
+    "escalation": 5,
+    "expected": [
+      "Force IV",
+      "Authoritative tone"
+    ]
+  },
+  {
+    "name": "anchor: neutral history question scores nothing",
+    "utterance": "Can you tell me your date of birth?",
+    "escalation": 4,
+    "expected": []
+  },
+  {
+    "name": "paraphrase: acknowledge distress without the stock phrasing",
+    "utterance": "That must have been really scary when the nurse tried the needle.",
+    "escalation": 7,
+    "expected": [
+      "Acknowledge distress"
+    ]
+  },
+  {
+    "name": "paraphrase: environmental without the word 'dim'",
+    "utterance": "I'm going to turn these overhead lights down and clear a couple of people out of the room.",
+    "escalation": 6,
+    "expected": [
+      "Environmental"
+    ]
+  },
+  {
+    "name": "coverage: offer control",
+    "utterance": "Do you want to sit up, or would you rather lie back? Whichever you'd prefer.",
+    "escalation": 5,
+    "expected": [
+      "Offer Control"
+    ]
+  },
+  {
+    "name": "coverage: delay procedure",
+    "utterance": "We don't have to do the IV right now \u2014 we can come back to it once you're ready.",
+    "escalation": 6,
+    "expected": [
+      "Delay Procedure",
+      "Offer Control"
+    ]
+  },
+  {
+    "name": "dedup: environmental mentioned twice counts once",
+    "utterance": "Let me dim the lights. Actually, let me get these lights down as low as they go and shut the door too.",
+    "escalation": 5,
+    "expected": [
+      "Environmental"
+    ]
+  },
+  {
+    "name": "near-miss: hedged mention of restraint is not Restraint",
+    "utterance": "If this keeps going we may need to consider other options, but I'd much rather not.",
+    "escalation": 7,
+    "expected": []
+  },
+  {
+    "name": "near-miss: naming the IV is not Force IV",
+    "utterance": "The nurse tried to place an IV earlier and I know that hurt.",
+    "escalation": 8,
+    "expected": [
+      "Acknowledge distress"
+    ]
+  },
+  {
+    "name": "near-miss: a firm but calm boundary is not Authoritative tone",
+    "utterance": "I'll stay over here by the door so you have some space.",
+    "escalation": 8,
+    "expected": [
+      "Environmental"
+    ]
+  },
+  {
+    "name": "negative: restraint clearly directed",
+    "utterance": "I'm going to have security hold him down and we'll give him something to sedate him.",
+    "escalation": 6,
+    "expected": [
+      "Restraint",
+      "Authoritative tone"
+    ]
+  },
+  {
+    "name": "combination: verbal communication plus offer control",
+    "utterance": "I'm going to explain everything before I do it, and you can tell me when you're ready.",
+    "escalation": 4,
+    "expected": [
+      "Verbal Communication",
+      "Offer Control"
+    ]
+  },
+  {
+    "name": "neutral: small talk scores nothing",
+    "utterance": "It's pretty busy out there tonight, huh.",
+    "escalation": 5,
+    "expected": []
+  }
+]

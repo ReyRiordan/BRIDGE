@@ -16,7 +16,7 @@ load_dotenv('.env')
 
 SCENARIO = load_scenario("resources/scenario_1.json")
 PATIENT_PROMPT = load_patient_prompt("resources/patient.txt", "resources/patient.json")
-SYSTEM_PROMPT = open("resources/system.txt", encoding="utf8").read()
+SYSTEM_PROMPT = open("resources/referee.txt", encoding="utf8").read()
 
 STT = ParakeetSTT(os.getenv("TOGETHER_API_KEY"))
 SYSTEM_LLM = OpenRouterChat(
