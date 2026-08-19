@@ -27,7 +27,7 @@ Domain logic is not baked in: the kit exposes extension points (a per-session co
 ## What BRIDGE must supply
 
 - [ ] A **system prompt** (env `SYSTEM_PROMPT`, or a context provider that builds one per session) — [Rewrite E]
-- [ ] **Auth** on the three endpoints (`authorize` hook and/or FastAPI `dependencies`) — the defaults are open — [Rewrite C]
+- [ ] **Auth** on the three endpoints (`authorize` hook and/or FastAPI `dependencies`) — the defaults are open. Currently a documented `TODO(auth)` no-op at `authorize` in `api/main.py` — the `/signal` path is deliberately open until auth lands
 - [ ] A **session id** concept (any string the app can re-fetch by)
 - [ ] A **transcript sink** for server-side transcripts (`set_transcript_handler`) — [Rewrite D]
 - [ ] Session **state transitions** (`on_start` / `on_end`)
@@ -57,6 +57,7 @@ async def on_end(session_id: str) -> list[TranscriptMessage]:
 
 app.include_router(create_voice_router(
     authorize=authorize, on_start=on_start, on_end=on_end,
+    # invoker=my_invoker,                              # default: get_invoker() per VOICE_INVOKER
     # dependencies=[Depends(get_current_user)],        # FastAPI-native auth also works
     prefix="/voice",
 ))
@@ -110,7 +111,7 @@ The five client files live in `web/src/voice/`. Call `configureVoiceApi(adapter,
 3. `POST /voice/{id}/signal` → control plane `invoke_agent_runtime(runtimeSessionId=...)` → runtime fetches KVS TURN, negotiates, **builds the pipeline inside the connection callback**, returns a relay-only answer.
 4. Media flows browser↔runtime over KVS TURN. Each finalized turn: STT → LLM → TTS, then your transcript handler + a JSON push over the data channel.
 5. Drop / cold-start stall → UI retries with a **fresh** `runtime_session_id` (same session id); the context provider re-seeds history so the agent resumes mid-conversation.
-6. `POST /voice/{id}/end` → `on_end` → your closing transition + authoritative transcript.
+6. `POST /voice/{id}/end` (optional body `{runtime_session_id}` → the router best-effort invokes the runtime's `action: "end"` teardown first) → `on_end` → your closing transition + authoritative transcript.
 
 ## Extension-point reference
 

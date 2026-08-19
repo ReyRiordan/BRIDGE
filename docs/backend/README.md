@@ -47,13 +47,13 @@ python3 scripts/gen_event_types.py           # write
 python3 scripts/gen_event_types.py --check   # verify
 ```
 
-**Invoker interface** (control plane → runtime): `Invoker.signal(session_id, runtime_session_id, sdp) -> dict` and `Invoker.end(session_id, runtime_session_id) -> dict`. Implementations: `AgentCoreInvoker` (boto3 `invoke_agent_runtime`, hides the streaming-body response) and `LocalInvoker` (localhost `/invocations`). The runtime entrypoint dispatches on `payload.action`: `"signal"` (default) | `"end"`.
+**Invoker interface** (control plane → runtime): `voice_kit.Invoker`, both methods async — `await invoker.signal(session_id, runtime_session_id, sdp, type="offer") -> dict` and `await invoker.end(session_id, runtime_session_id) -> dict`. Selected by `VOICE_INVOKER` via `get_invoker()`: `AgentCoreInvoker` (boto3 `invoke_agent_runtime` in `asyncio.to_thread`, hides the streaming-body response) or `LocalInvoker` (localhost `/invocations`, [Rewrite H] — raises until then). `create_voice_router(invoker=...)` accepts an override for tests/custom backends. Teardown is router-owned: `/end` with a `SessionEndRequest` body (`{runtime_session_id}`) best-effort invokes `end()` (payload `{"session_id", "action": "end"}`) before the `on_end` hook; no body skips it. The runtime entrypoint dispatches on `payload.action`: `"signal"` (default) | `"end"`.
 
 ## Packaging
 
 `runtime/pyproject.toml` publishes **`voice_kit` only**, with just its pipecat-free core deps (`fastapi`, `pydantic`, `pydantic-settings`, `boto3`, `aiohttp`) — that is what makes the control plane installable into the Lambda without dragging pipecat in. `runtime/bridge/` is not packaged: it reaches the container through `Dockerfile.voice`, whose dependency source is `runtime/requirements-voice.txt` (`COPY` + `PYTHONPATH=/app`, no pip-install of the package).
 
-How `api/` consumes the package at Lambda bundling time (expected: `pip install ./runtime`) and how tests set up the path is decided in **[Rewrite C]**.
+`api/` consumes the package through the `./runtime` line in `api/requirements.txt` — the single source of truth for CI, local dev, and Lambda bundling (`pip install -r api/requirements.txt` from the repo root; the bundling `sed` strips only tooling pins). `api/` and its tests do a plain `import voice_kit` against the installed package.
 
 ## Commands
 
