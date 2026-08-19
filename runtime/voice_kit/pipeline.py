@@ -8,13 +8,19 @@ registered context provider (``voice_kit.context``) and assembles the
 processor chain:
 
     transport input → VADProcessor (Silero)
-        → STTProcessor → LLMProcessor → TTSProcessor → TranscriptSinkProcessor
+        → STTProcessor → LLMProcessor → TTSProcessor → EventSinkProcessor
         → transport output
 
-The session time limit (``settings.session_time_limit_minutes``, overridable
-per session via ``SessionContext.time_limit_seconds``) is applied as the
-``PipelineWorker`` idle timeout so the runtime self-terminates at the limit.
-An AgentCore ``maxLifetime`` backstop is configured separately in infra.
+A host that needs its own stages registers a **processor factory**
+(``voice_kit.set_processor_factory``); ``resolve_processors`` dispatches to it
+and falls back to the default chain above.
+
+``PipelineWorker``'s idle timeout comes from ``settings.idle_timeout_secs`` —
+the runtime's self-termination backstop for abandoned containers, deliberately
+independent of any application time limit. ``SessionContext.time_limit_seconds``
+is carried on the :class:`PipelineContext` for the host's reporting only; the
+kit never enforces it. An AgentCore ``maxLifetime`` backstop is configured
+separately in infra.
 
 Pipecat APIs verified against pipecat-ai 1.3.0: VAD is a standalone
 ``VADProcessor`` in the pipeline (it is no longer a ``TransportParams`` field);
@@ -23,15 +29,21 @@ self-termination knob is ``idle_timeout_secs``.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from .config import settings
-from .context import SessionContext, get_context_provider, get_transcript_handler
+from .context import (
+    ProcessorFactoryArgs,
+    SessionContext,
+    get_context_provider,
+    get_processor_factory,
+    get_transcript_handler,
+)
 from .processors import (
+    EventSinkProcessor,
     LLMProcessor,
     STTProcessor,
-    TranscriptSinkProcessor,
     TTSProcessor,
 )
 from .types import TranscriptMessage, VoiceConfig
@@ -50,9 +62,16 @@ class PipelineContext:
     session_id: str
     voice: VoiceConfig
     system_prompt: str
+    # Informational: the host's own conversation cap, never enforced by the kit
+    # (the worker's idle timeout is settings.idle_timeout_secs).
     time_limit_seconds: int
     pipeline: object
     task: object
+    # The host's SessionContext.metadata, forwarded verbatim, plus the object it
+    # stored under "game" hoisted to a field so session hooks can reach the
+    # host's per-session state without digging.
+    metadata: dict = field(default_factory=dict)
+    game: object = None
 
 
 async def load_session_context(session_id: str) -> SessionContext:
@@ -100,12 +119,48 @@ def build_processors(
             initial_history=initial_history,
         ),
         TTSProcessor(voice=voice),
-        TranscriptSinkProcessor(
+        EventSinkProcessor(
             session_id=session_id,
             emit=emit,
             on_transcript_message=on_transcript_message,
         ),
     ]
+
+
+def resolve_processors(
+    session_id: str,
+    context: SessionContext,
+    emit=None,
+    on_transcript_message=None,
+) -> list:
+    """Return the processor chain for this session: host factory, else default.
+
+    Split out of ``build_pipeline_for_session`` so the dispatch is unit-testable
+    without pipecat (the default branch still imports it, a registered factory
+    need not).
+    """
+    factory = get_processor_factory()
+    if factory is None:
+        return build_processors(
+            system_prompt=context.system_prompt,
+            session_id=session_id,
+            voice=context.voice,
+            initial_history=context.initial_history,
+            emit=emit,
+            on_transcript_message=on_transcript_message,
+        )
+    logger.info("Building processors for session %s via host factory", session_id)
+    return factory(
+        ProcessorFactoryArgs(
+            session_id=session_id,
+            session_context=context,
+            system_prompt=context.system_prompt,
+            voice=context.voice,
+            initial_history=context.initial_history,
+            emit=emit,
+            on_transcript_message=on_transcript_message,
+        )
+    )
 
 
 async def build_pipeline_for_session(
@@ -141,11 +196,9 @@ async def build_pipeline_for_session(
         else settings.session_time_limit_minutes * 60
     )
 
-    processors = build_processors(
-        system_prompt=context.system_prompt,
-        session_id=session_id,
-        voice=context.voice,
-        initial_history=context.initial_history,
+    processors = resolve_processors(
+        session_id,
+        context,
         emit=emit,
         on_transcript_message=get_transcript_handler(),
     )
@@ -163,12 +216,13 @@ async def build_pipeline_for_session(
     )
 
     # PipelineWorker self-terminates after `idle_timeout_secs` of no speaking
-    # activity, capping the conversation at the configured limit.
+    # activity — a backstop against abandoned containers, NOT the app's time
+    # limit (a host may cap a conversation far above or below it).
     # PipelineParams carries no timeout field.
     task = PipelineWorker(
         pipeline,
         params=PipelineParams(),
-        idle_timeout_secs=time_limit_seconds,
+        idle_timeout_secs=settings.idle_timeout_secs,
     )
 
     return PipelineContext(
@@ -178,4 +232,6 @@ async def build_pipeline_for_session(
         time_limit_seconds=time_limit_seconds,
         pipeline=pipeline,
         task=task,
+        metadata=context.metadata,
+        game=context.metadata.get("game"),
     )

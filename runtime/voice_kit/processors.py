@@ -15,14 +15,18 @@ Pipeline data flow (one user turn):
     LLMProcessor appends the user turn to its running history, calls the
     LLM, and emits TranscriptMessageFrame(role="assistant"). It passes
     the user frame through unchanged so downstream stages still see it.
+    An optional turn gate can suppress the LLM call for a turn (the user
+    frame still flows), and an optional turn context injects an ephemeral
+    system message into the call only.
                                   │
     TTSProcessor synthesizes the assistant text to audio frames (running the
     sync streaming generator in a thread) and passes the transcript frame
     through.
                                   │
-    TranscriptSinkProcessor hands every TranscriptMessageFrame to the host's
-    registered transcript handler (voice_kit.context) and emits it as JSON over
-    the WebRTC data channel for the live frontend transcript.
+    EventSinkProcessor hands every TranscriptMessageFrame to the host's
+    registered transcript handler (voice_kit.context) and emits it over the
+    WebRTC data channel — as raw transcript JSON by default, or as whatever a
+    host-supplied mapper returns.
 
 Because each TranscriptMessageFrame is carried end-to-end (not consumed by the
 stage that produced it), the sink sits last and sees both the user and
@@ -38,6 +42,7 @@ TTS stage emits that rather than a bare ``AudioRawFrame``.
 import asyncio
 import collections
 import logging
+import time
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
@@ -152,7 +157,11 @@ class STTProcessor(FrameProcessor):
             return
 
         stt = get_stt_model(self._provider)
+        started = time.perf_counter()
         text = await stt.transcribe_stream((self._sample_rate, arr))
+        logger.info(
+            "[timing] ASR (%s): %.2fs", self._provider, time.perf_counter() - started
+        )
         if not text or not text.strip():
             return
 
@@ -170,6 +179,18 @@ class LLMProcessor(FrameProcessor):
     Maintains running conversation history (seeded with any prior transcript so
     the agent keeps context across reconnects) and emits an assistant
     transcript frame. User frames are passed through unchanged.
+
+    Two optional host seams:
+
+    - ``turn_gate()`` — consulted after the user frame is forwarded and appended
+      to history. Returning False skips the LLM call for this turn (no assistant
+      frame, no audio), e.g. because the host already ended the conversation.
+      History stays complete either way, so a reconnect resumes correctly.
+    - ``turn_context()`` — a per-turn string injected as an ephemeral system
+      message **immediately before the final user message**, never stored in
+      history. The position is deliberate: ``system_prompt`` + history stays a
+      stable, cacheable prefix while the marker keeps maximal recency. (The
+      legacy app instead prefixed it ahead of the whole history.)
     """
 
     def __init__(
@@ -180,6 +201,8 @@ class LLMProcessor(FrameProcessor):
         reasoning_effort: ReasoningEffort = "none",
         providers: Optional[List[str]] = None,
         initial_history: Optional[List[TranscriptMessage]] = None,
+        turn_gate: Optional[Callable[[], bool]] = None,
+        turn_context: Optional[Callable[[], Optional[str]]] = None,
     ):
         super().__init__()
         self._system_prompt = system_prompt
@@ -188,6 +211,8 @@ class LLMProcessor(FrameProcessor):
         self._reasoning_effort = reasoning_effort
         self._providers = providers
         self._history: List[TranscriptMessage] = list(initial_history or [])
+        self._turn_gate = turn_gate
+        self._turn_context = turn_context
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -202,7 +227,13 @@ class LLMProcessor(FrameProcessor):
         if frame.message.role != "user":
             return
 
+        # Append BEFORE the gate check: a gated turn is still part of the
+        # conversation the next connection resumes from.
         self._history.append(frame.message)
+
+        if self._turn_gate is not None and not self._turn_gate():
+            logger.info("Turn gated: skipping LLM call")
+            return
 
         llm = get_llm_model(
             provider=self._provider,
@@ -214,7 +245,20 @@ class LLMProcessor(FrameProcessor):
         messages: List[Dict] = [
             {"role": m.role, "content": m.content} for m in self._history
         ]
+        if self._turn_context is not None:
+            turn_context = self._turn_context()
+            if turn_context:
+                # Immediately before the final user message (see class docstring).
+                messages.insert(
+                    len(messages) - 1, {"role": "system", "content": turn_context}
+                )
+        started = time.perf_counter()
         response_text = await llm.chat(messages, self._system_prompt)
+        logger.info(
+            "[timing] patient-LLM (%s): %.2fs",
+            self._model,
+            time.perf_counter() - started,
+        )
 
         assistant_msg = TranscriptMessage(
             role="assistant", content=response_text, timestamp=datetime.utcnow()
@@ -252,9 +296,16 @@ class TTSProcessor(FrameProcessor):
             provider=self._speech.provider,
             voice=self._speech.voice,
             model=self._speech.model,
+            speed=self._speech.speed,
         )
+        started = time.perf_counter()
         chunks = await asyncio.to_thread(
             list, tts.stream_tts_sync(frame.message.content)
+        )
+        logger.info(
+            "[timing] TTS (%s): %.2fs",
+            self._speech.provider,
+            time.perf_counter() - started,
         )
         for sample_rate, audio in chunks:
             # TTSAudioRawFrame is an OutputAudioRawFrame — the output transport
@@ -270,7 +321,7 @@ class TTSProcessor(FrameProcessor):
             )
 
 
-class TranscriptSinkProcessor(FrameProcessor):
+class EventSinkProcessor(FrameProcessor):
     """Hand each finalized turn to the host's sink and emit it over the data channel.
 
     For every :class:`TranscriptMessageFrame` it (1) awaits the host-registered
@@ -278,9 +329,14 @@ class TranscriptSinkProcessor(FrameProcessor):
     pluggable replacement for server-side persistence; a SYNC sink (e.g. a
     boto3 PutItem) must be wrapped by the host in ``asyncio.to_thread`` so the
     Pipecat event loop (the WebRTC packet pump) is never blocked — and (2)
-    emits the JSON-serialized message over the WebRTC data channel so the
-    frontend renders the live transcript. Both are failure-isolated: neither a
-    sink error nor an emit error may kill the conversation turn.
+    emits a JSON string over the WebRTC data channel so the frontend renders
+    the live transcript. Both are failure-isolated: neither a sink error nor an
+    emit error may kill the conversation turn.
+
+    What goes on the wire is the host's choice: ``transcript_event`` maps a
+    message to the JSON string to send, and returning ``None`` sends nothing
+    (e.g. a host whose own layer already emitted that role). Without a mapper
+    the raw ``TranscriptMessage`` JSON is sent, as before.
     """
 
     def __init__(
@@ -288,11 +344,13 @@ class TranscriptSinkProcessor(FrameProcessor):
         session_id: str,
         emit: Optional[Callable[[str], None]] = None,
         on_transcript_message: Optional[TranscriptHandler] = None,
+        transcript_event: Optional[Callable[[TranscriptMessage], Optional[str]]] = None,
     ):
         super().__init__()
         self._session_id = session_id
         self._emit = emit
         self._on_transcript_message = on_transcript_message
+        self._transcript_event = transcript_event
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -307,7 +365,12 @@ class TranscriptSinkProcessor(FrameProcessor):
                     )
             if self._emit is not None:
                 try:
-                    self._emit(frame.message.model_dump_json())
+                    if self._transcript_event is not None:
+                        payload = self._transcript_event(frame.message)
+                    else:
+                        payload = frame.message.model_dump_json()
+                    if payload is not None:
+                        self._emit(payload)
                 except Exception as e:  # data-channel emit must never kill the turn
                     logger.warning(
                         "[%s] data-channel emit failed: %s", self._session_id, e
