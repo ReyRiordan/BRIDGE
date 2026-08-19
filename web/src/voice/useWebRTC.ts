@@ -1,24 +1,29 @@
 /**
  * useWebRTC Hook
  * React hook wrapper for the WebRTC voice service with lifecycle management.
- * Connects to the Pipecat voice runtime via the `/signal` proxy, exposes a
- * live transcript streamed over the data channel, and detects a cold-start ICE
- * stall so the caller can retry with a fresh runtime_session_id (see USAGE.md
- * for the retry loop).
+ * Connects to the Pipecat voice runtime via the `/signal` proxy, forwards the
+ * game events that arrive over the data channel to the caller's handler, and
+ * detects a cold-start ICE stall so the caller can retry with a fresh
+ * runtime_session_id (see docs/frontend/voice-client.md for the retry loop).
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { webrtcService } from './webrtc.service'
-import type {
-  CallState,
-  IceServerConfig,
-  TranscriptItem,
-  WebRTCError,
-} from './webrtc.types'
+import type { CallState, IceServerConfig, WebRTCError } from './webrtc.types'
 
 // How long to wait for ICE to reach `connected` before declaring a cold-start
 // stall and tearing down so the caller can retry with a fresh runtime_session_id.
 const ICE_CONNECT_TIMEOUT_MS = 10000
+
+/** Options for the hook. */
+export interface UseWebRTCOptions {
+  /**
+   * Called with every JSON payload parsed off the data channel. Pass
+   * `createGameEventHandler(dispatch)` (./gameEvents) — the reducer is the
+   * single validation point, so nothing is filtered on the way here.
+   */
+  onGameEvent?: (event: unknown) => void
+}
 
 /**
  * useWebRTC hook return type
@@ -28,7 +33,6 @@ export interface UseWebRTCReturn {
   connectionState: RTCPeerConnectionState | null
   isMuted: boolean
   isAgentSpeaking: boolean
-  transcript: TranscriptItem[]
   error: WebRTCError | null
   requestPermission: () => Promise<void>
   startCall: (
@@ -48,30 +52,36 @@ export interface UseWebRTCReturn {
  *
  * Example usage:
  * ```tsx
- * const { transcript, startCall, endCall } = useWebRTC();
+ * const { startCall, endCall } = useWebRTC({
+ *   onGameEvent: createGameEventHandler(dispatch),
+ * });
  * await requestPermission();
- * await startCall(sessionId, runtimeSessionId, iceServers);
+ * await startCall(sessionId, runtimeSessionId, iceServers, RELAY_ONLY);
  * ```
  */
-export const useWebRTC = (): UseWebRTCReturn => {
+export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
   const [callState, setCallState] = useState<CallState>('idle')
   const [connectionState, setConnectionState] =
     useState<RTCPeerConnectionState | null>(null)
   const [isMuted, setIsMuted] = useState(false)
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false)
-  const [transcript, setTranscript] = useState<TranscriptItem[]>([])
   const [error, setError] = useState<WebRTCError | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Register remote audio + transcript callbacks; clear on unmount
+  // Read through a ref so an inline callback doesn't re-register (and briefly
+  // drop) the service handler on every render.
+  const onGameEventRef = useRef(options.onGameEvent)
+  useEffect(() => {
+    onGameEventRef.current = options.onGameEvent
+  }, [options.onGameEvent])
+
+  // Register remote audio + game-event callbacks; clear on unmount
   useEffect(() => {
     webrtcService.onRemoteAudioStateChange = setIsAgentSpeaking
-    webrtcService.onTranscriptMessage = (item) => {
-      setTranscript((prev) => [...prev, item])
-    }
+    webrtcService.onGameEvent = (event) => onGameEventRef.current?.(event)
     return () => {
       webrtcService.onRemoteAudioStateChange = null
-      webrtcService.onTranscriptMessage = null
+      webrtcService.onGameEvent = null
     }
   }, [])
 
@@ -233,7 +243,6 @@ export const useWebRTC = (): UseWebRTCReturn => {
     connectionState,
     isMuted,
     isAgentSpeaking,
-    transcript,
     error,
     requestPermission,
     startCall,

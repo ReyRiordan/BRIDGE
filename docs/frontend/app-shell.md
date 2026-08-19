@@ -1,8 +1,9 @@
 # App shell
 
 `web/src/` — the four screens and the state machine behind them. Voice is not
-wired here; the data channel arrives in [Rewrite G] and plugs into the same
-`dispatch`.
+mounted here yet; the data channel already dispatches into this same reducer
+(see `voice-client.md`), and [Rewrite G2] hangs the session lifecycle off the
+game screen.
 
 ## Phase machine
 
@@ -24,8 +25,8 @@ and picks up scenario edits.
 
 Wire events come straight off `src/voice/gameEvents.gen.ts`. Control actions are
 `SCREAMING_SNAKE` and wire discriminants are `lower_snake`, so the two can share
-one `type` union — [Rewrite G] dispatches a parsed data-channel message with no
-adapter.
+one `type` union — the voice client dispatches a parsed data-channel message
+with no adapter.
 
 | Event | Fields touched |
 |---|---|
@@ -90,8 +91,10 @@ The DOM tests render states produced by `foldTo(...)` over those same runs, and
 assert on `data-layer` / `data-src` / zIndex wrappers — jsdom never loads an
 image, so asserting on image state would assert on nothing.
 
-## How [Rewrite G] plugs in
+## How the voice client plugs in
 
 `dispatch` is the seam. Wire events are already in the action union and the
-envelope tolerance is already implemented, so the voice client only has to call
-`dispatch(JSON.parse(message.data))`.
+envelope tolerance lives here, so the voice client only calls
+`createGameEventHandler(dispatch)` on whatever it parsed off the channel — no
+adapter, no second filter. Mounting that handler on the game screen (and the
+session lifecycle around it) is [Rewrite G2].

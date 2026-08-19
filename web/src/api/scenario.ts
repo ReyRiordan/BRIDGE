@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config'
+import { getApiBaseUrl } from '../config'
 import { isScenario, type Scenario } from '../types/scenario'
 
 /**
@@ -8,7 +8,7 @@ import { isScenario, type Scenario } from '../types/scenario'
  * a better signal to the user than a silent backoff.
  */
 export async function fetchScenario(): Promise<Scenario> {
-  const res = await fetch(`${API_BASE_URL}/scenario`)
+  const res = await fetch(`${getApiBaseUrl()}/scenario`)
   if (!res.ok) {
     throw new Error(`Failed to load scenario (HTTP ${res.status})`)
   }

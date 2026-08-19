@@ -9,6 +9,7 @@
  */
 
 import type {
+  EndSessionRequest,
   EndSessionResponse,
   SignalRequest,
   SignalResponse,
@@ -69,7 +70,15 @@ export const signalVoiceSession = (
 /**
  * End the voice session — runs the backend's on_end hook and returns its
  * transcript.
+ *
+ * Pass `{ runtime_session_id }` whenever the browser still holds one: only it
+ * knows the AgentCore affinity key, and sending it lets the control plane tear
+ * the runtime's pipeline down immediately instead of waiting for the idle
+ * timeout. Best-effort on the server — the call is always 200.
  * POST {basePath}/{id}/end
  */
-export const endVoiceSession = (id: string): Promise<EndSessionResponse> =>
-  getTransport().post(`${basePath}/${id}/end`)
+export const endVoiceSession = (
+  id: string,
+  body?: EndSessionRequest,
+): Promise<EndSessionResponse> =>
+  getTransport().post(`${basePath}/${id}/end`, body)

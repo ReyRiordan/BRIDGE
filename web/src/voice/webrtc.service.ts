@@ -9,8 +9,8 @@
  * managed-TURN ICE servers (from the start endpoint) and pins
  * `iceTransportPolicy: 'relay'` — relay-only WebRTC needs each peer to hold its
  * own TURN allocation; without them the browser offers only private host
- * candidates and the runtime's relay is rejected, stalling ICE. The live
- * transcript arrives as JSON `TranscriptItem`s over the WebRTC data channel.
+ * candidates and the runtime's relay is rejected, stalling ICE. The game
+ * events (the v1 envelope) arrive as JSON over the WebRTC data channel.
  *
  * The one exception is local dev (`VITE_BRIDGE_LOCAL=1`), which passes
  * `relayOnly: false`: browser and runtime are both on loopback, so there is no
@@ -23,7 +23,6 @@ import { signalVoiceSession } from './voiceApi'
 import { WEBRTC_CONFIG } from './voiceConfig'
 import type {
   IceServerConfig,
-  TranscriptItem,
   WebRTCError,
   WebRTCService,
 } from './webrtc.types'
@@ -32,11 +31,16 @@ import type {
 const REMOTE_AUDIO_THRESHOLD = 10
 // How long the remote stream must stay silent before isAgentSpeaking → false.
 const REMOTE_SILENCE_DEBOUNCE_MS = 500
+// How long to wait for non-trickle ICE gathering to complete before giving up.
+// Without it a gathering stall hangs forever — the hook's ICE-stall detection
+// only starts once initializeConnection resolves. Mirrors GATHER_TIMEOUT in
+// scripts/local_voice_smoke.py.
+const ICE_GATHERING_TIMEOUT_MS = 10000
 
 /**
  * WebRTC Service Class
  * Handles RTCPeerConnection lifecycle, microphone access, signaling via the
- * `/signal` proxy, and transcript delivery over the data channel.
+ * `/signal` proxy, and game-event delivery over the data channel.
  */
 class WebRTCServiceClass implements WebRTCService {
   private peerConnection: RTCPeerConnection | null = null
@@ -48,8 +52,11 @@ class WebRTCServiceClass implements WebRTCService {
 
   /** Fired when remote (agent) audio starts/stops playing. */
   onRemoteAudioStateChange: ((playing: boolean) => void) | null = null
-  /** Fired with each finalized transcript turn received over the data channel. */
-  onTranscriptMessage: ((item: TranscriptItem) => void) | null = null
+  /**
+   * Fired with each JSON payload parsed off the data channel. The payload is
+   * forwarded untouched — the game reducer is the only validation point.
+   */
+  onGameEvent: ((event: unknown) => void) | null = null
 
   /**
    * Request microphone permission from user
@@ -86,7 +93,7 @@ class WebRTCServiceClass implements WebRTCService {
    * 1. Ensure microphone access.
    * 2. Create RTCPeerConnection with the browser's own KVS TURN servers, relay-only
    *    (or `'all'` when relayOnly is false — local dev).
-   * 3. Add local audio track + create the `data` channel (transcript + runtime handshake).
+   * 3. Add local audio track + create the `data` channel (game events + runtime handshake).
    * 4. Create the SDP offer, set local description, wait for ICE gathering to complete.
    * 5. POST the offer to `{basePath}/{id}/signal { runtime_session_id, sdp, type }`.
    * 6. Set the runtime's SDP answer as the remote description.
@@ -142,7 +149,7 @@ class WebRTCServiceClass implements WebRTCService {
         })
       }
 
-      // Data channel carries the live transcript (and triggers the runtime's
+      // Data channel carries the v1 game events (and triggers the runtime's
       // pipeline, which blocks on the channel being established).
       const dataChannel = this.peerConnection.createDataChannel('data')
       dataChannel.onmessage = (event) => this.handleDataChannelMessage(event)
@@ -215,24 +222,32 @@ class WebRTCServiceClass implements WebRTCService {
       // Non-trickle ICE: the runtime needs a complete SDP with all candidates
       // before it can route media back. Wait for gathering to finish so
       // localDescription contains the full candidate list.
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
         if (this.peerConnection!.iceGatheringState === 'complete') {
           resolve()
-        } else {
-          const onStateChange = () => {
-            if (this.peerConnection!.iceGatheringState === 'complete') {
-              this.peerConnection!.removeEventListener(
-                'icegatheringstatechange',
-                onStateChange,
-              )
-              resolve()
-            }
-          }
-          this.peerConnection!.addEventListener(
+          return
+        }
+        const timeout = setTimeout(() => {
+          this.peerConnection?.removeEventListener(
             'icegatheringstatechange',
             onStateChange,
           )
+          reject(new Error('ICE gathering timed out'))
+        }, ICE_GATHERING_TIMEOUT_MS)
+        const onStateChange = () => {
+          if (this.peerConnection!.iceGatheringState === 'complete') {
+            clearTimeout(timeout)
+            this.peerConnection!.removeEventListener(
+              'icegatheringstatechange',
+              onStateChange,
+            )
+            resolve()
+          }
         }
+        this.peerConnection!.addEventListener(
+          'icegatheringstatechange',
+          onStateChange,
+        )
       })
 
       // Proxy the offer to the voice runtime and apply the answer.
@@ -264,23 +279,25 @@ class WebRTCServiceClass implements WebRTCService {
   }
 
   /**
-   * Parse a transcript message off the data channel and forward it to the
-   * registered callback. Malformed payloads are ignored.
+   * Parse a message off the data channel and forward the raw parsed value.
+   *
+   * No shape filtering here on purpose: the game reducer already drops unknown
+   * event types and future envelope versions, and duplicating that check would
+   * let the two definitions of "acceptable" drift apart.
    */
   private handleDataChannelMessage(event: MessageEvent): void {
     if (typeof event.data !== 'string') return
+    let parsed: unknown
     try {
-      const item = JSON.parse(event.data) as TranscriptItem
-      if (
-        item &&
-        (item.role === 'user' || item.role === 'assistant') &&
-        typeof item.content === 'string'
-      ) {
-        this.onTranscriptMessage?.(item)
-      }
+      parsed = JSON.parse(event.data)
     } catch {
-      // Non-JSON / control frame — ignore.
+      // Non-JSON / control frame — drop it; a bad frame must not end the call.
+      if (import.meta.env.DEV) {
+        console.warn('Dropping unparseable data-channel message:', event.data)
+      }
+      return
     }
+    this.onGameEvent?.(parsed)
   }
 
   /**

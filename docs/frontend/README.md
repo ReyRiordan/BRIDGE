@@ -8,7 +8,7 @@
 
 | Path | What it is |
 |---|---|
-| `web/index.html`, `src/main.tsx` | Entry point |
+| `web/index.html`, `src/main.tsx` | Entry point — the async bootstrap resolves the API base, configures the voice transport, then renders (load error on failure) |
 | `src/App.tsx` | App shell — owns the reducer and routes on `state.phase` (start → intro → game → end) |
 | `src/screens/` | The four screens: `StartScreen`, `IntroScreen`, `GameScreen`, `EndScreen` (an overlay over the frozen final scene) |
 | `src/components/` | Game UI: scene stage + layers, escalation bar, timer, action badge, transcript, checklist |
@@ -16,9 +16,9 @@
 | `src/types/` | The hand-written `GET /scenario` contract |
 | `src/api/` | `fetchScenario()` |
 | `src/index.css` | `@import 'tailwindcss'` plus the `@theme` block that IS the design system — Tailwind v4 has no config file; the `@tailwindcss/vite` plugin in `vite.config.ts` is the whole setup |
-| `src/config.ts` | Runtime flags: `BRIDGE_LOCAL` (from `VITE_BRIDGE_LOCAL`), `API_BASE_URL`, `RELAY_ONLY` |
+| `src/config.ts` | Runtime config: `BRIDGE_LOCAL` (from `VITE_BRIDGE_LOCAL`), `RELAY_ONLY`, and `resolveApiBaseUrl()` / `getApiBaseUrl()` (runtime `custom.apiUrl` lookup) |
 | `src/vite-env.d.ts` | Vite client types + the `ImportMetaEnv` declaration for `VITE_BRIDGE_LOCAL` |
-| `src/voice/` | The voice client (vendored) + the generated event types |
+| `src/voice/` | The voice client (vendored), the `gameEvents.ts` dispatch seam + the generated event types |
 | `public/visuals/` | Scene art: `patient_{escalation}.png` + per-action active/inactive layers (a matched 1196×880 set), plus `background.jpg` and `intro.jpg` |
 | `public/amplify_outputs.json` | Backend outputs (`custom.apiUrl`). **Generated, never committed** — the Hosting build writes it (see `../backend/deployment.md`); the SPA fetches it at runtime |
 | `vite.config.ts` | Vite plugins, the dev-server proxy (`/voice` + `/scenario` → `localhost:8000`), and the Vitest (jsdom, globals) config |
@@ -28,8 +28,8 @@
 
 | Doc | Read it for |
 |---|---|
-| `app-shell.md` | The phase machine, the reducer contract, the scenario-derived and no-wall-clock rules, scene-layer compositing, and the `dispatch` seam [Rewrite G] plugs into |
-| `voice-client.md` | `src/voice/`: transport wiring, connect/reconnect flow, the `relayOnly` seam, the generated `GameEvent` types |
+| `app-shell.md` | The phase machine, the reducer contract, the scenario-derived and no-wall-clock rules, scene-layer compositing, and the `dispatch` seam the voice client feeds |
+| `voice-client.md` | `src/voice/`: the startup bootstrap, connect/reconnect/end flow, the `relayOnly` seam, and the data-channel → reducer path |
 | `../backend/local-dev.md` | Running the SPA against a local backend (`web/.env.local`, the proxy, what relay-only means locally) |
 | `../backend/README.md` | The server side of the contract (event envelope, control-plane endpoints) |
 
