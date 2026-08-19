@@ -60,6 +60,46 @@ ContextProvider = Callable[[str], Awaitable[SessionContext]]
 TranscriptHandler = Callable[[str, TranscriptMessage], Awaitable[None]]
 
 
+@dataclass
+class ProcessorFactoryArgs:
+    """Everything a host needs to assemble its own processor chain for a session.
+
+    Handed to a registered :data:`ProcessorFactory` in place of the kit's default
+    ``build_processors`` call. ``session_context`` is the host's own object back
+    (including ``metadata``), so the factory can reach domain state it stashed
+    during the re-fetch without a second lookup.
+    """
+
+    session_id: str
+    session_context: SessionContext
+    system_prompt: str
+    voice: VoiceConfig
+    initial_history: List[TranscriptMessage]
+    emit: Optional[Callable[[str], None]] = None
+    on_transcript_message: Optional[TranscriptHandler] = None
+
+
+# (args) -> ordered list of pipecat FrameProcessors, spliced between the
+# transport's input/VAD stages and its output. Fully replaces the default chain.
+ProcessorFactory = Callable[["ProcessorFactoryArgs"], list]
+
+# (session_id, pipeline_context, transport, emit) -> None. Awaited once per
+# session right after the pipeline task is launched, so the host can start
+# per-session work (timers, reapers) with the live pipeline in hand.
+# ``PipelineContext`` is a STRING annotation on purpose: importing
+# voice_kit.pipeline here would drag pipecat into the pipecat-free control
+# plane. Do not "fix" it into a real import.
+SessionStartHook = Callable[
+    [str, "PipelineContext", object, Optional[Callable[[str], None]]],  # noqa: F821
+    Awaitable[None],
+]
+
+# (session_id) -> None. Awaited by ``voice_kit.runtime.end_session`` after the
+# pipeline task is cancelled — the host's teardown of whatever the start hook
+# began. NOT fired when a reconnect supersedes a pipeline.
+SessionEndHook = Callable[[str], Awaitable[None]]
+
+
 async def default_context_provider(session_id: str) -> SessionContext:
     """Build a static context from settings alone (no per-session re-fetch).
 
@@ -90,6 +130,9 @@ async def default_context_provider(session_id: str) -> SessionContext:
 
 _context_provider: ContextProvider = default_context_provider
 _transcript_handler: Optional[TranscriptHandler] = None
+_processor_factory: Optional[ProcessorFactory] = None
+_session_start_hook: Optional[SessionStartHook] = None
+_session_end_hook: Optional[SessionEndHook] = None
 
 
 def set_context_provider(provider: ContextProvider) -> None:
@@ -110,3 +153,33 @@ def set_transcript_handler(handler: Optional[TranscriptHandler]) -> None:
 
 def get_transcript_handler() -> Optional[TranscriptHandler]:
     return _transcript_handler
+
+
+def set_processor_factory(factory: Optional[ProcessorFactory]) -> None:
+    """Register a host chain builder (default: none → the kit's default chain)."""
+    global _processor_factory
+    _processor_factory = factory
+
+
+def get_processor_factory() -> Optional[ProcessorFactory]:
+    return _processor_factory
+
+
+def set_session_start_hook(hook: Optional[SessionStartHook]) -> None:
+    """Register per-session startup work run once the pipeline is launched."""
+    global _session_start_hook
+    _session_start_hook = hook
+
+
+def get_session_start_hook() -> Optional[SessionStartHook]:
+    return _session_start_hook
+
+
+def set_session_end_hook(hook: Optional[SessionEndHook]) -> None:
+    """Register per-session teardown run when the session is explicitly ended."""
+    global _session_end_hook
+    _session_end_hook = hook
+
+
+def get_session_end_hook() -> Optional[SessionEndHook]:
+    return _session_end_hook

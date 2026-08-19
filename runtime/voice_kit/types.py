@@ -35,9 +35,11 @@ class VoiceConfig:
     """TTS voice selection for one session.
 
     Args mirror ``get_tts_model``: ``provider`` is ``"inworld"`` or ``"polly"``,
-    ``voice`` is the provider's voice ID, ``model`` is Inworld-only.
+    ``voice`` is the provider's voice ID, ``model`` is Inworld-only, and
+    ``speed`` is the Inworld speaking rate (Polly ignores it).
     """
 
     provider: str
     voice: str
     model: Optional[str] = None
+    speed: float = 1.0

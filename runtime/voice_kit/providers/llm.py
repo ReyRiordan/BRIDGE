@@ -11,6 +11,7 @@ Two providers behind one ``BaseLLM.chat`` interface:
 """
 
 import json
+import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
@@ -21,6 +22,8 @@ from botocore.session import get_session
 
 from ..config import ReasoningEffort, settings
 from ..errors import UpstreamServiceError
+
+logger = logging.getLogger(__name__)
 
 # Cached at module scope so the credential-provider chain (env -> shared config ->
 # container/IMDS execution role) is resolved once per warm process, not per request.
@@ -90,13 +93,21 @@ class BaseLLM(ABC):
     """Abstract base class for LLM providers."""
 
     @abstractmethod
-    async def chat(self, messages: List[Dict], system_prompt: str) -> str:
+    async def chat(
+        self,
+        messages: List[Dict],
+        system_prompt: str,
+        response_format: Optional[Dict] = None,
+    ) -> str:
         """
         Generate a response from the LLM.
 
         Args:
             messages: Conversation history as list of {"role": str, "content": str}
             system_prompt: System instructions
+            response_format: Optional OpenAI-style structured-output spec (e.g.
+                ``{"type": "json_schema", "json_schema": {...}}``). Providers that
+                cannot honor it ignore it rather than failing the turn.
 
         Returns:
             Generated response text
@@ -120,6 +131,7 @@ class OpenRouterChat(BaseLLM):
         reasoning_effort: ReasoningEffort = "none",
         timeout_seconds: int = 120,
         providers: Optional[List[str]] = None,
+        require_parameters: bool = False,
     ):
         self.api_key = api_key
         self.url = f"{base_url}/chat/completions"
@@ -127,14 +139,25 @@ class OpenRouterChat(BaseLLM):
         self.reasoning_effort = reasoning_effort
         self.timeout = aiohttp.ClientTimeout(total=timeout_seconds)
         self.providers = providers
+        # OpenRouter routes to whichever backend serves the model; one that does
+        # not support response_format would 400 the request. require_parameters
+        # restricts routing to backends supporting every parameter we send.
+        self.require_parameters = require_parameters
 
-    async def chat(self, messages: List[Dict], system_prompt: str) -> str:
+    async def chat(
+        self,
+        messages: List[Dict],
+        system_prompt: str,
+        response_format: Optional[Dict] = None,
+    ) -> str:
         """
         Generate response using OpenRouter LLM.
 
         Args:
             messages: Conversation history as list of {"role": str, "content": str}
             system_prompt: System instructions
+            response_format: Optional structured-output spec, passed through to
+                OpenRouter unchanged. Pair it with ``require_parameters=True``.
 
         Returns:
             Generated response text
@@ -148,8 +171,16 @@ class OpenRouterChat(BaseLLM):
             "messages": [],
         }
 
+        if response_format:
+            payload["response_format"] = response_format
+
+        provider_prefs: Dict = {}
         if self.providers:
-            payload["provider"] = {"order": self.providers}
+            provider_prefs["order"] = self.providers
+        if self.require_parameters:
+            provider_prefs["require_parameters"] = True
+        if provider_prefs:
+            payload["provider"] = provider_prefs
 
         if system_prompt:
             payload["messages"].append({"role": "system", "content": system_prompt})
@@ -238,13 +269,21 @@ class BedrockChat(_BedrockSigV4Mixin, BaseLLM):
         self.timeout = aiohttp.ClientTimeout(total=timeout_seconds)
         self._init_signing(region, sigv4_service)
 
-    async def chat(self, messages: List[Dict], system_prompt: str) -> str:
+    async def chat(
+        self,
+        messages: List[Dict],
+        system_prompt: str,
+        response_format: Optional[Dict] = None,
+    ) -> str:
         """
         Generate response using AWS Bedrock LLM.
 
         Args:
             messages: Conversation history as list of {"role": str, "content": str}
             system_prompt: System instructions
+            response_format: Accepted and IGNORED (warned once per call). Raising
+                instead would turn a config mismatch into a hard per-turn failure;
+                callers that need structure must tolerate unconstrained output.
 
         Returns:
             Generated response text
@@ -252,6 +291,13 @@ class BedrockChat(_BedrockSigV4Mixin, BaseLLM):
         Raises:
             aiohttp.ClientError: If API request fails
         """
+        if response_format:
+            logger.warning(
+                "BedrockChat ignores response_format (%s): structured output is "
+                "not supported on the bedrock-mantle chat-completions surface",
+                response_format.get("type", "unknown"),
+            )
+
         payload: Dict = {
             "model": self.model,
             "reasoning_effort": self.reasoning_effort,
