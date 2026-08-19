@@ -8,8 +8,9 @@ dispatches on ``settings.voice_invoker``:
 
 - ``"agentcore"`` (default): :class:`~.agentcore.AgentCoreInvoker` — boto3
   ``invoke_agent_runtime`` against the deployed AgentCore runtime.
-- ``"local"``: a localhost ``/invocations`` invoker for running the whole
-  stack on one machine — reserved for [Rewrite H], raises until it lands.
+- ``"local"``: :class:`~.local.LocalInvoker` — a plain HTTP POST to a
+  localhost ``/invocations`` for running the whole stack on one machine
+  (implied by ``BRIDGE_LOCAL=1``; see docs/backend/local-dev.md).
 
 Both methods are async: implementations must not block the event loop
 (``AgentCoreInvoker`` wraps its sync boto3 call in ``asyncio.to_thread``).
@@ -64,10 +65,9 @@ class Invoker(ABC):
 def get_invoker() -> Invoker:
     """Build the invoker selected by ``settings.voice_invoker``."""
     if settings.voice_invoker == "local":
-        raise NotImplementedError(
-            "VOICE_INVOKER=local is reserved for the local runtime invoker "
-            "([Rewrite H])"
-        )
+        from .local import LocalInvoker
+
+        return LocalInvoker()
     from .agentcore import AgentCoreInvoker
 
     return AgentCoreInvoker()

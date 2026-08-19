@@ -35,6 +35,7 @@ from .context import (
 )
 from .control_plane.agentcore import AgentCoreInvoker
 from .control_plane.invoker import Invoker, get_invoker
+from .control_plane.local import LocalInvoker
 from .control_plane.router import create_voice_router
 from .errors import UpstreamServiceError, VoiceKitError, register_exception_handlers
 from .types import IceServerConfig, TranscriptMessage, VoiceConfig
@@ -59,6 +60,7 @@ __all__ = [
     "set_session_start_hook",
     "set_transcript_handler",
     "AgentCoreInvoker",
+    "LocalInvoker",
     "Invoker",
     "get_invoker",
     "create_voice_router",
