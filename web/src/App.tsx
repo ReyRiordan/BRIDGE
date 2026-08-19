@@ -1,15 +1,57 @@
+import { useCallback } from 'react'
+import EndScreen from './screens/EndScreen'
+import GameScreen from './screens/GameScreen'
+import IntroScreen from './screens/IntroScreen'
+import StartScreen from './screens/StartScreen'
+import { selectChecklist, useGame } from './state/useGame'
+import type { Scenario } from './types/scenario'
+
 /**
- * Placeholder shell. The real screens (menu → briefing → simulation → debrief)
- * arrive in [Rewrite F]; this exists so the Vite + Tailwind v4 toolchain is
- * verified end to end.
+ * The whole app shell: one reducer, one switch on `state.phase`.
+ *
+ * `dispatch` is also the seam [Rewrite G] plugs the voice data channel into —
+ * wire events are already part of the action union, so a parsed message goes
+ * straight in with no adapter.
  */
 function App() {
+  const { state, dispatch } = useGame()
+
+  const onLoaded = useCallback(
+    (scenario: Scenario) => dispatch({ type: 'SCENARIO_LOADED', scenario }),
+    [dispatch],
+  )
+  // Stable by necessity: GameScreen's 600 ms end delay depends on it, and an
+  // inline arrow would restart that timer on every render.
+  const onGameOverSettled = useCallback(
+    () => dispatch({ type: 'SHOW_END' }),
+    [dispatch],
+  )
+
+  if (state.phase === 'start' || state.scenario === null) {
+    return <StartScreen onLoaded={onLoaded} />
+  }
+
+  if (state.phase === 'intro') {
+    return (
+      <IntroScreen
+        scenario={state.scenario}
+        onBegin={() => dispatch({ type: 'BEGIN' })}
+      />
+    )
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950">
-      <h1 className="text-5xl font-semibold tracking-[0.3em] text-slate-100">
-        BRIDGE
-      </h1>
-    </main>
+    <>
+      {/* The scene stays mounted under the debrief overlay. */}
+      <GameScreen state={state} onGameOverSettled={onGameOverSettled} />
+      {state.phase === 'end' && state.gameOver && (
+        <EndScreen
+          gameOver={state.gameOver}
+          checklist={selectChecklist(state)}
+          onPlayAgain={() => dispatch({ type: 'PLAY_AGAIN' })}
+        />
+      )}
+    </>
   )
 }
 
