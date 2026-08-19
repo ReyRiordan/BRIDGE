@@ -22,15 +22,18 @@ Why the proxy: the AgentCore data plane emits no CORS headers, so the browser ca
 ## The pipeline (inside the runtime)
 
 ```
-transport.input() → VADProcessor (Silero) → STTProcessor → LLMProcessor
-    → TTSProcessor → EventSinkProcessor → transport.output()
+transport.input() → VADProcessor (Silero) → STTProcessor → RefereeProcessor
+    → LLMProcessor (patient) → TTSProcessor → EventSinkProcessor → transport.output()
 ```
+
+The referee stage is BRIDGE's own, spliced in through the processor factory (`runtime/bridge/app.py`); everything else is the kit's default chain.
 
 | Stage | Component | File | Details |
 |---|---|---|---|
 | Transport | Pipecat `SmallWebRTCTransport` (+ `SmallWebRTCRequestHandler`) | `runtime/voice_kit/runtime.py` | The handler owns the aiortc peer connection + SDP negotiation; we pass KVS managed-TURN `IceServer`s and filter the answer SDP to relay-only candidates |
 | VAD | `VADProcessor(SileroVADAnalyzer())` | `runtime/voice_kit/pipeline.py` | Standalone processor (pipecat 1.3.0); emits `VADUserStarted/StoppedSpeakingFrame` the STT stage gates on. Silero left at defaults — onset recovery is the STT pre-roll's job |
 | STT | `AmazonTranscribeSTT` / `TogetherSTT` | `runtime/voice_kit/providers/stt.py` | Streaming; provider via `STT_PROVIDER`. `STTProcessor` keeps a byte-bounded pre-roll ring buffer (`STT_PREROLL_MS`) so the utterance onset survives Silero's confirmation window |
+| Referee | `RefereeProcessor` | `runtime/bridge/referee.py` | BRIDGE-only. Scores the student's utterance against the scenario's actions with a strict `json_schema` call (`REFEREE_MODEL`), applies the scenario's point values, and emits `transcript_update{student}` / `action_detected` / `state_update` / `game_over` **directly** over the data channel. Fails open: any error scores the turn as no-detection |
 | LLM | `OpenRouterChat` / `BedrockChat` | `runtime/voice_kit/providers/llm.py` | Single non-streaming chat call per turn; provider via `LLM_PROVIDER`, model via `LLM_MODEL`. History roles are chat-native `user`/`assistant` |
 | TTS | `InworldTTS` (48 kHz) / `PollyTTS` (24 kHz generative) | `runtime/voice_kit/providers/tts.py` | Sync streaming generators, run in a worker thread; emitted as `TTSAudioRawFrame`s. Voice via the session's `VoiceConfig` (`provider`/`voice`/`model`/`speed`; `speed` is Inworld-only) |
 | Sink | `EventSinkProcessor` | `runtime/voice_kit/processors.py` | Awaits the host's transcript handler (your persistence) and emits each turn over the data channel — raw transcript JSON, or whatever the optional `transcript_event` mapper returns (`None` ⇒ emit nothing) |
@@ -64,3 +67,17 @@ Each finalized turn travels the whole chain as a `TranscriptMessageFrame` (not c
 - The entrypoint dispatches on `payload["action"]` (default `"signal"`) **before reading `sdp`**: `"signal"` runs the offer flow, `"end"` calls `end_session` (cancel the pipeline task, then await the session end hook — idempotent). An unknown action returns `{"error": ...}`.
 - One pipeline per session, enforced by cancel-and-await in `_run_task`. That supersede path deliberately does NOT fire the end hook — a reconnect must not wipe host session state.
 - The pipeline self-terminates after `IDLE_TIMEOUT_SECS` of no speech (`PipelineWorker(idle_timeout_secs=...)`) — a backstop against abandoned containers, deliberately decoupled from the app's own limit (`SESSION_TIME_LIMIT_MINUTES` → `SessionContext.time_limit_seconds`, carried on `PipelineContext` for reporting only). AgentCore `maxLifetime` (1 h) is the infra backstop.
+
+## The game engine (BRIDGE's own layer)
+
+`runtime/bridge/` fills every extension point above; `bridge.app:app` is the container's uvicorn target (it registers the hooks at import and re-exports the kit's app).
+
+| Piece | File | Lives for |
+|---|---|---|
+| `GameSession` + `_sessions` registry | `bridge/session.py` | The container. Keyed by `session_id`, reused by a warm-container reconnect (including a terminal session), swept once past the grace window or twice the time limit |
+| Referee stage | `bridge/referee.py` | One per pipeline |
+| Event emitter | `bridge/emitter.py` | The v1 envelope helpers + the sink mapper (patient turns only) |
+| Timer task | `bridge/timer.py` | 1 Hz `timer` events; elapsed derives from the session's monotonic `started_at`, so a rebuild resumes a continuous clock |
+| Grace reaper | `bridge/timer.py` | Armed on `game_over`; after `GAME_GRACE_SECONDS` it calls `end_session`, cancelling the pipeline |
+
+Per-turn event ordering on the data channel is guaranteed by construction — `transcript_update{student}` → `action_detected`×N → `state_update` → (`game_over`?) → `transcript_update{patient}`, with `timer` ticks interleaving freely. The referee's events are sent directly (scoring completes before the frame reaches the patient LLM, and `send_app_message` is ordered); only the patient transcript travels the frame path, behind the fully-blocking TTS stage.
