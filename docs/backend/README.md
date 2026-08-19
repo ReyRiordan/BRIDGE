@@ -77,7 +77,11 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 ## Commands
 
 ```bash
-python3 -m pytest api/tests runtime/tests      # tests
+# Two invocations, not one: `api/` tests the INSTALLED voice_kit package while
+# runtime/ tests the tree, and collecting both at once lets the installed copy
+# shadow the repo. CI runs them separately for the same reason.
+python3 -m pytest api/tests
+python3 -m pytest runtime/tests
 ruff check api runtime                         # lint (config: root ruff.toml)
 ruff format --check api runtime                # format
 python3 -m compileall runtime/voice_kit runtime/bridge api
