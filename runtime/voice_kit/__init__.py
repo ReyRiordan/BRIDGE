@@ -23,6 +23,8 @@ from .context import (
     set_context_provider,
     set_transcript_handler,
 )
+from .control_plane.agentcore import AgentCoreInvoker
+from .control_plane.invoker import Invoker, get_invoker
 from .control_plane.router import create_voice_router
 from .errors import UpstreamServiceError, VoiceKitError, register_exception_handlers
 from .types import IceServerConfig, TranscriptMessage, VoiceConfig
@@ -36,6 +38,9 @@ __all__ = [
     "TranscriptHandler",
     "set_context_provider",
     "set_transcript_handler",
+    "AgentCoreInvoker",
+    "Invoker",
+    "get_invoker",
     "create_voice_router",
     "UpstreamServiceError",
     "VoiceKitError",

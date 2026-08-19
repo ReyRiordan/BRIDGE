@@ -6,7 +6,7 @@ three signaling endpoints. Field names must stay in sync with the frontend
 types (frontend/webrtc.types.ts).
 """
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -15,6 +15,7 @@ from ..types import IceServerConfig, TranscriptMessage
 __all__ = [
     "IceServerConfig",
     "SessionStartResponse",
+    "SessionEndRequest",
     "SessionEndResponse",
     "SignalRequest",
     "SignalResponse",
@@ -38,6 +39,21 @@ class SessionStartResponse(BaseModel):
     runtime_session_id: str
     session_id: str
     ice_servers: List[IceServerConfig] = []
+
+
+class SessionEndRequest(BaseModel):
+    """
+    Optional body for the end endpoint.
+
+    The control plane is stateless, so it cannot know the AgentCore affinity
+    key on its own — the browser holds it. When `runtime_session_id` is
+    present, the router best-effort invokes the runtime's teardown
+    (`action: "end"`) before the host's `on_end` hook; when absent (or no
+    body at all), teardown is skipped and the pipeline idle timeout is the
+    backstop.
+    """
+
+    runtime_session_id: Optional[str] = None
 
 
 class SessionEndResponse(BaseModel):

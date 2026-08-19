@@ -14,6 +14,7 @@ Endpoint contract (consumed by frontend/voiceApi.ts):
     POST {prefix}/{session_id}/end     → SessionEndResponse
 """
 
+import asyncio
 import logging
 import uuid
 from typing import Awaitable, Callable, List, Optional, Sequence
@@ -23,8 +24,9 @@ from fastapi import APIRouter, Request
 from ..config import settings
 from ..kvs import fetch_ice_servers
 from ..types import TranscriptMessage
-from .agentcore import invoke_voice_runtime
+from .invoker import Invoker, get_invoker
 from .schemas import (
+    SessionEndRequest,
     SessionEndResponse,
     SessionStartResponse,
     SignalRequest,
@@ -45,6 +47,7 @@ def create_voice_router(
     authorize: Optional[AuthorizeHook] = None,
     on_start: Optional[OnStartHook] = None,
     on_end: Optional[OnEndHook] = None,
+    invoker: Optional[Invoker] = None,
     dependencies: Sequence = (),
     prefix: str = "/voice",
     tags: Optional[list] = None,
@@ -70,6 +73,10 @@ def create_voice_router(
             the final transcript. IMPORTANT ordering lesson: read the
             transcript AFTER your status flip — the runtime writes turns live,
             so an earlier snapshot can miss turns.
+        invoker: The channel to the voice runtime (``/signal`` relay + the
+            best-effort ``/end`` teardown). Defaults to ``get_invoker()``,
+            which dispatches on ``settings.voice_invoker`` — pass one
+            explicitly to inject a fake in tests or a custom backend.
         dependencies: FastAPI ``Depends(...)`` objects applied to all three
             routes (e.g. your ``Depends(get_current_user)``); complements or
             replaces ``authorize`` for FastAPI-native auth.
@@ -82,6 +89,7 @@ def create_voice_router(
     router = APIRouter(
         prefix=prefix, tags=tags or ["voice"], dependencies=list(dependencies)
     )
+    invoker = invoker or get_invoker()
 
     async def _authorize(request: Request, session_id: str) -> None:
         if authorize is not None:
@@ -120,9 +128,11 @@ def create_voice_router(
         # RTCPeerConnection with these (without them it gathers only private host
         # candidates and the runtime's relay CHANNEL_BIND is rejected → ICE stall).
         # Non-fatal: if KVS is unreachable we still return so the UI can surface it.
+        # to_thread: fetch_ice_servers is sync boto3, which would block the
+        # event loop under a local uvicorn.
         ice_servers: list = []
         try:
-            ice_servers = fetch_ice_servers()
+            ice_servers = await asyncio.to_thread(fetch_ice_servers)
         except Exception as e:  # noqa: BLE001 - degrade gracefully, log for diagnosis
             logger.warning(
                 "Failed to fetch ICE servers for session %s: %s", session_id, e
@@ -149,7 +159,7 @@ def create_voice_router(
         """
         await _authorize(request, session_id)
 
-        answer = invoke_voice_runtime(
+        answer = await invoker.signal(
             session_id=session_id,
             runtime_session_id=body.runtime_session_id,
             sdp=body.sdp,
@@ -159,15 +169,36 @@ def create_voice_router(
         return SignalResponse(sdp=answer["sdp"], type=answer.get("type", "answer"))
 
     @router.post("/{session_id}/end", response_model=SessionEndResponse)
-    async def end_voice_session(session_id: str, request: Request):
+    async def end_voice_session(
+        session_id: str,
+        request: Request,
+        body: Optional[SessionEndRequest] = None,
+    ):
         """
         End a voice session.
 
-        Runs the host's authorize + on_end hooks and returns whatever transcript
-        on_end produced. There is no stream to close or buffer to flush — the
-        runtime hands turns to the host's transcript handler live.
+        When the body carries the browser-held `runtime_session_id`, the
+        runtime's pipeline teardown is invoked best-effort (`action: "end"`) —
+        a failure is logged and the response is still 200, with the pipeline
+        idle timeout as the backstop. Then the host's on_end hook runs and its
+        transcript is returned. An empty/absent body skips teardown.
         """
         await _authorize(request, session_id)
+
+        if body is not None and body.runtime_session_id:
+            try:
+                await invoker.end(
+                    session_id=session_id,
+                    runtime_session_id=body.runtime_session_id,
+                )
+            except Exception as e:  # noqa: BLE001 - best-effort teardown
+                logger.warning(
+                    "Voice runtime teardown failed for session %s "
+                    "(runtime_session_id=%s): %s",
+                    session_id,
+                    body.runtime_session_id,
+                    e,
+                )
 
         transcript: List[TranscriptMessage] = []
         if on_end is not None:
