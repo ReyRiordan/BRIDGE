@@ -46,8 +46,9 @@ class GameSession:
     # Seeded from the scenario's point bar in __post_init__.
     escalation: Optional[int] = None
     status: str = STATUS_ACTIVE
-    # action type -> currently lit. Insertion-ordered, so `active_actions` keeps
-    # the order the student earned them in.
+    # action type -> currently lit. Dict order (and so `active_actions` order) is
+    # first-seen order: the transient types are all seeded by
+    # `clear_transient_actions`, persisting ones on the turn they are earned.
     action_states: Dict[str, bool] = field(default_factory=dict)
     # Every action type detected at least once this session (for the debrief).
     actions_ever_taken: List[str] = field(default_factory=list)
@@ -113,7 +114,7 @@ class GameSession:
         return action
 
     def active_actions(self) -> List[str]:
-        """Currently lit action types, in the order they were first lit."""
+        """Currently lit action types, in first-seen order."""
         return [t for t, lit in self.action_states.items() if lit]
 
     # --- terminal transitions ---------------------------------------------
