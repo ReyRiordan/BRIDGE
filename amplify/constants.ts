@@ -61,8 +61,11 @@ export const VOICE_CONFIG: Record<string, string> = {
   TTS_VOICE: 'Mark',
   TTS_MODEL: 'inworld-tts-1.5-mini',
 
-  // --- Session
+  // --- Session. SESSION_TIME_LIMIT_MINUTES is the app's conversation cap
+  // (informational to the kit); IDLE_TIMEOUT_SECS is the pipeline's
+  // self-termination backstop for abandoned containers — independent knobs.
   SESSION_TIME_LIMIT_MINUTES: '30',
+  IDLE_TIMEOUT_SECS: '180',
 
   // --- Game engine ([Rewrite D]). REFEREE_* replaces the legacy SYSTEM_AGENT_*
   // naming — "system agent" terminology is retired.

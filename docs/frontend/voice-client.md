@@ -96,7 +96,7 @@ backstop). The client sends it in [Rewrite G].
 ## Behavior notes
 
 - **Anti-echo auto-mute**: the hook mutes the mic while `isAgentSpeaking` (detected via an `AnalyserNode` on the remote stream, debounced 500 ms — not `audio.onplay`, which fires at connection time). Without this, speaker output re-triggers the server-side VAD.
-- **Timer**: the runtime is authoritative — drive the countdown from the `timer` game event. `SESSION_TIME_LIMIT_MINUTES` (`voiceConfig.ts`) must stay aligned with the runtime's own self-termination limit.
+- **Timer**: the runtime is authoritative — drive the countdown from the `timer` game event. `SESSION_TIME_LIMIT_MINUTES` (`voiceConfig.ts`) must stay aligned with the backend's `SESSION_TIME_LIMIT_MINUTES` — a separate knob from the runtime's `IDLE_TIMEOUT_SECS` self-termination backstop.
 - The service is a singleton — one active call per tab.
 
 ## Game events (generated types)

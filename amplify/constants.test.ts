@@ -72,6 +72,10 @@ describe('VOICE_CONFIG', () => {
     expect(VOICE_CONFIG.SESSION_TIME_LIMIT_MINUTES).toMatch(/^\d+$/)
     expect(Number(VOICE_CONFIG.SESSION_TIME_LIMIT_MINUTES)).toBeGreaterThan(0)
   })
+
+  test('idle timeout is set independently of the session limit', () => {
+    expect(VOICE_CONFIG.IDLE_TIMEOUT_SECS).toBe('180')
+  })
 })
 
 describe('voiceRuntimeName', () => {

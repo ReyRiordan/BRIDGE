@@ -19,7 +19,8 @@ const VOICE_CONFIG = {
   STT_PROVIDER: 'transcribe',         // 'transcribe' | 'together' (together = off-AWS, dev only)
   TTS_PROVIDER: 'polly',              // 'polly' | 'inworld'
   TTS_VOICE: 'Ruth',
-  SESSION_TIME_LIMIT_MINUTES: '30',
+  SESSION_TIME_LIMIT_MINUTES: '30',  // app cap (informational to the kit)
+  IDLE_TIMEOUT_SECS: '180',          // pipeline self-termination backstop
 };
 
 const { runtime } = addVoiceRuntime({
