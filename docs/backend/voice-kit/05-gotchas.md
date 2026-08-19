@@ -99,3 +99,14 @@ numpy 2.x ships no prebuilt arm64 cp311 wheel for these base images; without the
 
 **28. Off-AWS STT is a data-residency decision.**
 `STT_PROVIDER=together` sends user speech to Together AI. If your posture requires audio to stay inside your AWS account, keep `transcribe` in production and treat Together as dev-only.
+
+## Game engine
+
+**29. The data channel is not open inside the connection callback.**
+Anything emitted while the pipeline is being built (including from the session start hook) is silently dropped — the emitter swallows the failure by design. Send the connect-time authoritative `state_update` from `@transport.event_handler("on_client_connected")` instead, as `bridge/app.py` does.
+
+**30. `_sessions` is keyed by `session_id`, container affinity by `runtime_session_id`.**
+A reconnect that lands on the same warm container resumes the same `GameSession` — escalation, action states, clock origin, transcript, and a terminal session's ending. A reconnect that lands on a *different* container gets a fresh game: there is no database, and that is accepted. Client-side reconnect policy is [Rewrite G]. Two tabs sharing one `session_id` on one container also share the game — acceptable for a training sim.
+
+**31. The sink no longer emits raw user-role transcripts.**
+BRIDGE's `transcript_event` mapper returns `None` for `user` turns, because the referee already emitted `transcript_update{student}` before scoring (so the UI never looks frozen while the referee call is in flight). A second emit here would duplicate the line and land it after the whole turn's events.

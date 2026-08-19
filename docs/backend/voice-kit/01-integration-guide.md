@@ -26,11 +26,11 @@ Domain logic is not baked in: the kit exposes extension points (a per-session co
 
 ## What BRIDGE must supply
 
-- [ ] A **system prompt** (env `SYSTEM_PROMPT`, or a context provider that builds one per session) — [Rewrite E]
+- [ ] A **system prompt** — the context provider builds one per session; the patient persona itself is still a placeholder ([Rewrite E])
 - [ ] **Auth** on the three endpoints (`authorize` hook and/or FastAPI `dependencies`) — the defaults are open. Currently a documented `TODO(auth)` no-op at `authorize` in `api/main.py` — the `/signal` path is deliberately open until auth lands
 - [ ] A **session id** concept (any string the app can re-fetch by)
-- [ ] A **transcript sink** for server-side transcripts (`set_transcript_handler`) — [Rewrite D]
-- [ ] Session **state transitions** (`on_start` / `on_end`)
+- [x] A **transcript sink** for server-side transcripts (`set_transcript_handler`) — in-memory, `runtime/bridge/app.py`
+- [x] Session **state transitions** (`on_start` / `on_end`) — plus the runtime-side session hooks (clock + grace reaper)
 - [ ] Verified **AgentCore AZ letters** for the account (gotcha #4)
 - [ ] Secrets in **SSM** for whichever providers are enabled
 
@@ -71,30 +71,46 @@ Env needed here: `VOICE_RUNTIME_ARN`, `KVS_CHANNEL_NAME`, `AWS_REGION` (infra in
 Write a tiny wrapper module that registers your hooks and re-exports the app:
 
 ```python
-# runtime/bridge/voice_app.py  ([Rewrite D]; uvicorn target in Dockerfile.voice)
-import asyncio
-from voice_kit import SessionContext, VoiceConfig, TranscriptMessage
-from voice_kit import set_context_provider, set_transcript_handler
-from voice_kit.runtime import app  # noqa: F401  — uvicorn target
+# runtime/bridge/app.py  (the uvicorn target in Dockerfile.voice)
+from voice_kit import SessionContext, set_context_provider, set_processor_factory
+from voice_kit.runtime import app, end_session  # noqa: F401  — `app` is the target
 
 async def provide_context(session_id: str) -> SessionContext:
-    # Pointer + re-fetch: rebuild everything from session_id. Sync I/O must be
-    # wrapped — this runs on the WebRTC packet-pump loop.
-    record = await asyncio.to_thread(my_fetch_session, session_id)
+    # Pointer + re-fetch. BRIDGE's store is the container's own memory: a
+    # reconnect onto the same warm container gets the same GameSession back.
+    # (A provider doing real I/O must wrap it — this runs on the packet-pump loop.)
+    scenario = load_scenario()
+    session = get_or_create_session(session_id, scenario)
     return SessionContext(
-        system_prompt=my_build_prompt(record),
-        voice=VoiceConfig(provider="polly", voice="Ruth"),
-        initial_history=[TranscriptMessage(**m) for m in record.transcript],  # resume support
+        system_prompt=build_patient_prompt(scenario),
+        voice=build_voice_config(scenario),          # scenario["speech"], incl. speed
+        initial_history=list(session.transcript),    # resume support
+        time_limit_seconds=scenario["time_limit"],
+        metadata={"game": session},                  # hoisted to PipelineContext.game
     )
 
-async def store_turn(session_id: str, message: TranscriptMessage) -> None:
-    await asyncio.to_thread(my_append_turn, session_id, message)
+def build_game_processors(args):
+    session = args.session_context.metadata["game"]
+    events = GameEvents(args.session_id, args.emit)
+    return [
+        STTProcessor(...),
+        RefereeProcessor(session=session, events=events, ...,
+                         on_game_over=lambda: start_reaper(session.session_id)),
+        LLMProcessor(..., turn_gate=lambda: session.status == "active",
+                     turn_context=lambda: turn_context(session)),
+        TTSProcessor(voice=args.voice),
+        EventSinkProcessor(..., transcript_event=transcript_event),
+    ]
 
 set_context_provider(provide_context)
-set_transcript_handler(store_turn)
+set_processor_factory(build_game_processors)
+set_transcript_handler(store_turn)      # appends to session.transcript
+set_session_start_hook(on_session_start)  # starts the clock; state_update on connect
+set_session_end_hook(on_session_end)      # stop timer, disarm reaper, drop session
+set_pipeline_canceller(end_session)        # what the grace reaper calls
 ```
 
-`runtime/bridge/` is already COPYed into the image; the CMD is repointed at the wrapper in [Rewrite D]. Until then the container runs the bare kit app, whose default context provider builds everything from `SYSTEM_PROMPT` + `TTS_*` env vars with no server-side transcript.
+`runtime/bridge/` is COPYed into the image and `Dockerfile.voice`'s CMD is `bridge.app:app` — importing that module is what registers the hooks above. The full engine (referee, session registry, clock, reaper) is documented in `00-architecture.md`.
 
 ## Step 3 — infra
 
@@ -109,7 +125,7 @@ The five client files live in `web/src/voice/`. Call `configureVoiceApi(adapter,
 1. UI calls `POST /voice/{id}/start` → `authorize` → `on_start` → returns `{runtime_session_id, ice_servers}`.
 2. Browser builds a relay-only, non-trickle offer with its own `ice_servers`; waits for ICE gathering to complete.
 3. `POST /voice/{id}/signal` → control plane `invoke_agent_runtime(runtimeSessionId=...)` → runtime fetches KVS TURN, negotiates, **builds the pipeline inside the connection callback**, returns a relay-only answer.
-4. Media flows browser↔runtime over KVS TURN. Each finalized turn: STT → LLM → TTS, then your transcript handler + a JSON push over the data channel.
+4. Media flows browser↔runtime over KVS TURN. Each finalized turn: STT → referee → patient LLM → TTS, then your transcript handler + the v1 game events over the data channel.
 5. Drop / cold-start stall → UI retries with a **fresh** `runtime_session_id` (same session id); the context provider re-seeds history so the agent resumes mid-conversation.
 6. `POST /voice/{id}/end` (optional body `{runtime_session_id}` → the router best-effort invokes the runtime's `action: "end"` teardown first) → `on_end` → your closing transition + authoritative transcript.
 

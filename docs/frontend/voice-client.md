@@ -45,9 +45,9 @@ const connectWithFreshRuntime = async () => {
 }
 await connectWithFreshRuntime()
 
-// Render `transcript` (kit roles: 'user' | 'assistant') — it streams in live
-// over the WebRTC data channel. BRIDGE's own game events ride the same channel
-// under the v1 envelope (roles there are 'student' | 'patient').
+// `transcript` stays empty until [Rewrite G]: the runtime now emits only the
+// v1 game envelope over the data channel (roles 'student' | 'patient'), which
+// the service's current 'user'/'assistant' filter drops. See "Game events".
 ```
 
 ## 3. Reconnect loop (recommended)
@@ -102,6 +102,8 @@ backstop). The client sends it in [Rewrite G].
 ## Game events (generated types)
 
 Everything BRIDGE pushes over the data channel is a `GameEvent` from `gameEvents.gen.ts`: `transcript_update`, `state_update`, `action_detected`, `timer`, `game_over`, each stamped `v: 1` and discriminated on `type`.
+
+**The channel now carries the v1 envelope only.** The runtime emits game events for every turn (`transcript_update` with roles `student`/`patient`, never the kit's `user`/`assistant`), so `webrtc.service.ts`'s current `role === 'user' || role === 'assistant'` filter drops all of them and the live transcript stays empty until [Rewrite G] switches the handler onto `GameEvent`.
 
 The file is generated from `runtime/bridge/events.py` and committed — never edit it by hand:
 

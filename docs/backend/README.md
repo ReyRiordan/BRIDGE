@@ -49,6 +49,25 @@ python3 scripts/gen_event_types.py --check   # verify
 
 **Invoker interface** (control plane → runtime): `voice_kit.Invoker`, both methods async — `await invoker.signal(session_id, runtime_session_id, sdp, type="offer") -> dict` and `await invoker.end(session_id, runtime_session_id) -> dict`. Selected by `VOICE_INVOKER` via `get_invoker()`: `AgentCoreInvoker` (boto3 `invoke_agent_runtime` in `asyncio.to_thread`, hides the streaming-body response) or `LocalInvoker` (localhost `/invocations`, [Rewrite H] — raises until then). `create_voice_router(invoker=...)` accepts an override for tests/custom backends. Teardown is router-owned: `/end` with a `SessionEndRequest` body (`{runtime_session_id}`) best-effort invokes `end()` (payload `{"session_id", "action": "end"}`) before the `on_end` hook; no body skips it. The runtime entrypoint dispatches on `payload.action`: `"signal"` (default) | `"end"`.
 
+## Game engine (`runtime/bridge/`)
+
+The rules layer that turns the kit's pipeline into the simulation. One `GameSession` per `session_id`, in memory, for the container's life — no database, and no locks (single asyncio loop).
+
+| Module | Owns |
+|---|---|
+| `config.py` | Env reads + cached `load_scenario()` / `load_referee_prompt()` |
+| `session.py` | `GameSession` (escalation, action states, transcript, clock origin) + the `_sessions` registry and its sweep |
+| `referee.py` | `RefereeProcessor` — scores each student utterance, applies the scenario's point values, emits the turn's events |
+| `emitter.py` | `GameEvents` — the v1 envelope helpers; `transcript_event` maps the sink's turns (patient only) |
+| `patient.py` | Patient prompt seam (placeholder until [Rewrite E]), voice mapping, the per-turn escalation marker |
+| `timer.py` | The 1 Hz clock and the post-`game_over` grace reaper |
+| `app.py` | The uvicorn/Docker target: registers every hook and re-exports the kit's app |
+| `events.py` | The frozen v1 wire contract (above) |
+
+**One turn**, in order: STT → referee (`transcript_update{student}` → `action_detected`×N → `state_update` → `game_over`?) → patient LLM (gated off once the game is over) → TTS → sink (`transcript_update{patient}`). That order is guaranteed by construction — the referee emits directly over the ordered data channel and finishes before the frame reaches the patient LLM, while `timer` ticks interleave freely. The connect-time authoritative `state_update` precedes everything.
+
+**Status vocabulary** is `active | success | fail` — `status` on both `state_update` and `game_over`, and what the SPA switches on. A game ends when escalation reaches the scenario's goal (success), its maximum (fail), or the clock runs out (fail); the reaper then cancels the pipeline after `GAME_GRACE_SECONDS`.
+
 ## Packaging
 
 `runtime/pyproject.toml` publishes **`voice_kit` only**, with just its pipecat-free core deps (`fastapi`, `pydantic`, `pydantic-settings`, `boto3`, `aiohttp`) — that is what makes the control plane installable into the Lambda without dragging pipecat in. `runtime/bridge/` is not packaged: it reaches the container through `Dockerfile.voice`, whose dependency source is `runtime/requirements-voice.txt` (`COPY` + `PYTHONPATH=/app`, no pip-install of the package).
@@ -58,7 +77,11 @@ python3 scripts/gen_event_types.py --check   # verify
 ## Commands
 
 ```bash
-python3 -m pytest api/tests runtime/tests      # tests
+# Two invocations, not one: `api/` tests the INSTALLED voice_kit package while
+# runtime/ tests the tree, and collecting both at once lets the installed copy
+# shadow the repo. CI runs them separately for the same reason.
+python3 -m pytest api/tests
+python3 -m pytest runtime/tests
 ruff check api runtime                         # lint (config: root ruff.toml)
 ruff format --check api runtime                # format
 python3 -m compileall runtime/voice_kit runtime/bridge api

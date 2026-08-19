@@ -37,13 +37,23 @@ from voice_kit.processors import (  # noqa: E402
 )
 
 
-@pytest.fixture(autouse=True)
-def clean_registry():
-    """Module-global hooks are process-wide — always restore the empty default."""
-    yield
+def _clear_hooks() -> None:
     set_processor_factory(None)
     set_session_start_hook(None)
     set_session_end_hook(None)
+
+
+@pytest.fixture(autouse=True)
+def clean_registry():
+    """Module-global hooks are process-wide — always restore the empty default.
+
+    Cleared on the way IN as well: importing a host wiring module (e.g.
+    ``bridge.app``) registers its hooks at import time, so another test file in
+    the same session can leave them set before this one runs.
+    """
+    _clear_hooks()
+    yield
+    _clear_hooks()
 
 
 def a_context(**overrides) -> SessionContext:
