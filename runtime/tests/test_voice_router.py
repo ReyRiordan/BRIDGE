@@ -156,3 +156,20 @@ def test_start_degrades_to_empty_ice_servers_when_kvs_is_unreachable(monkeypatch
 
     assert resp.status_code == 200
     assert resp.json()["ice_servers"] == []
+
+
+def test_start_in_local_mode_never_touches_kvs(monkeypatch):
+    # BRIDGE_LOCAL=1 must skip the fetch outright, not merely tolerate its
+    # failure: the zero-AWS promise is that no boto3 call is even attempted.
+    from voice_kit.config import settings
+    from voice_kit.control_plane import router as router_module
+
+    def boom():
+        raise AssertionError("fetch_ice_servers must not be called in local mode")
+
+    monkeypatch.setattr(settings, "bridge_local", True)
+    monkeypatch.setattr(router_module, "fetch_ice_servers", boom, raising=True)
+    resp = _client(FakeInvoker()).post("/voice/sess-1/start")
+
+    assert resp.status_code == 200
+    assert resp.json()["ice_servers"] == []

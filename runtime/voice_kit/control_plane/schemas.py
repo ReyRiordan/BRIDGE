@@ -34,6 +34,9 @@ class SessionStartResponse(BaseModel):
     runtime's relay CHANNEL_BIND is rejected ("403 Forbidden IP") → ICE stalls.
     On a cold-start ICE failure the frontend retries with a fresh
     `runtime_session_id`, same `session_id`.
+
+    `ice_servers` is empty in local mode (`BRIDGE_LOCAL=1`): both peers are on
+    loopback, so the browser connects on host candidates with no TURN at all.
     """
 
     runtime_session_id: str

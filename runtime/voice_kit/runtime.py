@@ -39,6 +39,9 @@ Operational lessons honored:
   - **uvicorn ``--workers 1``** (Dockerfile.voice): peer-connection state lives in
     this process's memory and must not be sharded across workers.
   - **Lazy KVS init**: ICE config is fetched per session, never at import.
+  - **One entrypoint, both modes**: ``BRIDGE_LOCAL=1`` skips the KVS fetch and
+    the relay-only SDP filter in place (see ``_handle_offer``) rather than
+    forking a second handler — the local dev loop exercises this code path.
 
 APIs verified against pipecat-ai 1.3.0: ``SmallWebRTCRequestHandler``,
 ``SmallWebRTCTransport(webrtc_connection, params)``, ``TransportParams``, and
@@ -52,6 +55,7 @@ import threading
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
+from .config import settings
 from .context import get_session_end_hook, get_session_start_hook
 from .kvs import build_ice_servers, fetch_ice_servers, filter_relay_only_sdp
 from .pipeline import build_pipeline_for_session
@@ -127,8 +131,13 @@ async def _handle_offer(payload: dict) -> dict:
     sdp = payload["sdp"]
     sdp_type = payload.get("type", "offer")
 
-    # Lazy KVS managed-TURN ICE servers for this session.
-    ice_servers = build_ice_servers(fetch_ice_servers())
+    # Lazy KVS managed-TURN ICE servers for this session. Local mode
+    # (BRIDGE_LOCAL=1) skips the fetch: browser and runtime are both on
+    # loopback, so host candidates connect with no TURN allocation at all.
+    # Same entrypoint, one branch — never a forked local handler.
+    ice_servers = (
+        [] if settings.bridge_local else build_ice_servers(fetch_ice_servers())
+    )
     handler = SmallWebRTCRequestHandler(ice_servers=ice_servers)
 
     async def on_connection(connection) -> None:
@@ -166,6 +175,16 @@ async def _handle_offer(payload: dict) -> dict:
     )
     if not answer:
         raise RuntimeError("voice runtime produced no SDP answer")
+
+    # The relay-only filter is the sole server-side enforcement of the
+    # relay-only rule (gotcha #10) — and it is exactly what local mode must
+    # skip, because loopback produces host candidates and nothing else. Two
+    # independent locks keep it on in deploy: BRIDGE_LOCAL is absent from the
+    # container env (asserted in amplify/), and the settings validator refuses
+    # the flag when ENV=production.
+    if settings.bridge_local:
+        logger.info("Local mode: returning the unfiltered answer for %s", session_id)
+        return {"sdp": answer["sdp"], "type": answer["type"]}
 
     filtered_sdp = filter_relay_only_sdp(answer["sdp"])
     logger.info("Returning relay-only answer for session %s", session_id)

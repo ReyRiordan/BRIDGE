@@ -106,6 +106,9 @@ def create_voice_router(
         and signals it via POST /{id}/signal, which proxies to the voice
         runtime. Calling this again mid-session just issues a new
         `runtime_session_id` (supports cold-start retry / resume).
+
+        Under `settings.bridge_local` the ICE fetch is skipped and
+        `ice_servers` comes back empty — loopback needs no TURN.
         """
         await _authorize(request, session_id)
         if on_start is not None:
@@ -130,13 +133,22 @@ def create_voice_router(
         # Non-fatal: if KVS is unreachable we still return so the UI can surface it.
         # to_thread: fetch_ice_servers is sync boto3, which would block the
         # event loop under a local uvicorn.
+        #
+        # Local mode skips the attempt entirely (no boto3 import is even
+        # reached): both peers are on loopback, so host candidates connect and
+        # the zero-AWS promise holds.
         ice_servers: list = []
-        try:
-            ice_servers = await asyncio.to_thread(fetch_ice_servers)
-        except Exception as e:  # noqa: BLE001 - degrade gracefully, log for diagnosis
-            logger.warning(
-                "Failed to fetch ICE servers for session %s: %s", session_id, e
+        if settings.bridge_local:
+            logger.info(
+                "Local mode: skipping the KVS ICE fetch for session %s", session_id
             )
+        else:
+            try:
+                ice_servers = await asyncio.to_thread(fetch_ice_servers)
+            except Exception as e:  # noqa: BLE001 - degrade gracefully, log for diagnosis
+                logger.warning(
+                    "Failed to fetch ICE servers for session %s: %s", session_id, e
+                )
 
         return SessionStartResponse(
             runtime_session_id=runtime_session_id,
