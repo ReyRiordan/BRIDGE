@@ -26,7 +26,7 @@ Domain logic is not baked in: the kit exposes extension points (a per-session co
 
 ## What BRIDGE must supply
 
-- [ ] A **system prompt** — the context provider builds one per session; the patient persona itself is still a placeholder ([Rewrite E])
+- [ ] A **system prompt** — the context provider builds one per session (`bridge/patient.py`; see `../prompts.md`)
 - [ ] **Auth** on the three endpoints (`authorize` hook and/or FastAPI `dependencies`) — the defaults are open. Currently a documented `TODO(auth)` no-op at `authorize` in `api/main.py` — the `/signal` path is deliberately open until auth lands
 - [ ] A **session id** concept (any string the app can re-fetch by)
 - [x] A **transcript sink** for server-side transcripts (`set_transcript_handler`) — in-memory, `runtime/bridge/app.py`

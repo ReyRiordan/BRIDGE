@@ -69,6 +69,8 @@ Read by `runtime/bridge/config.py` — plain environment reads, all runtime-side
 |---|---|---|
 | `SCENARIO_PATH` | `resources/scenario_1.json` | Actions, point values, time limit, TTS voice. Deployed: `/app/resources/scenario_1.json` |
 | `REFEREE_PROMPT_PATH` | `resources/referee.txt` | Referee system prompt. Deployed: `/app/resources/referee.txt` |
+| `PATIENT_PROMPT_PATH` | `resources/patient.txt` | Patient persona template. Deployed: `/app/resources/patient.txt` |
+| `PATIENT_CASE_PATH` | `resources/patient.json` | Patient case file. Deployed: `/app/resources/patient.json` |
 | `REFEREE_PROVIDER` | `openrouter` | `openrouter` \| `bedrock`. OpenRouter is sent `require_parameters` so routing only picks backends that honour the strict `json_schema` |
 | `REFEREE_MODEL` | `anthropic/claude-haiku-4.5` | Separate from `LLM_MODEL` — the referee and the patient are different calls |
 | `REFEREE_EFFORT` | `none` | Same vocabulary as `LLM_REASONING` |

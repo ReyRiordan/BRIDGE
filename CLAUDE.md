@@ -74,7 +74,7 @@ PATIENT_AGENT_MODEL / PATIENT_AGENT_EFFORT   # patient agent
 | `frontend/` | Legacy vanilla-JS UI (4 screens, WebSocket client, layered scene compositing). |
 | `resources/scenario_1.json` | Scenario config (actions with `point_change`/`persist`/`layer`/`active`/`inactive` visuals, point bar, time limit, TTS settings). **Shared with the new app.** |
 | `resources/patient.txt` / `patient.json` | Patient agent system prompt + case file. |
-| `resources/system.txt` | System (referee) agent prompt. |
+| `resources/referee.txt` | Referee (system) agent prompt. **Shared with the new app.** |
 | `visuals/*.png` | Layered scene art: `patient_{escalation}.png` + per-action active/inactive layers composited by the frontend. |
 
 ### Legacy key mechanics

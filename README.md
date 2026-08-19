@@ -67,7 +67,7 @@ resources/
   scenario_1.json   Scenario config
   patient.json      Patient case file
   patient.txt       Patient agent prompt
-  system.txt        System agent prompt
+  referee.txt       Referee agent prompt
 scenes/             Scene images (JPG)
 ```
 
