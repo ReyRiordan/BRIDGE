@@ -45,7 +45,7 @@ Watch for:
 ## 5. Post-deploy checklist
 
 1. `/start` returns `runtime_session_id` (40 chars) **and a non-empty `ice_servers`** — an empty list means the API role's KVS grants or `KVS_CHANNEL_NAME` are wrong (check API logs for the warning).
-2. One `start` → `signal` round trip returns an SDP answer whose only candidates are `typ relay` lines (`grep 'a=candidate' | grep -v relay` should be empty).
+2. One `start` → `signal` round trip returns an SDP answer whose only candidates are `typ relay` lines (`grep 'a=candidate' | grep -v relay` should be empty). **Unchanged and still mandatory now that local dev mode exists** — local mode deliberately skips this filter, so a change verified only on localhost has never exercised the TURN path (see [`../local-dev.md`](../local-dev.md)).
 3. A real call connects: ICE reaches `connected` within ~10 s, you hear TTS, and transcript turns arrive on the data channel.
 4. CloudWatch (runtime log group): no `UnrecognizedClientException`, no `set_wakeup_fd`, no `Missing module: cv2`.
 5. If you registered a transcript handler: turns appear in your store *during* the call, and `/end` returns them.

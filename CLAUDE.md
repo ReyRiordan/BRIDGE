@@ -19,6 +19,21 @@ The repo is mid-rewrite from a single-process prototype (FastAPI + FastRTC + Gra
 
 Use 'python3' to run any python files. Use the GitHub CLI ('gh') for all GitHub-related tasks.
 
+### Local dev (new app)
+
+The whole rewrite stack on one machine, zero AWS calls — SPA :5173, control plane :8000, voice runtime :8080:
+
+```bash
+# One-time: repo-root venv (Python 3.11) + web/.env.local with VITE_BRIDGE_LOCAL=1
+python3 -m venv .venv
+.venv/bin/pip install -r api/requirements.txt -r runtime/requirements-voice.txt
+
+npm run dev                                    # all three processes
+.venv/bin/python scripts/local_voice_smoke.py  # Tier-1 WebRTC smoke
+```
+
+`BRIDGE_LOCAL=1` is the umbrella flag; it requires the non-AWS providers (`together`/`inworld`/`openrouter`) and refuses to run under `ENV=production`. Full setup and the local/cloud ICE divergence: [`docs/backend/local-dev.md`](docs/backend/local-dev.md) — **never merge on local-only verification.**
+
 ## Exploration Workflow
 
 When working on or exploring the codebase from a fresh start, ALWAYS start by reading the README of the relevant layer's documentation folder (frontend/, backend/). Then, use the documentation map in this README to navigate to the specific docs relevant to the current task. These docs will provide you with the core context and point to specific code files that you can read as necessary. Always do this relevant doc reading BEFORE you do actual codebase exploration.

@@ -37,6 +37,7 @@ The browser must build its `RTCPeerConnection` with its *own* KVS ICE servers (r
 
 **10. SDP filtering is the sole relay-only enforcement on the server.**
 aiortc has no relay-only transport-policy knob; `filter_relay_only_sdp` strips host/srflx/prflx candidates from the answer so VPC-internal addresses never reach the browser. Don't remove it as "redundant".
+*Local-mode carve-out:* `BRIDGE_LOCAL=1` skips both this filter and the KVS fetch (and flips the browser to `iceTransportPolicy: 'all'`) — loopback produces host candidates and nothing else. Two independent locks keep it off in deploy: the flag is absent from `amplify/voice-runtime.ts` / `VOICE_CONFIG` (asserted in the amplify tests), and the settings validator raises when `ENV=production`. The divergence is real, so the relay-only post-deploy check stays mandatory — see [`../local-dev.md`](../local-dev.md). Pass `ice_servers=[]`, never `None`: aiortc substitutes a public STUN server for `None`, which would break the offline promise.
 
 **11. Non-trickle signaling.**
 Wait for `iceGatheringState === 'complete'` before POSTing the offer (the runtime needs the complete candidate list in one shot). The single round-trip is sub-second — safely under a 29 s API Gateway limit. Implemented in `webrtc.service.ts`.
@@ -110,3 +111,11 @@ A reconnect that lands on the same warm container resumes the same `GameSession`
 
 **31. The sink no longer emits raw user-role transcripts.**
 BRIDGE's `transcript_event` mapper returns `None` for `user` turns, because the referee already emitted `transcript_update{student}` before scoring (so the UI never looks frozen while the referee call is in flight). A second emit here would duplicate the line and land it after the whole turn's events.
+
+## Local dev
+
+**32. `BRIDGE_LOCAL` must be set BEFORE `api.main` is imported.**
+`create_voice_router` resolves `invoker or get_invoker()` when the router is *built*, and `api/main.py` builds it at import time — so setting the flag afterwards leaves a control plane wired to `AgentCoreInvoker` and pointed at AWS. `api/local.py` exists solely to `os.environ.setdefault` the flag before that import (`# noqa: E402`).
+
+**33. Local mode diverges from the cloud exactly where WebRTC is hardest.**
+Host candidates on loopback vs TURN-only in the VPC — see #10. Never merge on local-only verification, and read [`../local-dev.md`](../local-dev.md) before adding anything to the local carve-out.
