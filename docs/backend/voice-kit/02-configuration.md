@@ -42,7 +42,7 @@ The voice path always uses the chat-completions surface (`/chat/completions`). G
 
 That surface also **ignores `response_format`**: `BedrockChat.chat()` warns and sends the request unconstrained rather than raising, so a caller wanting JSON has to get it from the prompt. BRIDGE's referee does exactly that (`../prompts.md`).
 
-Nothing in the repo validates a model ID. Confirm it against the bedrock-mantle catalog for the deploy region before deploying — a wrong ID fails per request, not at deploy time.
+Nothing in the repo validates a model ID, and a wrong one fails per request rather than at deploy time. **Do not confirm it with `aws bedrock list-foundation-models`** — that lists the InvokeModel catalog, whose IDs carry a version suffix the bedrock-mantle surface rejects. `openai.gpt-oss-120b-1:0` is what the catalog shows and it 404s with `The model ... does not exist`; the bare `openai.gpt-oss-120b` is what works. Verify with a real one-shot `/chat/completions` call against the deploy region instead.
 
 **Deployed** (`amplify/constants.ts`): `bedrock` / `openai.gpt-oss-120b` / `medium`, for the patient and the referee alike. Keyless, off the AgentCore execution role.
 

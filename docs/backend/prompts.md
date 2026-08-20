@@ -99,9 +99,35 @@ evals caught the failure and are easy to regress:
   the persona otherwise emitted `*shifts uncomfortably*` (spoken verbatim by the
   TTS) and answered history questions once fully calm.
 
-Referee latency, measured on `anthropic/claude-haiku-4.5` at
-`reasoning.effort: none`: ~1.1s median, ~2s worst case over 45 runs. That is not
-the deployed pairing any more — the deploy runs `openai.gpt-oss-120b` on Bedrock
-at `medium`, which adds reasoning latency to every turn. Re-measure with the
-`--provider bedrock` invocation above before trusting the 7s budget, and raise
-`REFEREE_TIMEOUT_SECONDS` only if the p95 says so.
+### Measured referee behaviour
+
+45 runs each (15 cases x 3), one sitting, us-east-1. Accuracy is exact set match
+on the detected action types; latency is the whole `chat()` round trip.
+
+| Provider / model / effort | Passed | Median | p95 | Max |
+|---|---|---|---|---|
+| openrouter `anthropic/claude-haiku-4.5` / `none` | 44/45 | 1.51s | 3.02s | 3.42s |
+| bedrock `openai.gpt-oss-120b` / `low` | 37/45 | 0.79s | 2.81s | 4.93s |
+| bedrock `openai.gpt-oss-120b` / `medium` | 40/45 | 2.43s | 5.30s | 7.15s |
+| bedrock `openai.gpt-oss-120b` / `high` | 37/45 | 6.80s | 25.26s | 60.50s |
+
+Read it in three parts.
+
+**JSON held.** Zero parse failures in ~135 Bedrock calls with `response_format`
+ignored the whole way. Prompt-enforced structure is good enough on this model;
+that question is settled.
+
+**`high` is unusable.** The tail runs past `REFEREE_TIMEOUT_SECONDS` by a factor
+of three or more (one run hit the 60s client timeout), and it buys no accuracy —
+its extra failures are false positives, mostly phantom `Verbal Communication`.
+
+**`medium` sits on the budget line.** Max 7.15s against a 7s fail-open timeout,
+so the worst turns score as no-detection. Across a separate 15-run sample, 2 of
+15 exceeded 7s. It is also 4 points less accurate than the haiku incumbent at a
+third of its speed.
+
+One failure is not noise and not effort-related: **`openai.gpt-oss-120b` never
+detects `Authoritative tone`** in "I'm going to have security hold him down..."
+— missed 3/3 at `low`, 3/3 at `medium`, 2/3 at `high`. An escalating action that
+never fires means the student is not penalised for the exact behaviour the
+scenario is built to punish. Fixing it is a prompt job, not a knob.
