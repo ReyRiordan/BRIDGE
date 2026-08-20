@@ -74,6 +74,9 @@ A reconnect landing on the same warm container would leave two pipelines feeding
 **21. Never block the pipeline loop.**
 The loop is the WebRTC packet pump. Sync work (boto3 writes in your transcript handler, the sync TTS generators) must go through `asyncio.to_thread` — `TTSProcessor` already does this; your context provider / transcript handler must too.
 
+**34. `send_app_message` takes the object, not the JSON.**
+pipecat serializes whatever it is handed, so passing the emit seam's JSON string through double-encodes the payload: the browser's `JSON.parse` yields a *string* instead of an event, and the reducer drops all of it. Audio keeps working, which is what makes it look like a frontend bug — the symptom is a live scene with a frozen transcript and timer. `runtime.py`'s `emit` decodes at that boundary; keep the seam's string convention and the decode together.
+
 ## HTTP / CORS
 
 **22. Unhandled control-plane errors surface as browser "Network Error".**
