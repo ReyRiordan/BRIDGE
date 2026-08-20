@@ -20,6 +20,14 @@ How BRIDGE gets to AWS: the environment topology, what deploys from where, and t
 
 Those three letters are pinned in `amplify/constants.ts` (`AVAILABILITY_ZONES`). **Re-verify before deploying into any other account** — wrong letters fail runtime creation with "subnets are in unsupported availability zones" and roll the whole stack back.
 
+## Quick reference: backend redeploy
+
+Amplify app id: **`d8vcc5ya6qjw1`**. To redeploy the `main` branch backend, run from the repo root (`ampx` resolves `amplify/backend.ts` from the working directory) with Docker running:
+
+```bash
+CI=1 AWS_PROFILE=compass-test npx ampx pipeline-deploy --app-id d8vcc5ya6qjw1 --branch main
+```
+
 ## Topology
 
 One real environment: the **`main` branch stack**. A sandbox is used only to shake out the first deploy and is deleted afterwards, so exactly one NAT gateway and one AgentCore runtime are ever billed.
