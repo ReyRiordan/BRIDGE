@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { resolveApiBaseUrl } from './config'
-import { configureVoiceApi, type VoiceApiTransport } from './voice/voiceApi'
+import { createTransport } from './api/transport'
+import { configureVoiceApi } from './voice/voiceApi'
 
 /**
  * Startup bootstrap.
@@ -14,38 +15,12 @@ import { configureVoiceApi, type VoiceApiTransport } from './voice/voiceApi'
  * load error rather than an app whose requests all 404.
  */
 
-/** Minimal fetch adapter for the voice kit — no axios dependency exists here. */
-function createTransport(baseUrl: string): VoiceApiTransport {
-  return {
-    post: async <T,>(path: string, body?: unknown): Promise<T> => {
-      const res = await fetch(`${baseUrl}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // An absent body must stay absent: the end endpoint's request model is
-        // optional and `null` would fail validation.
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      })
-      const payload: unknown = await res.json().catch(() => null)
-      if (!res.ok) {
-        // The control plane returns {detail} (with CORS) even for upstream
-        // failures, so prefer it over the bare status.
-        const detail = (payload as { detail?: unknown } | null)?.detail
-        throw new Error(
-          typeof detail === 'string'
-            ? detail
-            : `Request failed (${res.status})`,
-        )
-      }
-      return payload as T
-    },
-  }
-}
-
 const root = createRoot(document.getElementById('root')!)
 
 try {
   const baseUrl = await resolveApiBaseUrl()
-  configureVoiceApi(createTransport(baseUrl), `${baseUrl}/voice`)
+  // The base URL lives in the transport; basePath stays relative (api/transport.ts).
+  configureVoiceApi(createTransport(baseUrl))
   root.render(
     <StrictMode>
       <App />

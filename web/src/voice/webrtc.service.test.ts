@@ -188,3 +188,28 @@ test('a gathering stall rejects as CONNECTION_FAILED instead of hanging', async 
 
   vi.useRealTimers()
 })
+
+test('a stall with candidates already gathered signals them instead of failing', async () => {
+  // What the deployed reality looks like: KVS's relay candidates arrive in
+  // ~100 ms, then `complete` never comes because the unreachable members of
+  // each stun/turn/turns triple keep the phase open.
+  vi.useFakeTimers()
+  const gatheredSdp = 'offer-sdp\r\na=candidate:1 1 udp 1 1.2.3.4 443 typ relay'
+  class StallingPeerConnection extends FakePeerConnection {
+    iceGatheringState = 'gathering'
+    localDescription = { sdp: gatheredSdp, type: 'offer' }
+  }
+  vi.stubGlobal('RTCPeerConnection', StallingPeerConnection)
+
+  const connect = webrtcService.initializeConnection('s', 'r', TURN)
+  await vi.advanceTimersByTimeAsync(10000)
+  await connect
+
+  expect(voiceApi.signalVoiceSession).toHaveBeenCalledWith('s', {
+    runtime_session_id: 'r',
+    sdp: gatheredSdp,
+    type: 'offer',
+  })
+
+  vi.useRealTimers()
+})

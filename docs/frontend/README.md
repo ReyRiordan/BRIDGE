@@ -14,7 +14,7 @@
 | `src/components/` | Game UI: scene stage + layers, escalation bar, timer, action badge, transcript, checklist |
 | `src/state/` | `useGame` — one pure reducer over the generated `GameEvent` types, plus the derived-visual selectors and the golden-run fixtures |
 | `src/types/` | The hand-written `GET /scenario` contract |
-| `src/api/` | `fetchScenario()` |
+| `src/api/` | `fetchScenario()`, plus `transport.ts` — the fetch adapter the voice-kit calls run through, and the one place the API base URL is applied |
 | `src/index.css` | `@import 'tailwindcss'` plus the `@theme` block that IS the design system — Tailwind v4 has no config file; the `@tailwindcss/vite` plugin in `vite.config.ts` is the whole setup |
 | `src/config.ts` | Runtime config: `BRIDGE_LOCAL` (from `VITE_BRIDGE_LOCAL`), `RELAY_ONLY`, and `resolveApiBaseUrl()` / `getApiBaseUrl()` (runtime `custom.apiUrl` lookup) |
 | `src/vite-env.d.ts` | Vite client types + the `ImportMetaEnv` declaration for `VITE_BRIDGE_LOCAL` |
