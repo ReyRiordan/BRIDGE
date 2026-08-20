@@ -33,6 +33,9 @@ const { runtime } = addVoiceRuntime({
   // context from picking up the legacy trees.
   dockerContext: '.',
   dockerfile: 'runtime/Dockerfile.voice',
+  // Only when the same context root feeds a SECOND image asset: subtract the
+  // other image's tree so the two hashes stay independent.
+  dockerExclude: ['api/'],
   invokers: [apiLambda],
   environment: VOICE_CONFIG,
   // Keyless secrets: names + SSM path prefixes (set values with
@@ -74,7 +77,8 @@ One `CfnSignalingChannel`, type `SINGLE_MASTER` (the only supported type), with 
 
 ## AgentCore Runtime
 
-- Image: CDK `AgentRuntimeArtifact.fromAsset(dockerContext, { file, platform: LINUX_ARM64 })` → ECR. ARM64 is required. BRIDGE builds from the repo root with `file: 'runtime/Dockerfile.voice'` so `resources/` (scenario + prompts) lands in the image.
+- Image: CDK `AgentRuntimeArtifact.fromAsset(dockerContext, { file, platform: LINUX_ARM64, exclude })` → ECR. ARM64 is required. BRIDGE builds from the repo root with `file: 'runtime/Dockerfile.voice'` so `resources/` (scenario + prompts) lands in the image.
+- `dockerExclude` layers extra excludes on top of the context root's `.dockerignore` (CDK merges the two) and exists for HASH STABILITY: the hash is derived from the staged copy, so when a second image asset shares the context root, each must subtract the other's tree or an unrelated edit rebuilds and re-pushes this image and restarts the runtime. BRIDGE passes `['api/']`. Never list a tree the Dockerfile COPYs — the hash freezes and the deploy ships stale code with no error.
 - Network: `RuntimeNetworkConfiguration.usingVpc` on the private subnets.
 - Inbound auth: **IAM/SigV4** (no `authorizerConfiguration`) — keyless from the API host and required for `runtimeSessionId` affinity.
 - `lifecycleConfiguration.maxLifetime`: 1 hour — the backstop ceiling above the pipeline's own idle-timeout self-termination.
