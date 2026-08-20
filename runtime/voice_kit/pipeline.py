@@ -194,6 +194,7 @@ async def build_pipeline_for_session(
     # Pipecat construction lives behind lazy imports so this module can be
     # imported (e.g. under stubs) without the voice dependencies installed.
     from pipecat.audio.vad.silero import SileroVADAnalyzer
+    from pipecat.audio.vad.vad_analyzer import VADParams
     from pipecat.pipeline.pipeline import Pipeline
     from pipecat.pipeline.worker import PipelineParams, PipelineWorker
     from pipecat.processors.audio.vad_processor import VADProcessor
@@ -223,7 +224,18 @@ async def build_pipeline_for_session(
     pipeline = Pipeline(
         [
             transport.input(),
-            VADProcessor(vad_analyzer=SileroVADAnalyzer()),
+            VADProcessor(
+                vad_analyzer=SileroVADAnalyzer(
+                    params=VADParams(
+                        confidence=settings.vad_confidence,
+                        start_secs=settings.vad_start_secs,
+                        stop_secs=settings.vad_stop_secs,
+                        min_volume=settings.vad_min_volume,
+                    )
+                ),
+                speech_activity_period=settings.vad_speech_activity_period,
+                audio_idle_timeout=settings.vad_audio_idle_timeout,
+            ),
             *processors,
             transport.output(),
         ]

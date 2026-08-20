@@ -79,6 +79,31 @@ describe('VOICE_CONFIG', () => {
     expect(VOICE_CONFIG.IDLE_TIMEOUT_SECS).toBe('180')
   })
 
+  test('VAD knobs are pinned at pipecat defaults', () => {
+    // Pinned so each tune is an env-only CFN update, not an image rebuild.
+    // These values equal pipecat 1.3.0's own, so pinning changed no behaviour.
+    expect(VOICE_CONFIG.VAD_CONFIDENCE).toBe('0.7')
+    expect(VOICE_CONFIG.VAD_START_SECS).toBe('0.2')
+    expect(VOICE_CONFIG.VAD_STOP_SECS).toBe('0.2')
+    expect(VOICE_CONFIG.VAD_MIN_VOLUME).toBe('0.6')
+    expect(VOICE_CONFIG.VAD_SPEECH_ACTIVITY_PERIOD).toBe('0.2')
+    expect(VOICE_CONFIG.VAD_AUDIO_IDLE_TIMEOUT).toBe('1.0')
+  })
+
+  test('VAD probabilities stay inside the 0..1 range Silero accepts', () => {
+    for (const key of ['VAD_CONFIDENCE', 'VAD_MIN_VOLUME']) {
+      const value = Number(VOICE_CONFIG[key])
+      expect(value).toBeGreaterThanOrEqual(0)
+      expect(value).toBeLessThanOrEqual(1)
+    }
+  })
+
+  test('VAD sample rate is left pipeline-negotiated', () => {
+    // Silero accepts only 8000/16000 and STTProcessor's pre-roll math assumes
+    // 16 kHz, so this one is deliberately not a knob.
+    expect(Object.keys(VOICE_CONFIG)).not.toContain('VAD_SAMPLE_RATE')
+  })
+
   test('carries no local-dev flag, and pins ENV=production as the backstop', () => {
     // Two independent locks on local mode. Absent flag: the container never
     // starts with the KVS fetch and the relay-only SDP filter switched off.
