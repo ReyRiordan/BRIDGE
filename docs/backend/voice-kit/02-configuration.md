@@ -45,11 +45,28 @@ The voice path always uses the chat-completions surface (`/chat/completions`). G
 | Env var | Consumer | Default | Notes |
 |---|---|---|---|
 | `STT_PROVIDER` | runtime | `transcribe` | `transcribe` \| `together` |
-| `STT_PREROLL_MS` | runtime | `300` | Pre-speech ring buffer (onset recovery); don't tune Silero instead |
+| `STT_PREROLL_MS` | runtime | `300` | Pre-speech ring buffer (onset recovery); read gotcha #19 before reaching for the `VAD_*` knobs instead |
 | `TOGETHER_API_KEY` | runtime | — | Required when `together` |
 
 - **transcribe** — Amazon Transcribe Streaming, `en-US`, keyless (task role, `transcribe:StartStreamTranscription`). Audio stays in your AWS account.
 - **together** — Parakeet (`nvidia/parakeet-tdt-0.6b-v3`) over HTTPS, `en`. **Sends user speech off-AWS — treat as dev-only** if you have a data-residency requirement.
+
+## VAD
+
+Silero + `VADProcessor`, built in `runtime/voice_kit/pipeline.py`. Every default below is pipecat 1.3.0's own, so an unset environment behaves as it did before these were configurable. All six are pinned in `VOICE_CONFIG` (`amplify/constants.ts`), which makes a tune an env-only CFN update — no image rebuild.
+
+| Env var | Default | Notes |
+|---|---|---|
+| `VAD_CONFIDENCE` | `0.7` | Speech-probability threshold. Lower catches quiet speech and invents phantom turns — gotcha #19 |
+| `VAD_START_SECS` | `0.2` | Confirmation window before a turn starts. Lower shortens the window the STT pre-roll has to cover — gotcha #19 |
+| `VAD_STOP_SECS` | `0.2` | Silence before a turn ends. Raise it if the patient interrupts mid-sentence |
+| `VAD_MIN_VOLUME` | `0.6` | Minimum normalized frame volume counted as speech |
+| `VAD_SPEECH_ACTIVITY_PERIOD` | `0.2` | Spacing of the speech-activity notifications, which also feed the pipeline's idle backstop |
+| `VAD_AUDIO_IDLE_TIMEOUT` | `1.0` | Force-stop the turn after this much audio silence; `0` disables it |
+
+`sample_rate` is deliberately not a knob: Silero accepts only 8000/16000, and `STTProcessor`'s pre-roll math assumes 16 kHz. It stays pipeline-negotiated.
+
+Tune one value at a time and listen to a real session — these interact.
 
 ## TTS
 

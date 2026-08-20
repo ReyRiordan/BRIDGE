@@ -66,7 +66,7 @@ The output transport renders only output-typed audio frames; a plain `AudioRawFr
 Distinct `SystemFrame` subclasses in pipecat 1.3.0, emitted by the standalone `VADProcessor` (VAD is no longer a `TransportParams` field). Gate on the wrong one and nothing ever transcribes.
 
 **19. STT pre-roll, not VAD tuning.**
-Silero emits VAD-start only after its `start_secs` confirmation window, so the utterance onset (first word) arrives before capture begins. Fix: retain the last `STT_PREROLL_MS` (300) of pre-speech audio in a byte-bounded ring buffer and seed the utterance with it (in `STTProcessor`). Do NOT lower `start_secs`/`confidence` instead — that trades dropped onsets for phantom turns.
+Silero emits VAD-start only after its `start_secs` confirmation window, so the utterance onset (first word) arrives before capture begins. Fix: retain the last `STT_PREROLL_MS` (300) of pre-speech audio in a byte-bounded ring buffer and seed the utterance with it (in `STTProcessor`). Silero is tunable now (`VAD_START_SECS` / `VAD_CONFIDENCE`, see `02-configuration.md`), but lowering either one to chase onsets trades dropped words for phantom turns. Onset recovery stays the pre-roll's job; tune the `VAD_*` knobs for turn-taking feel.
 
 **20. One pipeline per session.**
 A reconnect landing on the same warm container would leave two pipelines feeding the transcript sink (duplicated turns). `_run_task` cancels-and-awaits any existing task before registering, and pops the registration only if it still owns the entry — so a superseded pipeline's cleanup can't remove its successor.
