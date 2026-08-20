@@ -1,5 +1,5 @@
 """
-Localhost invoker for the voice runtime — the [Rewrite H] local dev loop.
+Localhost invoker for the voice runtime — the local dev loop.
 
 Same seam, no AWS: instead of ``invoke_agent_runtime``, this POSTs the very same
 payloads to the runtime's ``/invocations`` on ``settings.voice_runtime_url``

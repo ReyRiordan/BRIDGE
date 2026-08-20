@@ -1,5 +1,5 @@
 /**
- * Hand-authored golden runs — the acceptance surface for [Rewrite F].
+ * Hand-authored golden runs — the acceptance surface for the game UI.
  *
  * Deliberately hand-written rather than recorded: a recording captures whatever
  * the runtime did that day, while these are chosen to hit every semantic edge
