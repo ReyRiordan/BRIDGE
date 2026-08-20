@@ -22,6 +22,12 @@ is carried on the :class:`PipelineContext` for the host's reporting only; the
 kit never enforces it. An AgentCore ``maxLifetime`` backstop is configured
 separately in infra.
 
+The kit still never enforces the app's limit, but a host whose clock outlives
+the default backstop must raise it per session through
+``SessionContext.idle_timeout_seconds``: the idle timeout *cancels* the pipeline
+and closes the peer connection, so one that fires inside a live session is
+indistinguishable from a dropped connection in the browser.
+
 Pipecat APIs verified against pipecat-ai 1.3.0: VAD is a standalone
 ``VADProcessor`` in the pipeline (it is no longer a ``TransportParams`` field);
 ``PipelineTask`` is a deprecated alias for ``PipelineWorker`` and the
@@ -63,8 +69,11 @@ class PipelineContext:
     voice: VoiceConfig
     system_prompt: str
     # Informational: the host's own conversation cap, never enforced by the kit
-    # (the worker's idle timeout is settings.idle_timeout_secs).
+    # (self-termination is driven by idle_timeout_seconds below).
     time_limit_seconds: int
+    # The resolved pipeline idle timeout for this session: the host's
+    # SessionContext override, else settings.idle_timeout_secs.
+    idle_timeout_seconds: int
     pipeline: object
     task: object
     # The host's SessionContext.metadata, forwarded verbatim, plus the object it
@@ -195,6 +204,11 @@ async def build_pipeline_for_session(
         if context.time_limit_seconds is not None
         else settings.session_time_limit_minutes * 60
     )
+    idle_timeout_seconds = (
+        context.idle_timeout_seconds
+        if context.idle_timeout_seconds is not None
+        else settings.idle_timeout_secs
+    )
 
     processors = resolve_processors(
         session_id,
@@ -215,14 +229,22 @@ async def build_pipeline_for_session(
         ]
     )
 
-    # PipelineWorker self-terminates after `idle_timeout_secs` of no speaking
+    # PipelineWorker self-terminates after `idle_timeout_seconds` of no speaking
     # activity — a backstop against abandoned containers, NOT the app's time
-    # limit (a host may cap a conversation far above or below it).
+    # limit (a host may cap a conversation far above or below it). A host that
+    # caps it ABOVE must raise this through SessionContext.idle_timeout_seconds,
+    # or the pipeline dies mid-session and the browser sees a dropped call.
     # PipelineParams carries no timeout field.
+    logger.info(
+        "Session %s: time limit %ss, pipeline idle timeout %ss",
+        session_id,
+        time_limit_seconds,
+        idle_timeout_seconds,
+    )
     task = PipelineWorker(
         pipeline,
         params=PipelineParams(),
-        idle_timeout_secs=settings.idle_timeout_secs,
+        idle_timeout_secs=idle_timeout_seconds,
     )
 
     return PipelineContext(
@@ -230,6 +252,7 @@ async def build_pipeline_for_session(
         voice=context.voice,
         system_prompt=context.system_prompt,
         time_limit_seconds=time_limit_seconds,
+        idle_timeout_seconds=idle_timeout_seconds,
         pipeline=pipeline,
         task=task,
         metadata=context.metadata,

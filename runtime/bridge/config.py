@@ -50,6 +50,23 @@ REFEREE_TIMEOUT_SECONDS = float(os.environ.get("REFEREE_TIMEOUT_SECONDS", "7.0")
 # client to render the debrief before the pipeline is torn down.
 GAME_GRACE_SECONDS = float(os.environ.get("GAME_GRACE_SECONDS", "45.0"))
 
+# Headroom on top of the game window when deriving the pipeline's idle timeout.
+# The invariant the margin protects: idle timeout > time_limit + grace. pipecat
+# CANCELS the pipeline on idle (closing the peer connection, with no end hook and
+# no event to the browser), so an idle timeout landing inside a live game — or
+# inside the post-`game_over` debrief window — reaches the student as a lost
+# connection instead of the game's own ending. See `idle_timeout_for()`.
+IDLE_TIMEOUT_MARGIN_SECONDS = float(
+    os.environ.get("IDLE_TIMEOUT_MARGIN_SECONDS", "30.0")
+)
+
+
+def idle_timeout_for(scenario: dict) -> int:
+    """The pipeline idle timeout that keeps this scenario's whole game alive."""
+    return int(
+        scenario["time_limit"] + GAME_GRACE_SECONDS + IDLE_TIMEOUT_MARGIN_SECONDS
+    )
+
 
 @lru_cache(maxsize=None)
 def load_scenario(path: str = None) -> dict:

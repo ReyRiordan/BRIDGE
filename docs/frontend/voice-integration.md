@@ -88,6 +88,12 @@ a third **UI-level** variant of `EndScreen` (`EndOutcome`) with its own title
 and copy, and the same Play Again button. A network drop is not a failed
 de-escalation and must never be scored as one.
 
+It also outranks `game_over` in `App.tsx`, which is why the runtime must keep
+the pipeline alive for the whole game: its idle backstop sits outside
+`time_limit + grace` (`../backend/voice-kit/05-gotchas.md` #35), so a run to the
+time limit still receives `game_over` and gets the timeout debrief rather than
+this variant.
+
 ## Mic status
 
 The anti-echo auto-mute in `useWebRTC` silences the student's track while the

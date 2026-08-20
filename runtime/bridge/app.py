@@ -43,6 +43,7 @@ from voice_kit.runtime import app, end_session  # noqa: F401
 
 from .config import (
     REFEREE_TIMEOUT_SECONDS,
+    idle_timeout_for,
     load_referee_prompt,
     load_scenario,
 )
@@ -78,6 +79,12 @@ async def provide_context(session_id: str) -> SessionContext:
         # Seeds the patient LLM's history so it resumes mid-conversation.
         initial_history=list(session.transcript),
         time_limit_seconds=scenario["time_limit"],
+        # The game clock outlives the kit's default backstop, and pipecat's idle
+        # timeout cancels the pipeline outright: left at the default, a silent
+        # run to the time limit loses its data channel before `game_over` is
+        # emitted and the student is shown a lost connection instead of the
+        # timeout debrief. Derived from the scenario so it tracks any edit to it.
+        idle_timeout_seconds=idle_timeout_for(scenario),
         metadata={"game": session},
     )
 

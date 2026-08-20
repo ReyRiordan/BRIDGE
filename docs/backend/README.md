@@ -69,7 +69,7 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 
 **One turn**, in order: STT → referee (`transcript_update{student}` → `action_detected`×N → `state_update` → `game_over`?) → patient LLM (gated off once the game is over) → TTS → sink (`transcript_update{patient}`). That order is guaranteed by construction — the referee emits directly over the ordered data channel and finishes before the frame reaches the patient LLM, while `timer` ticks interleave freely. The connect-time authoritative `state_update` precedes everything.
 
-**Status vocabulary** is `active | success | fail` — `status` on both `state_update` and `game_over`, and what the SPA switches on. A game ends when escalation reaches the scenario's goal (success), its maximum (fail), or the clock runs out (fail); the reaper then cancels the pipeline after `GAME_GRACE_SECONDS`.
+**Status vocabulary** is `active | success | fail` — `status` on both `state_update` and `game_over`, and what the SPA switches on. A game ends when escalation reaches the scenario's goal (success), its maximum (fail), or the clock runs out (fail); the reaper then cancels the pipeline after `GAME_GRACE_SECONDS`. The pipeline's own idle backstop is held outside that window — `config.idle_timeout_for()` derives `SessionContext.idle_timeout_seconds` as `time_limit + GAME_GRACE_SECONDS + IDLE_TIMEOUT_MARGIN_SECONDS`, because pipecat cancels the pipeline on idle and one firing mid-game would take the data channel down before `game_over` (`voice-kit/05-gotchas.md` #35).
 
 ## Packaging
 

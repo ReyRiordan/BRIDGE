@@ -142,6 +142,7 @@ def test_pipeline_context_carries_metadata_and_game():
         voice=VoiceConfig(provider="polly", voice="Ruth"),
         system_prompt="p",
         time_limit_seconds=600,
+        idle_timeout_seconds=180,
         pipeline=None,
         task=None,
         metadata={"game": game},
@@ -158,6 +159,7 @@ def test_pipeline_context_defaults_are_empty():
         voice=VoiceConfig(provider="polly", voice="Ruth"),
         system_prompt="p",
         time_limit_seconds=600,
+        idle_timeout_seconds=180,
         pipeline=None,
         task=None,
     )
@@ -200,4 +202,42 @@ def test_build_pipeline_uses_idle_timeout_and_hoists_game(monkeypatch):
     assert context.metadata == {"game": game}
     # The app's own limit is reported but does NOT drive self-termination.
     assert context.time_limit_seconds == 1800
+    # No per-session override: the kit's own setting is the backstop.
+    assert context.idle_timeout_seconds == 42
     assert context.task._idle_timeout_secs == 42
+
+
+def test_session_context_idle_timeout_overrides_the_setting(monkeypatch):
+    """A host whose clock outlives the default raises the backstop per session.
+
+    pipecat CANCELS the pipeline on idle — one firing inside a live session
+    closes the peer connection and reads to the browser as a dropped call.
+    """
+    import asyncio
+
+    from pipecat.processors.frame_processor import FrameProcessor
+    from voice_kit import set_context_provider
+    from voice_kit.config import settings
+
+    async def provider(session_id: str) -> SessionContext:
+        return a_context(time_limit_seconds=300, idle_timeout_seconds=375)
+
+    class FakeTransport:
+        def input(self):
+            return FrameProcessor()
+
+        def output(self):
+            return FrameProcessor()
+
+    set_processor_factory(lambda args: [FrameProcessor()])
+    set_context_provider(provider)
+    monkeypatch.setattr(settings, "idle_timeout_secs", 180)
+    try:
+        context = asyncio.run(
+            build_pipeline_for_session("sess-1", FakeTransport(), emit=None)
+        )
+    finally:
+        set_context_provider(default_context_provider)
+
+    assert context.idle_timeout_seconds == 375
+    assert context.task._idle_timeout_secs == 375
