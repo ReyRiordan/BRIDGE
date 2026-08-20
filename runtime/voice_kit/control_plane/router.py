@@ -7,7 +7,7 @@ machine, transcript storage) plugs in via three async hooks on the factory —
 the router itself imports no pipecat/aiortc and runs in the API process
 (Lambda), not the runtime container.
 
-Endpoint contract (consumed by frontend/voiceApi.ts):
+Endpoint contract (consumed by web/src/voice/voiceApi.ts):
 
     POST {prefix}/{session_id}/start   → SessionStartResponse
     POST {prefix}/{session_id}/signal  → SignalResponse

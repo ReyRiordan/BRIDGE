@@ -5,7 +5,7 @@
  * `configureVoiceApi(...)` once at startup with a thin adapter over your
  * axios/fetch instance (which is where your auth headers live), then the three
  * endpoint functions target the routes served by
- * backend/voice_kit/control_plane/router.py (default prefix '/voice').
+ * runtime/voice_kit/control_plane/router.py (default prefix '/voice').
  */
 
 import type {

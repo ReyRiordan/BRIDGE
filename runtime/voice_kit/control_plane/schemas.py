@@ -1,9 +1,9 @@
 """
 Request/response schemas for the voice control-plane router.
 
-The wire contract between the frontend client (frontend/voiceApi.ts) and the
-three signaling endpoints. Field names must stay in sync with the frontend
-types (frontend/webrtc.types.ts).
+The wire contract between the frontend client (web/src/voice/voiceApi.ts) and
+the three signaling endpoints. Field names must stay in sync with the frontend
+types (web/src/voice/webrtc.types.ts).
 """
 
 from typing import List, Optional

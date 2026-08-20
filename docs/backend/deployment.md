@@ -7,7 +7,7 @@ How BRIDGE gets to AWS: the environment topology, what deploys from where, and t
 | | |
 |---|---|
 | AWS profile | `compass-test` → account **893361712219**, region **us-east-1** |
-| GitHub repo for Hosting | `ReyRiordan/MEWAI-BD` (pre-rename name) |
+| GitHub repo for Hosting | `ReyRiordan/BRIDGE` |
 | Bootstrap | CDK-bootstrapped ✓ |
 
 ## Quick reference: backend redeploy

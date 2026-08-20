@@ -114,7 +114,7 @@ set_pipeline_canceller(end_session)        # what the grace reaper calls
 
 ## Step 3 — infra
 
-`amplify/voice-runtime.ts` is in place; `backend.ts` calls `addVoiceRuntime(...)` with verified AZs, the config constants, SSM secret names/prefixes, and `extraRuntimePolicies` for whatever the hooks read/write ([Rewrite B]). Worked example: `03-infrastructure.md`.
+`amplify/voice-runtime.ts` is in place; `backend.ts` calls `addVoiceRuntime(...)` with verified AZs, the config constants, SSM secret names/prefixes, and `extraRuntimePolicies` for whatever the hooks read/write. Worked example: `03-infrastructure.md`.
 
 ## Step 4 — frontend
 
