@@ -41,6 +41,16 @@ export const VOICE_CONFIG: Record<string, string> = {
   // --- STT
   STT_PROVIDER: 'together',
 
+  // --- VAD. These pin pipecat's own defaults, so they are a tuning surface,
+  // not a behaviour change. Tune them one at a time — see voice-kit gotcha #19
+  // before lowering VAD_CONFIDENCE or VAD_START_SECS.
+  VAD_CONFIDENCE: '0.7',
+  VAD_START_SECS: '0.2',
+  VAD_STOP_SECS: '0.2',
+  VAD_MIN_VOLUME: '0.6',
+  VAD_SPEECH_ACTIVITY_PERIOD: '0.2',
+  VAD_AUDIO_IDLE_TIMEOUT: '1.0',
+
   // --- TTS
   TTS_PROVIDER: 'inworld',
   TTS_VOICE: 'Mark',
