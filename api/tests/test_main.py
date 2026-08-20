@@ -1,7 +1,7 @@
 """
-Control-plane app tests: the deploy contract infra depends on (a Mangum
-`handler`, /health, in-app CORS), the /scenario whitelist, and the mounted
-voice router — including the 502-with-CORS acceptance path (kit gotcha #22).
+Control-plane app tests: the deploy contract infra depends on (the ASGI `app`
+the image serves under LWA plus the Mangum `handler` zip fallback, /health,
+in-app CORS), the /scenario whitelist, and the mounted voice router — including the 502-with-CORS acceptance path (kit gotcha #22).
 """
 
 import json
@@ -46,8 +46,9 @@ class FakeInvoker:
 # --- deploy contract ---------------------------------------------------------
 
 
-def test_handler_is_the_lambda_entry_point():
-    # Infra's handler string is "api.main.handler" — keep the name.
+def test_handler_is_the_zip_packaging_fallback():
+    # Production runs `uvicorn api.main:app` under LWA, but the Mangum handler
+    # stays as the zip fallback — keep the name importable.
     assert callable(main.handler)
 
 

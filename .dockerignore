@@ -1,7 +1,12 @@
-# The voice runtime image builds from the REPO ROOT (see runtime/Dockerfile.voice)
-# so it can COPY both runtime/ and resources/. While the legacy app and the
-# rewrite coexist, this exclude list is what keeps the build context small —
-# effectively only runtime/ and resources/ reach the daemon.
+# Shared ignore list for the TWO image assets built from the REPO ROOT:
+# runtime/Dockerfile.voice (needs runtime/ + resources/) and api/Dockerfile.api
+# (needs api/ + resources/ + runtime/voice_kit). This list is what keeps that
+# context small while the legacy app and the rewrite coexist; each asset then
+# subtracts the OTHER's tree via its CDK `exclude` prop (amplify/constants.ts),
+# which is what keeps their hashes independent.
+#
+# NEVER list a tree an image COPYs. CDK derives the asset hash from the staged
+# copy, so an excluded tree freezes the hash and ships stale code with no error.
 
 # Legacy app trees (removed at final teardown)
 frontend/
@@ -12,11 +17,10 @@ app.py
 requirements.txt
 render.yaml
 
-# New trees not needed in the runtime image
+# New trees neither image needs
 web/
 docs/
 amplify/
-api/
 scripts/
 node_modules/
 runtime/tests/
@@ -29,16 +33,21 @@ runtime/tests/
 cdk.out/
 amplify_outputs.json
 
-# VCS / tooling / build junk
+# VCS / tooling / build junk. These are recursive on purpose: a local
+# `pip install ./runtime` regenerates runtime/build/ + runtime/*.egg-info, and
+# root-anchored patterns would let that untracked junk bust BOTH asset hashes.
 .git/
 .github/
 .claude/
 **/__pycache__/
 **/*.pyc
 **/tests/
-.venv*/
-*.egg-info/
-dist/
-coverage/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.venv*/
+**/*.egg-info/
+**/build/
+**/dist/
+**/coverage/
 .env
 .DS_Store

@@ -58,6 +58,16 @@ export interface VoiceRuntimeProps {
    * BRIDGE passes 'runtime/Dockerfile.voice' because the context is the root.
    */
   dockerfile?: string;
+  /**
+   * Extra excludes for the image asset's staged context, layered on top of the
+   * context root's `.dockerignore` (CDK merges the two). CDK derives the asset
+   * HASH from the staged copy, so this is what keeps the hash independent of
+   * trees this image does not COPY — set it when the same context root feeds a
+   * second image asset (BRIDGE excludes `api/`). Never list a tree the
+   * Dockerfile COPYs: the hash then freezes and the deploy ships stale code
+   * with no error.
+   */
+  dockerExclude?: string[];
   /** Runtime construct name (default 'VoiceRuntime'). */
   runtimeName?: string;
   /**
@@ -120,6 +130,7 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
     agentRuntimeArtifact: AgentRuntimeArtifact.fromAsset(props.dockerContext, {
       file: props.dockerfile ?? 'Dockerfile.voice',
       platform: Platform.LINUX_ARM64,
+      exclude: props.dockerExclude,
     }),
     networkConfiguration: RuntimeNetworkConfiguration.usingVpc(stack, {
       vpc: voiceVpc,

@@ -2,7 +2,8 @@
 // BRIDGE backend — Amplify Gen 2 entry point.
 //
 // Provisions two things in one custom stack:
-//   1. The control-plane API Lambda (FastAPI + Mangum) behind a Function URL.
+//   1. The control-plane API Lambda (FastAPI under the Lambda Web Adapter, as
+//      a container image) behind a Function URL.
 //   2. The voice runtime (VPC + KVS channel + AgentCore container + IAM), via
 //      the vendored addVoiceRuntime() module.
 //
@@ -17,21 +18,22 @@ import { defineBackend } from '@aws-amplify/backend';
 import { CDKContextKey, ParameterPathConversions } from '@aws-amplify/platform-core';
 import type { BackendIdentifier } from '@aws-amplify/plugin-types';
 import { Duration } from 'aws-cdk-lib';
+import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import {
   Architecture,
-  Code,
-  Function as LambdaFunction,
+  DockerImageCode,
+  DockerImageFunction,
   FunctionUrlAuthType,
-  Runtime as LambdaRuntime,
 } from 'aws-cdk-lib/aws-lambda';
 
 import {
   ALLOWED_ORIGINS,
-  API_ASSET_EXCLUDE,
+  API_IMAGE_EXCLUDE,
   API_LAMBDA,
   AVAILABILITY_ZONES,
   SECRET_NAMES,
   VOICE_CONFIG,
+  VOICE_IMAGE_EXCLUDE,
   voiceRuntimeName,
 } from './constants';
 import { addVoiceRuntime } from './voice-runtime';
@@ -59,54 +61,29 @@ const secretsSsmPrefixes = [
 // ---------------------------------------------------------------------------
 // Control-plane API Lambda
 //
-// Bundled with a plain `Code.fromAsset(repo root)` rather than PythonFunction:
-// PythonFunction's commandHooks run in a container that mounts only the `entry`
-// directory, so they cannot reach `resources/` outside `api/`. Same mechanism,
-// controllable inputs.
+// A container-image function, not a zip: api/Dockerfile.api layers deps before
+// source, so pip becomes a cached layer keyed on api/requirements.txt +
+// runtime/pyproject.toml instead of a cold `pip install` on every asset-hash
+// change. The context is the repo root — the image needs api/, resources/ and
+// the vendored runtime/voice_kit.
+//
+// No `runtime`/`handler` props: CDK sets PackageType FROM_IMAGE itself and
+// throws if either is passed. The entry point is the image's uvicorn CMD.
 // ---------------------------------------------------------------------------
-const apiFn = new LambdaFunction(stack, 'BridgeApi', {
-  runtime: LambdaRuntime.PYTHON_3_11,
+const apiFn = new DockerImageFunction(stack, 'BridgeApi', {
   architecture: Architecture.ARM_64,
-  handler: API_LAMBDA.handler,
   memorySize: API_LAMBDA.memorySizeMb,
   timeout: Duration.seconds(API_LAMBDA.timeoutSeconds),
-  // Deliberately no SCENARIO_PATH: VOICE_CONFIG's value is the *container's*
-  // /app/resources path. The Lambda reads the copy inside its own bundle.
+  // Deliberately no SCENARIO_PATH: VOICE_CONFIG's value is the *voice*
+  // container's path. This image COPYs resources/ next to api/, which is what
+  // api/scenario.py's default resolves to.
   environment: { ALLOWED_ORIGINS: ALLOWED_ORIGINS.join(',') },
-  code: Code.fromAsset('.', {
-    exclude: API_ASSET_EXCLUDE,
-    bundling: {
-      // The SAM build image, NOT public.ecr.aws/lambda/python:3.11: the latter
-      // is for *running* Lambdas and its runtime-interface ENTRYPOINT swallows
-      // the bundling command (docker exits 142).
-      image: LambdaRuntime.PYTHON_3_11.bundlingImage,
-      platform: 'linux/arm64',
-      // The tooling pins (ruff/pytest/httpx) live in api/requirements.txt for
-      // CI to grep; they have no business in the deployed package. resources/
-      // is copied in so /health (and [Rewrite C]'s /scenario) can read the
-      // scenario JSON from the bundle.
-      //
-      // The `exclude` above shapes the asset HASH, but bundling still mounts
-      // the raw source tree at /asset-input — so the copies prune tests and
-      // host-built __pycache__ themselves.
-      command: [
-        'bash',
-        '-c',
-        [
-          "sed '/^ruff==/d;/^pytest==/d;/^httpx==/d' api/requirements.txt > /tmp/requirements.txt",
-          // pip --target straight onto /asset-output fails: /asset-output is a
-          // bind mount, and pip finishes with a hard-link move off the
-          // container fs ("Invalid cross-device link"). Install container-side,
-          // then copy across the boundary.
-          'pip install --no-cache-dir -r /tmp/requirements.txt --target /tmp/site-packages',
-          'cp -r /tmp/site-packages/. /asset-output/',
-          'cp -r api /asset-output/api',
-          'cp -r resources /asset-output/resources',
-          'rm -rf /asset-output/api/tests /asset-output/api/requirements.txt',
-          "find /asset-output -type d -name __pycache__ -prune -exec rm -rf {} +",
-        ].join(' && '),
-      ],
-    },
+  code: DockerImageCode.fromImageAsset('.', {
+    file: 'api/Dockerfile.api',
+    platform: Platform.LINUX_ARM64,
+    // Subtracts the voice image's tree so a runtime/bridge edit leaves this
+    // asset's hash alone — see API_IMAGE_EXCLUDE.
+    exclude: API_IMAGE_EXCLUDE,
   }),
 });
 
@@ -130,6 +107,9 @@ addVoiceRuntime({
   // keeps the context small.
   dockerContext: '.',
   dockerfile: 'runtime/Dockerfile.voice',
+  // Subtracts api/ so an API-only change doesn't rebuild + re-push the pipecat
+  // image and restart the runtime.
+  dockerExclude: VOICE_IMAGE_EXCLUDE,
   // Derived per backend: the sandbox and branch stacks coexist briefly, and
   // both sides look the channel up by NAME, which must be unique per account.
   channelName: `${stack.stackName}-signaling`,
