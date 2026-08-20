@@ -1,9 +1,0 @@
-fastrtc[vad]
-gradio
-fastapi
-uvicorn[standard]
-numpy
-soundfile
-requests
-python-dotenv
-twilio

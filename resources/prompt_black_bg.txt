@@ -1,1 +1,0 @@
-Change the white background to a pure solid black #000000 background. Keep every foreground pixel exactly unchanged — do not modify color, shape, position, or any detail of the subject(s). Keep the size, scale, and ratio of the image and foreground the same as well.
