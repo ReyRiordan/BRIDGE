@@ -102,9 +102,12 @@ Every pipecat API in this kit (frame names, `VADProcessor`, `PipelineWorker`/`id
 numpy 2.x ships no prebuilt arm64 cp311 wheel for these base images; without the cap, pip attempts a source build that fails without a C compiler.
 
 **28. Off-AWS STT is a data-residency decision.**
-`STT_PROVIDER=together` sends user speech to Together AI. If your posture requires audio to stay inside your AWS account, keep `transcribe` in production and treat Together as dev-only.
+`STT_PROVIDER=together` sends user speech to Together AI. BRIDGE deploys `transcribe` and reaches for Together only in local dev, where `BRIDGE_LOCAL=1` forbids the AWS providers outright. Keep it that way round: the override belongs on your machine, not in `VOICE_CONFIG`.
 
 ## Game engine
+
+**36. On Bedrock the referee's `json_schema` is decoration.**
+`BedrockChat.chat()` accepts `response_format` and drops it (warning once per call) — the bedrock-mantle chat-completions surface has no structured output, and raising instead would turn a config mismatch into a per-turn outage. The deployed referee runs on Bedrock, so `resources/referee.txt` is the only thing holding the JSON shape, and `parse_referee_verdict` is the only thing catching what it misses. Re-run `runtime/evals/referee_eval.py --provider bedrock` after any edit to that prompt: a parse failure costs the student the turn silently, because the referee fails open.
 
 **29. The data channel is not open inside the connection callback.**
 Anything emitted while the pipeline is being built (including from the session start hook) is silently dropped — the emitter swallows the failure by design. Send the connect-time authoritative `state_update` from `@transport.event_handler("on_client_connected")` instead, as `bridge/app.py` does.

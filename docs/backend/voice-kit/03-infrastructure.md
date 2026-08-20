@@ -14,8 +14,10 @@ import { addVoiceRuntime } from './voice-runtime';
 const VOICE_CONFIG = {
   LLM_PROVIDER: 'bedrock',            // 'openrouter' | 'bedrock'
   LLM_MODEL: 'openai.gpt-oss-120b',
-  LLM_REASONING: 'low',
+  LLM_REASONING: 'medium',
   LLM_PROVIDERS: '',                  // OpenRouter routing prefs; ignored on bedrock
+  // Bedrock has no default endpoint. Public URL, so env config, not a secret.
+  AWS_BEDROCK_BASE_URL: 'https://bedrock-mantle.us-east-1.api.aws/v1',
   STT_PROVIDER: 'transcribe',         // 'transcribe' | 'together' (together = off-AWS, dev only)
   TTS_PROVIDER: 'polly',              // 'polly' | 'inworld'
   TTS_VOICE: 'Ruth',
@@ -37,7 +39,7 @@ const { runtime } = addVoiceRuntime({
   environment: VOICE_CONFIG,
   // Keyless secrets: names + SSM path prefixes (set values with
   // `npx ampx sandbox secret set OPENROUTER_API_KEY` etc.)
-  secretsFromSsm: ['OPENROUTER_API_KEY', 'AWS_BEDROCK_BASE_URL', 'TOGETHER_API_KEY', 'INWORLD_API_KEY'].join(','),
+  secretsFromSsm: ['OPENROUTER_API_KEY', 'TOGETHER_API_KEY', 'INWORLD_API_KEY'].join(','),
   secretsSsmPrefixes: ssmPrefixes,
   // Grants for the game engine's context provider / transcript sink, e.g.:
   // extraRuntimePolicies: [/* dynamodb reads/writes */],

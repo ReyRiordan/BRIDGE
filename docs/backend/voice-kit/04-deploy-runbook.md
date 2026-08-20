@@ -4,7 +4,7 @@ Ordered steps for the first deploy into a new account, plus the failure table. T
 
 ## 1. Put secrets in SSM
 
-For each enabled provider (`OPENROUTER_API_KEY`, `AWS_BEDROCK_BASE_URL`, `INWORLD_API_KEY`, `TOGETHER_API_KEY`):
+For each enabled provider that needs a key (`OPENROUTER_API_KEY`, `INWORLD_API_KEY`, `TOGETHER_API_KEY`). The AWS-backed providers — Transcribe, Bedrock, Polly — need none: they sign with the execution role, and `AWS_BEDROCK_BASE_URL` is a public endpoint set as plain env config.
 
 ```sh
 npx ampx sandbox secret set OPENROUTER_API_KEY     # Amplify-managed path

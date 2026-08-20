@@ -57,11 +57,18 @@ cooperativeness.
 
 Manual only. They cost money, need the network, and are nondeterministic, so
 they live **outside `runtime/tests/`** and CI never executes them (it does lint
-them: `ruff check runtime`). Both need `OPENROUTER_API_KEY`.
+them: `ruff check runtime`). On the OpenRouter defaults both need
+`OPENROUTER_API_KEY`; aimed at Bedrock, the referee eval needs AWS credentials
+and `AWS_BEDROCK_BASE_URL` instead.
 
 ```bash
 python3 runtime/evals/referee_eval.py     # pass/fail table + per-case latency; nonzero on failure
 python3 runtime/evals/patient_probe.py    # replies at escalation 10/8/5/2/0, eyeball only
+
+# The deployed pairing (amplify/constants.ts). --provider/--model/--reasoning
+# override the REFEREE_* trio the script otherwise reads from the environment.
+python3 runtime/evals/referee_eval.py \
+    --provider bedrock --model openai.gpt-oss-120b --reasoning medium
 ```
 
 `referee_eval.py` runs the production path (real scenario, real prompt,
@@ -69,8 +76,15 @@ python3 runtime/evals/patient_probe.py    # replies at escalation 10/8/5/2/0, ey
 cases in `runtime/evals/cases/referee.json` — `{name, utterance, escalation,
 expected}`, mixing the few-shot anchors with paraphrases, near-misses for the
 strict escalating actions, a dedup case, and the actions no few-shot covers. It
-also prints median/max latency, which matters: the referee sits on the serial
-critical path before the patient reply.
+also prints median/p95/max latency, which matters: the referee sits on the
+serial critical path before the patient reply and fails open past
+`REFEREE_TIMEOUT_SECONDS`, so the p95 is what says whether that budget holds.
+
+The eval parses replies with `parse_referee_verdict`, the same function the
+pipeline uses. That is deliberate: on Bedrock `response_format` is ignored, so
+the eval's parse-failure count is a real measurement of whether the prompt alone
+holds the JSON shape. Every parse failure is a turn a student would silently
+lose.
 
 `patient_probe.py` sends one de-escalating line and one history question at each
 escalation level and prints the replies side by side — a 30-second check that
@@ -85,5 +99,9 @@ evals caught the failure and are easy to regress:
   the persona otherwise emitted `*shifts uncomfortably*` (spoken verbatim by the
   TTS) and answered history questions once fully calm.
 
-Referee latency measured on `anthropic/claude-haiku-4.5` with
-`reasoning.effort: none`: ~1.1s median, ~2s worst case over 45 runs.
+Referee latency, measured on `anthropic/claude-haiku-4.5` at
+`reasoning.effort: none`: ~1.1s median, ~2s worst case over 45 runs. That is not
+the deployed pairing any more — the deploy runs `openai.gpt-oss-120b` on Bedrock
+at `medium`, which adds reasoning latency to every turn. Re-measure with the
+`--provider bedrock` invocation above before trusting the 7s budget, and raise
+`REFEREE_TIMEOUT_SECONDS` only if the p95 says so.
