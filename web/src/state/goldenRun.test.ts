@@ -165,7 +165,7 @@ describe('golden success run', () => {
         reason: 'The patient is calm and ready to continue care.',
       },
     })
-    // The phase is untouched: the 600 ms handoff lives in GameScreen.
+    // The phase is untouched: the handoff to SHOW_END lives in useVoiceSession.
     expect(vm.phase).toBe('game')
   })
 

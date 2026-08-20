@@ -1,31 +1,48 @@
 import { useCallback } from 'react'
-import EndScreen from './screens/EndScreen'
+import EndScreen, { type EndOutcome } from './screens/EndScreen'
 import GameScreen from './screens/GameScreen'
 import IntroScreen from './screens/IntroScreen'
 import StartScreen from './screens/StartScreen'
 import { selectChecklist, useGame } from './state/useGame'
 import type { Scenario } from './types/scenario'
+import { useVoiceSession } from './voice/useVoiceSession'
+
+/** Friendly copy for the codes the session can surface on the intro screen. */
+const ERROR_COPY: Record<string, string> = {
+  MICROPHONE_PERMISSION_DENIED:
+    'Microphone access is required — allow it in your browser, then try again.',
+  ICE_STALL: 'Could not reach the patient. Please try again.',
+}
+
+const CONNECTION_LOST: EndOutcome = {
+  status: 'connection_lost',
+  reason: 'Connection lost — the session could not continue.',
+}
 
 /**
- * The whole app shell: one reducer, one switch on `state.phase`.
+ * The whole app shell: one reducer, one switch on `state.phase`, and one voice
+ * session hung off it.
  *
- * `dispatch` is also the seam the voice data channel plugs into — wire events
- * are already part of the action union, so a parsed message goes straight in
- * with no adapter. [Rewrite G2] mounts the session on the game screen.
+ * `dispatch` is the seam the voice data channel plugs into — wire events are
+ * already part of the action union, so a parsed message goes straight in with
+ * no adapter. Everything effectful about the session (ids, connect, settle,
+ * drops) lives in `useVoiceSession`; this component only composes its status
+ * with the game phase to decide what renders.
  */
 function App() {
   const { state, dispatch } = useGame()
+  const voice = useVoiceSession(state, dispatch)
 
   const onLoaded = useCallback(
     (scenario: Scenario) => dispatch({ type: 'SCENARIO_LOADED', scenario }),
     [dispatch],
   )
-  // Stable by necessity: GameScreen's 600 ms end delay depends on it, and an
-  // inline arrow would restart that timer on every render.
-  const onGameOverSettled = useCallback(
-    () => dispatch({ type: 'SHOW_END' }),
-    [dispatch],
-  )
+
+  const { reset } = voice
+  const onPlayAgain = useCallback(() => {
+    reset()
+    dispatch({ type: 'PLAY_AGAIN' })
+  }, [dispatch, reset])
 
   if (state.phase === 'start' || state.scenario === null) {
     return <StartScreen onLoaded={onLoaded} />
@@ -35,20 +52,38 @@ function App() {
     return (
       <IntroScreen
         scenario={state.scenario}
-        onBegin={() => dispatch({ type: 'BEGIN' })}
+        onBegin={() => void voice.begin()}
+        connecting={voice.status === 'connecting'}
+        error={
+          voice.error
+            ? (ERROR_COPY[voice.error.code] ?? voice.error.message)
+            : null
+        }
       />
     )
   }
 
+  // A drop is its own outcome: it overlays the same debrief, but never wearing
+  // the game's `fail` copy.
+  const outcome: EndOutcome | null = voice.connectionLost
+    ? CONNECTION_LOST
+    : state.phase === 'end' && state.gameOver
+      ? state.gameOver
+      : null
+
   return (
     <>
       {/* The scene stays mounted under the debrief overlay. */}
-      <GameScreen state={state} onGameOverSettled={onGameOverSettled} />
-      {state.phase === 'end' && state.gameOver && (
+      <GameScreen
+        state={state}
+        isAgentSpeaking={voice.isAgentSpeaking}
+        isMuted={voice.isMuted}
+      />
+      {outcome && (
         <EndScreen
-          gameOver={state.gameOver}
+          gameOver={outcome}
           checklist={selectChecklist(state)}
-          onPlayAgain={() => dispatch({ type: 'PLAY_AGAIN' })}
+          onPlayAgain={onPlayAgain}
         />
       )}
     </>

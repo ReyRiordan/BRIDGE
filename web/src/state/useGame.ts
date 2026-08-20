@@ -4,7 +4,8 @@
  *
  * `dispatch` is also the seam the data channel plugs into — wire events are
  * already part of the action union, so the voice client's
- * `createGameEventHandler(dispatch)` needs no adapter.
+ * `createGameEventHandler(dispatch)` (registered by `useVoiceSession`) needs no
+ * adapter.
  */
 import { useReducer } from 'react'
 import {

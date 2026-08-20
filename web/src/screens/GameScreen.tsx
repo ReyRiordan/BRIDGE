@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import EscalationBar from '../components/EscalationBar'
 import SceneStage from '../components/SceneStage'
 import TranscriptPanel from '../components/TranscriptPanel'
@@ -12,25 +11,22 @@ import {
 
 interface GameScreenProps {
   state: GameState
-  /** Fired once, 600 ms after game_over lands, so the final frame can register. */
-  onGameOverSettled: () => void
+  /** From `useVoiceSession` — drives the read-only mic pill over the scene. */
+  isAgentSpeaking?: boolean
+  isMuted?: boolean
 }
 
-const END_DELAY_MS = 600
-
-function GameScreen({ state, onGameOverSettled }: GameScreenProps) {
+/**
+ * Pure presentation. The handoff to the end screen is NOT timed here: it waits
+ * on the final patient audio, which only the voice session can see (see
+ * `voice/useVoiceSession.ts`).
+ */
+function GameScreen({
+  state,
+  isAgentSpeaking = false,
+  isMuted = false,
+}: GameScreenProps) {
   const escalation = selectEscalation(state)
-  const isPlaying = state.phase === 'game'
-  const { gameOver } = state
-
-  // Wall-clock lives here, never in the reducer. `onGameOverSettled` must be a
-  // stable callback in the parent — an inline arrow would re-run this effect on
-  // every render and restart the delay forever.
-  useEffect(() => {
-    if (!isPlaying || !gameOver) return
-    const id = setTimeout(onGameOverSettled, END_DELAY_MS)
-    return () => clearTimeout(id)
-  }, [isPlaying, gameOver, onGameOverSettled])
 
   return (
     <main className="mx-auto grid min-h-screen max-w-[1600px] gap-6 p-4 sm:p-6 lg:h-screen lg:grid-cols-[65fr_35fr]">
@@ -39,6 +35,7 @@ function GameScreen({ state, onGameOverSettled }: GameScreenProps) {
           layers={selectLayers(state)}
           clock={selectClock(state)}
           badge={state.lastAction}
+          mic={{ agentSpeaking: isAgentSpeaking, muted: isMuted }}
         />
         <EscalationBar
           value={escalation.value}

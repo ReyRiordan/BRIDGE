@@ -4,9 +4,23 @@ import type { Scenario } from '../types/scenario'
 interface IntroScreenProps {
   scenario: Scenario
   onBegin: () => void
+  /** A connect is in flight: AgentCore's cold start can take several seconds. */
+  connecting?: boolean
+  /** Mic denial or an exhausted connect — the user retries with the button. */
+  error?: string | null
 }
 
-function IntroScreen({ scenario, onBegin }: IntroScreenProps) {
+/**
+ * Also the connect screen: a failed connect leaves the student here with an
+ * error and a Retry rather than on a dead game screen, because BEGIN is only
+ * dispatched once ICE is actually up.
+ */
+function IntroScreen({
+  scenario,
+  onBegin,
+  connecting = false,
+  error = null,
+}: IntroScreenProps) {
   return (
     <main className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-12 md:grid-cols-2">
       <img
@@ -32,9 +46,28 @@ function IntroScreen({ scenario, onBegin }: IntroScreenProps) {
           </p>
         </div>
 
-        <Button variant="success" onClick={onBegin} className="self-start">
-          Begin Simulation
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button
+            variant="success"
+            onClick={onBegin}
+            disabled={connecting}
+            className="self-start"
+          >
+            {connecting ? 'Connecting…' : error ? 'Retry' : 'Begin Simulation'}
+          </Button>
+
+          {connecting && (
+            <p className="text-sm text-ink-muted">
+              Connecting to the patient — this can take a few seconds.
+            </p>
+          )}
+
+          {!connecting && error && (
+            <p role="alert" className="text-sm text-bad">
+              {error}
+            </p>
+          )}
+        </div>
       </div>
     </main>
   )

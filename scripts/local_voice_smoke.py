@@ -3,10 +3,10 @@
 Tier-1 smoke test for local dev mode: a real WebRTC handshake against a running
 `npm run dev`, with zero AWS calls.
 
-Until [Rewrite G] wires the SPA to the voice client, this script IS the
-acceptance evidence that local mode works end to end. It drives the same three
-control-plane endpoints the browser will, using aiortc as the peer (already
-installed via runtime/requirements-voice.txt).
+It drives the same three control-plane endpoints the browser does, using
+aiortc as the peer (already installed via runtime/requirements-voice.txt), so
+it proves the transport independently of the SPA — run it first when a browser
+session will not connect.
 
     npm run dev                                  # in another terminal
     .venv/bin/python scripts/local_voice_smoke.py

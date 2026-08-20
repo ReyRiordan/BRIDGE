@@ -9,8 +9,6 @@ import { act, cleanup, render, screen } from '@testing-library/react'
 import GameScreen from './GameScreen'
 import { foldTo, successRun } from '../state/__fixtures__/goldenRun'
 
-const noop = () => {}
-
 afterEach(() => {
   cleanup()
   // Vitest + React 19 will hang on the next file if fake timers leak.
@@ -26,9 +24,7 @@ const layerAttrs = () =>
 
 describe('scene composite', () => {
   it('stacks the scenario layers back to front with ascending z', () => {
-    render(
-      <GameScreen state={foldTo(successRun, 1)} onGameOverSettled={noop} />,
-    )
+    render(<GameScreen state={foldTo(successRun, 1)} />)
 
     expect(layerAttrs()).toEqual([
       ['Environmental', '1', '/visuals/environment_default.png'],
@@ -41,15 +37,11 @@ describe('scene composite', () => {
   })
 
   it('lights a transient layer and clears it again', () => {
-    const { rerender } = render(
-      <GameScreen state={foldTo(successRun, 5)} onGameOverSettled={noop} />,
-    )
+    const { rerender } = render(<GameScreen state={foldTo(successRun, 5)} />)
     const iv = () => document.querySelector('[data-layer="Force IV"]')
     expect(iv()?.getAttribute('data-src')).toBe('/visuals/iv_active.png')
 
-    rerender(
-      <GameScreen state={foldTo(successRun, 11)} onGameOverSettled={noop} />,
-    )
+    rerender(<GameScreen state={foldTo(successRun, 11)} />)
     expect(iv()?.getAttribute('data-src')).toBe('')
     // Mount-and-keep: the frame stays in the DOM, faded out, ready to return.
     expect(iv()?.querySelectorAll('img')).toHaveLength(1)
@@ -57,7 +49,7 @@ describe('scene composite', () => {
   })
 
   it('follows escalation through the patient frames', () => {
-    render(<GameScreen state={foldTo(successRun)} onGameOverSettled={noop} />)
+    render(<GameScreen state={foldTo(successRun)} />)
     expect(
       document
         .querySelector('[data-layer="__patient__"]')
@@ -68,9 +60,7 @@ describe('scene composite', () => {
 
 describe('action badge', () => {
   it('shows the latest detection with its tone', () => {
-    render(
-      <GameScreen state={foldTo(successRun, 5)} onGameOverSettled={noop} />,
-    )
+    render(<GameScreen state={foldTo(successRun, 5)} />)
     const badge = screen.getByRole('status')
     expect(badge.textContent).toBe('Force IV: Attempt IV while agitated')
     expect(badge.getAttribute('data-tone')).toBe('bad')
@@ -79,16 +69,12 @@ describe('action badge', () => {
   it('remounts on a repeated action so the pop replays', () => {
     vi.useFakeTimers()
     // A Verbal Communication detection…
-    const { rerender } = render(
-      <GameScreen state={foldTo(successRun, 14)} onGameOverSettled={noop} />,
-    )
+    const { rerender } = render(<GameScreen state={foldTo(successRun, 14)} />)
     act(() => vi.advanceTimersByTime(3000))
     expect(screen.queryByRole('status')).toBeNull()
 
     // …and the same action detected again much later: a new id, so it returns.
-    rerender(
-      <GameScreen state={foldTo(successRun, 22)} onGameOverSettled={noop} />,
-    )
+    rerender(<GameScreen state={foldTo(successRun, 22)} />)
     const badge = screen.getByRole('status')
     expect(badge.textContent).toContain('Verbal Communication')
     expect(badge.getAttribute('data-tone')).toBe('good')
@@ -96,9 +82,7 @@ describe('action badge', () => {
 
   it('auto-hides after 3 s', () => {
     vi.useFakeTimers()
-    render(
-      <GameScreen state={foldTo(successRun, 5)} onGameOverSettled={noop} />,
-    )
+    render(<GameScreen state={foldTo(successRun, 5)} />)
     expect(screen.queryByRole('status')).not.toBeNull()
 
     act(() => vi.advanceTimersByTime(2999))
@@ -111,9 +95,7 @@ describe('action badge', () => {
 
 describe('escalation bar', () => {
   it('renders width, tone and aria from the scenario-derived state', () => {
-    render(
-      <GameScreen state={foldTo(successRun, 5)} onGameOverSettled={noop} />,
-    )
+    render(<GameScreen state={foldTo(successRun, 5)} />)
     const bar = screen.getByRole('progressbar')
     expect(bar.getAttribute('aria-valuenow')).toBe('9')
     expect(bar.getAttribute('aria-valuemax')).toBe('10')
@@ -127,9 +109,7 @@ describe('escalation bar', () => {
 
 describe('timer', () => {
   it('starts at the scenario time limit and goes urgent near the end', () => {
-    const { rerender } = render(
-      <GameScreen state={foldTo(successRun, 1)} onGameOverSettled={noop} />,
-    )
+    const { rerender } = render(<GameScreen state={foldTo(successRun, 1)} />)
     const timer = () => screen.getByRole('timer')
     expect(timer().textContent).toBe('5:00')
     expect(timer().className).not.toContain('animate-pulse')
@@ -138,7 +118,7 @@ describe('timer', () => {
       ...foldTo(successRun, 1),
       timer: { elapsed: 285, limit: 300 },
     }
-    rerender(<GameScreen state={nearlyOver} onGameOverSettled={noop} />)
+    rerender(<GameScreen state={nearlyOver} />)
     expect(timer().textContent).toBe('0:15')
     expect(timer().className).toContain('animate-pulse')
   })
@@ -146,9 +126,7 @@ describe('timer', () => {
 
 describe('transcript', () => {
   it('labels each side and waits only after the student speaks', () => {
-    const { rerender } = render(
-      <GameScreen state={foldTo(successRun, 4)} onGameOverSettled={noop} />,
-    )
+    const { rerender } = render(<GameScreen state={foldTo(successRun, 4)} />)
     const roles = () =>
       [...document.querySelectorAll('[data-role]')].map((el) =>
         el.getAttribute('data-role'),
@@ -158,46 +136,25 @@ describe('transcript', () => {
     expect(screen.getByText('You')).toBeDefined()
     expect(screen.queryByTestId('waiting-indicator')).not.toBeNull()
 
-    rerender(
-      <GameScreen state={foldTo(successRun, 6)} onGameOverSettled={noop} />,
-    )
+    rerender(<GameScreen state={foldTo(successRun, 6)} />)
     expect(roles()).toEqual(['student', 'patient'])
     expect(screen.getByText('Patient')).toBeDefined()
     expect(screen.queryByTestId('waiting-indicator')).toBeNull()
   })
 })
 
-describe('end handoff', () => {
-  it('fires onGameOverSettled exactly once, 600 ms after game_over', () => {
-    vi.useFakeTimers()
-    const onGameOverSettled = vi.fn()
-    render(
-      <GameScreen
-        state={foldTo(successRun)}
-        onGameOverSettled={onGameOverSettled}
-      />,
+describe('mic status', () => {
+  it('reads listening, and flips while the patient speaks', () => {
+    const { rerender } = render(<GameScreen state={foldTo(successRun, 4)} />)
+    const pill = () => document.querySelector('[data-mic]')
+    expect(pill()?.getAttribute('data-mic')).toBe('listening')
+    expect(pill()?.textContent).toContain('Listening')
+
+    // The auto-mute is what actually silences the track; the pill only reports.
+    rerender(
+      <GameScreen state={foldTo(successRun, 4)} isAgentSpeaking isMuted />,
     )
-
-    act(() => vi.advanceTimersByTime(599))
-    expect(onGameOverSettled).not.toHaveBeenCalled()
-
-    act(() => vi.advanceTimersByTime(1))
-    expect(onGameOverSettled).toHaveBeenCalledTimes(1)
-
-    act(() => vi.advanceTimersByTime(5000))
-    expect(onGameOverSettled).toHaveBeenCalledTimes(1)
-  })
-
-  it('does not fire while the game is still running', () => {
-    vi.useFakeTimers()
-    const onGameOverSettled = vi.fn()
-    render(
-      <GameScreen
-        state={foldTo(successRun, 22)}
-        onGameOverSettled={onGameOverSettled}
-      />,
-    )
-    act(() => vi.advanceTimersByTime(5000))
-    expect(onGameOverSettled).not.toHaveBeenCalled()
+    expect(pill()?.getAttribute('data-mic')).toBe('muted')
+    expect(pill()?.textContent).toContain('Patient speaking')
   })
 })

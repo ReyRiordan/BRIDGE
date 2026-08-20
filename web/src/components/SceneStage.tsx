@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import ActionBadge from './ActionBadge'
+import MicStatus from './MicStatus'
 import SceneLayer from './SceneLayer'
 import TimerPill from './TimerPill'
 import {
@@ -13,6 +14,8 @@ interface SceneStageProps {
   layers: SceneLayerView[]
   clock: ClockView
   badge: LastAction | null
+  /** Mic pill state — the auto-mute is otherwise invisible to the student. */
+  mic: { agentSpeaking: boolean; muted: boolean }
 }
 
 /**
@@ -23,7 +26,7 @@ interface SceneStageProps {
  * column resized; pinning one aspect on the container and absolutely filling it
  * with every layer makes drift impossible.
  */
-function SceneStage({ layers, clock, badge }: SceneStageProps) {
+function SceneStage({ layers, clock, badge, mic }: SceneStageProps) {
   // Warm every patient frame once, so escalation changes cross-fade instead of
   // popping in after a network round trip mid-turn.
   useEffect(() => {
@@ -45,6 +48,7 @@ function SceneStage({ layers, clock, badge }: SceneStageProps) {
       ))}
 
       <TimerPill text={clock.text} urgent={clock.urgent} />
+      <MicStatus agentSpeaking={mic.agentSpeaking} muted={mic.muted} />
 
       {badge && (
         // Keyed by id: back-to-back detections remount and re-pop.
