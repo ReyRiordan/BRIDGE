@@ -20,11 +20,11 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 |---|---|
 | `local-dev.md` | `BRIDGE_LOCAL=1`: the one-machine dev loop, what the flag changes, the Tier-1 smoke |
 | `prompts.md` | The referee + patient prompts, what the model is (and is not) shown, the manual evals |
-| `deployment.md` | Environment topology, the AZ record, secrets, the deploy runbook, cost |
+| `deployment.md` | Environment topology, secrets, the deploy runbook, cost |
 | `voice-kit/00-architecture.md` | Topology, the pipeline chain, the two session ids, extension points |
 | `voice-kit/01-integration-guide.md` | How the halves wire together; the verification gates |
 | `voice-kit/02-configuration.md` | Every env var, provider tables, the SSM secrets mechanism |
-| `voice-kit/03-infrastructure.md` | VPC / KVS / AgentCore / IAM, the `addVoiceRuntime` worked example |
+| `voice-kit/03-infrastructure.md` | KVS / AgentCore / IAM / managed PUBLIC network, the `addVoiceRuntime` worked example |
 | `voice-kit/04-deploy-runbook.md` | First deploy, post-deploy checklist, symptom → cause table |
 | `voice-kit/05-gotchas.md` | The hard-won lessons — read before touching infra or the pipeline |
 | `../frontend/voice-client.md` | The browser half of the same pipeline |

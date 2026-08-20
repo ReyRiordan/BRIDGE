@@ -15,7 +15,11 @@ def _reload_local():
 
 
 def test_local_sets_the_flag_and_reuses_the_same_app(monkeypatch):
-    monkeypatch.delenv("BRIDGE_LOCAL", raising=False)
+    # setenv before delenv so monkeypatch records the key: a bare delenv on an
+    # absent var records nothing, and the write api.local then does would leak
+    # BRIDGE_LOCAL=1 into every later test in the same process.
+    monkeypatch.setenv("BRIDGE_LOCAL", "recorded-for-teardown")
+    monkeypatch.delenv("BRIDGE_LOCAL")
 
     local = _reload_local()
 
