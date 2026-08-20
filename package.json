@@ -21,7 +21,11 @@
     "aws-cdk-lib": "^2.265.0",
     "concurrently": "^9.2.1",
     "constructs": "^10.8.1",
+    "esbuild": "^0.25.12",
     "typescript": "~5.9.3",
     "vitest": "^4.1.10"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
   }
 }
