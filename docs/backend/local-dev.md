@@ -29,6 +29,8 @@ INWORLD_API_KEY=...
 OPENROUTER_API_KEY=...
 ```
 
+These four deliberately differ from the deploy, which runs Transcribe for STT and Bedrock for both LLM agents (`amplify/constants.ts`). Copying the deployed values into `.env` makes local mode refuse to start, which is the intended outcome, not a bug.
+
 Leave `SCENARIO_PATH` / `REFEREE_PROMPT_PATH` / `PATIENT_*_PATH` **unset**: they default to the repo's own `resources/` files, and the deployed `/app/resources/...` values crash a local run.
 
 **`web/.env.local`** (gitignored via `.env*.local`):

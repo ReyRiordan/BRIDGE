@@ -39,6 +39,8 @@ Amplify Hosting (web/dist)  ──fetch──>  Lambda Function URL  ──invok
 
 The three provider API keys (`OPENROUTER_API_KEY`, `TOGETHER_API_KEY`, `INWORLD_API_KEY`, listed in `SECRET_NAMES`) live in SSM Parameter Store and are resolved by the runtime at cold start via `SECRETS_FROM_SSM` / `SECRETS_SSM_PREFIXES` — never as plain-text env values. `backend.ts` derives the prefixes from the backend identifier with `ParameterPathConversions`, covering both the branch/sandbox-scoped path and the app-shared one.
 
+Of those three only `INWORLD_API_KEY` is load-bearing today. STT and both LLM agents run on AWS (Transcribe and Bedrock, signed with the execution role, IAM granted in `amplify/voice-runtime.ts`), so they need no secret at all — Bedrock needs only `AWS_BEDROCK_BASE_URL`, a public endpoint carried as plain env config. The OpenRouter and Together keys stay listed so falling back to those providers is an env change alone.
+
 ```bash
 npx ampx sandbox secret set OPENROUTER_API_KEY --profile compass-test   # ×3
 ```

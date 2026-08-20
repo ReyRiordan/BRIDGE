@@ -9,6 +9,11 @@
  * Provider API keys resolved at runtime cold start from SSM Parameter Store
  * (never as plain-text env values). Set them with
  * `npx ampx sandbox secret set <NAME>` / the Amplify console per branch.
+ *
+ * Only INWORLD_API_KEY is load-bearing now that STT and both LLMs are on AWS
+ * (Transcribe and Bedrock authenticate with the execution role). The OpenRouter
+ * and Together keys stay listed so a rollback to those providers is an env
+ * change with no secret round-trip, and so local dev keeps the same names.
  */
 export const SECRET_NAMES = [
   'OPENROUTER_API_KEY',
@@ -20,11 +25,15 @@ export const SECRET_NAMES = [
  * Single source of truth for the voice runtime's container env. All values must
  * be strings — they become container environment variables verbatim.
  *
- * Provider choices are deliberate legacy parity (Together STT / OpenRouter LLM /
- * Inworld TTS), not a copy accident: they keep the rewrite's voice behaviour
- * identical to the prototype students already trained on. Together sends student
- * audio off-AWS, which is acceptable for a training sim carrying no PHI;
- * switching to Amazon Transcribe later is a pure env change.
+ * STT and both LLM agents run on AWS. Amazon Transcribe keeps student audio
+ * inside the account, and Bedrock serves the patient and the referee off the
+ * execution role, so neither needs an API key. TTS stays on Inworld.
+ *
+ * Moving the referee to Bedrock costs it structured output: the bedrock-mantle
+ * chat-completions surface ignores `response_format`, so the JSON shape is
+ * enforced by `resources/referee.txt` alone. `runtime/bridge/referee.py` parses
+ * defensively and fails open, and `runtime/evals/referee_eval.py --provider
+ * bedrock` measures the parse rate rather than assuming it.
  *
  * The REFEREE_* / SCENARIO_PATH / GAME_* vars are the game engine's contract
  * (`runtime/bridge/config.py`); everything else about the game (time limit,
@@ -35,12 +44,17 @@ export const VOICE_CONFIG: Record<string, string> = {
 
   // --- LLM: the patient agent is the kit's pipeline LLM, so it has no var
   // block of its own. The REFEREE_* trio below mirrors these three names.
-  LLM_PROVIDER: 'openrouter',
-  LLM_MODEL: 'anthropic/claude-haiku-4.5',
-  LLM_REASONING: 'none',
+  LLM_PROVIDER: 'bedrock',
+  LLM_MODEL: 'openai.gpt-oss-120b',
+  LLM_REASONING: 'medium',
+  // Public regional endpoint, not a secret — a plain env var rather than an SSM
+  // entry. Unset, BedrockChat builds the request URL `None/chat/completions`.
+  // The region must match the deploy region.
+  AWS_BEDROCK_BASE_URL: 'https://bedrock-mantle.us-east-1.api.aws/v1',
 
-  // --- STT
-  STT_PROVIDER: 'together',
+  // --- STT. `transcribe` is also the kit default; pinned because this file is
+  // the source of truth for every deployed value.
+  STT_PROVIDER: 'transcribe',
 
   // --- VAD. These pin pipecat's own defaults, so they are a tuning surface,
   // not a behaviour change. Tune them one at a time — see voice-kit gotcha #19
@@ -67,9 +81,12 @@ export const VOICE_CONFIG: Record<string, string> = {
   // "system agent" terminology is retired. The paths are the image's copies
   // (Dockerfile.voice COPYs resources/ to /app/resources).
   // The referee's own LLM, symmetric with the patient's LLM_* trio above.
-  REFEREE_PROVIDER: 'openrouter',
-  REFEREE_MODEL: 'anthropic/claude-haiku-4.5',
-  REFEREE_REASONING: 'none',
+  // `low`, not the patient's `medium`: the referee is measured, and on this
+  // model medium was both slower (7.15s max, against the 7s budget below) and
+  // no more accurate. See docs/backend/prompts.md for the numbers.
+  REFEREE_PROVIDER: 'bedrock',
+  REFEREE_MODEL: 'openai.gpt-oss-120b',
+  REFEREE_REASONING: 'low',
   // The referee is on the serial critical path of every turn, so it fails open
   // rather than making the student wait.
   REFEREE_TIMEOUT_SECONDS: '7',

@@ -22,9 +22,48 @@ If no actions are detected, return: {"detected_actions": []}
 1. Use the exact "type" string from the provided actions list — do not paraphrase or invent types.
 2. Award at most one credit per action type per utterance (dedup: if the student mentions dimming lights twice, count Environmental once).
 3. Be liberal with actions marked "escalates": false — if the de-escalating intent is clearly present, detect it, even if the student's phrasing differs from the description.
-4. Be strict with actions marked "escalates": true — only flag these if the student's words clearly match the action description. Hedged, hypothetical, or future-tense mentions ("we may need to consider other options") do not count; the student must actually be doing or directing it.
-5. Do not infer actions from context or prior turns. Evaluate only the current utterance.
-6. Detection requires the student to actually PERFORM the action in this utterance. Ambient qualities are not actions: merely sounding calm, being polite, or making small talk is not itself a de-escalation action.
+4. Be strict with actions marked "escalates": true — only flag these if the student is actually doing or directing the behaviour. What disqualifies one is being hedged or conditional ("we may need to consider other options", "if this keeps going"), not being about the next few seconds. A decision already taken counts, whatever its tense: "I'm going to have them hold you still" is a directive, not a hypothetical.
+5. Check every action in the list independently, and keep going after a hit. One utterance often performs several at once, and the most severe one is the easiest to spot — finding it does not mean you are done. A serious action never rules out a milder one in the same breath.
+6. Do not infer actions from context or prior turns. Evaluate only the current utterance.
+7. Detection requires the student to actually PERFORM the action in this utterance. Ambient qualities are not actions: merely sounding calm, being polite, or making small talk is not itself a de-escalation action.
+
+## Reading a "desc"
+
+A desc is short. It names a behaviour and usually illustrates it; it is never the
+complete list of ways to perform that behaviour. Match the behaviour, not the
+wording. Both halves of that matter — reading a desc too literally makes you miss
+real actions, reading it too loosely makes you score things the student never did.
+
+- **"E.g." introduces one illustration, not a required phrase.** An utterance
+  performing the same behaviour in different words is still that action.
+- **A desc listing a few concrete examples names a category.** Other changes of
+  the same kind count too, including ones the list does not mention.
+- **Doing it through other people still counts as doing it.** A student who
+  instructs staff to act on the patient has performed the action themselves.
+- **Control over their own care is a choice**, even with no explicit "A or B" on
+  offer: letting the patient set the pace of a procedure, or making a step
+  conditional on their readiness. Giving them physical space is not this — that
+  changes the environment instead.
+- **Saying what you are about to do, before you do it, is an explanation.**
+  Promising to talk the patient through something counts; the explanation does
+  not have to be delivered in the same breath.
+- **Changing your own position or presence changes the environment.** Backing
+  off, giving space, and clearing people out are the same kind of act as
+  adjusting lights or noise.
+
+**Some descs name a way of speaking**, not a physical act — a calm explanation,
+an authoritative command. Those actions are performed in the words themselves,
+so rule 7 does not exclude them. It draws a line inside them: score one when the
+utterance carries the substance, not when it only carries the manner.
+
+- A concrete explanation, a specific reassurance, or a stated plan is substance.
+  General warmth and politeness are not.
+- A command, an instruction, or a decision announced over the patient's wishes
+  is substance. Speaking firmly while still leaving them a choice is not.
+
+So: sounding calm is not an action, but telling the patient what you are about to
+do is. Sounding forceful is not an action, but ordering something done to them
+is. Ask what the words commit the student to, not how they sound.
 
 ## Few-Shot Examples
 
@@ -55,3 +94,31 @@ Input:
 
 Output:
 {"detected_actions": []}
+
+---
+Input:
+{"utterance": "Can you two hold his arms for me? I'm pushing the medication now.", "escalation": 7, "actions": [{"type": "Restraint", "desc": "Chemical Sedations or Physical Restraints", "escalates": true}, {"type": "Authoritative tone", "desc": "E.g. \"We need to do this now\"", "escalates": true}, {"type": "Acknowledge distress", "desc": "E.g. \"I see this is overwhelming\"", "escalates": false}]}
+
+Output:
+{"detected_actions": [{"type": "Restraint"}, {"type": "Authoritative tone"}]}
+
+---
+Input:
+{"utterance": "Let me walk you through what the scan involves first, and we'll go at whatever pace works for you.", "escalation": 5, "actions": [{"type": "Verbal Communication", "desc": "Calm tone, simple explanations, reassurance", "escalates": false}, {"type": "Offer Control", "desc": "Give choices (explain vs show)", "escalates": false}, {"type": "Environmental", "desc": "Dim lights, reduce noise, limit staff", "escalates": false}]}
+
+Output:
+{"detected_actions": [{"type": "Verbal Communication"}, {"type": "Offer Control"}]}
+
+---
+Input:
+{"utterance": "Would you rather I check your belly now, or give it a few more minutes?", "escalation": 5, "actions": [{"type": "Offer Control", "desc": "Give choices (explain vs show)", "escalates": false}, {"type": "Verbal Communication", "desc": "Calm tone, simple explanations, reassurance", "escalates": false}, {"type": "Delay Procedure", "desc": "Acknowledge that IV will be done later", "escalates": false}]}
+
+Output:
+{"detected_actions": [{"type": "Offer Control"}]}
+
+---
+Input:
+{"utterance": "I'm going to take a step back and give you a bit of room.", "escalation": 7, "actions": [{"type": "Environmental", "desc": "Dim lights, reduce noise, limit staff", "escalates": false}, {"type": "Offer Control", "desc": "Give choices (explain vs show)", "escalates": false}, {"type": "Verbal Communication", "desc": "Calm tone, simple explanations, reassurance", "escalates": false}]}
+
+Output:
+{"detected_actions": [{"type": "Environmental"}]}

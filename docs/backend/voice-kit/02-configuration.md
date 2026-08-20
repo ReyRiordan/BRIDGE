@@ -30,7 +30,7 @@ All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-set
 | `LLM_PROVIDERS` | runtime | — | OpenRouter routing priority, comma-separated. **Silently ignored on bedrock** |
 | `OPENROUTER_API_KEY` | runtime | — | Required when `openrouter` |
 | `OPENROUTER_BASE_URL` | runtime | `https://openrouter.ai/api/v1` | |
-| `AWS_BEDROCK_BASE_URL` | runtime | — | Required when `bedrock`; US East: `https://bedrock-mantle.us-east-1.api.aws/v1` |
+| `AWS_BEDROCK_BASE_URL` | runtime | — | Required when `bedrock`; US East: `https://bedrock-mantle.us-east-1.api.aws/v1`. Unset, the request URL becomes the literal `None/chat/completions`. Public endpoint, so plain env config rather than an SSM secret |
 | `AWS_BEDROCK_SIGV4_SERVICE` | runtime | `bedrock-mantle` | SigV4 signing service string |
 
 | Provider | Auth | Model ID format | IAM |
@@ -39,6 +39,12 @@ All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-set
 | Bedrock | IAM execution role / SigV4 (no token) | `openai.gpt-oss-120b`, `us.anthropic.claude-haiku-4-5-20251001-v1:0` | `bedrock-mantle:CreateInference` |
 
 The voice path always uses the chat-completions surface (`/chat/completions`). GPT-5-family models are served only on Bedrock's Responses API and are **not usable** with this kit's LLM path — pick a chat-capable model.
+
+That surface also **ignores `response_format`**: `BedrockChat.chat()` warns and sends the request unconstrained rather than raising, so a caller wanting JSON has to get it from the prompt. BRIDGE's referee does exactly that (`../prompts.md`).
+
+Nothing in the repo validates a model ID, and a wrong one fails per request rather than at deploy time. **Do not confirm it with `aws bedrock list-foundation-models`** — that lists the InvokeModel catalog, whose IDs carry a version suffix the bedrock-mantle surface rejects. `openai.gpt-oss-120b-1:0` is what the catalog shows and it 404s with `The model ... does not exist`; the bare `openai.gpt-oss-120b` is what works. Verify with a real one-shot `/chat/completions` call against the deploy region instead.
+
+**Deployed** (`amplify/constants.ts`): `bedrock` / `openai.gpt-oss-120b` / `medium`, for the patient and the referee alike. Keyless, off the AgentCore execution role.
 
 ## STT
 
@@ -50,6 +56,8 @@ The voice path always uses the chat-completions surface (`/chat/completions`). G
 
 - **transcribe** — Amazon Transcribe Streaming, `en-US`, keyless (task role, `transcribe:StartStreamTranscription`). Audio stays in your AWS account.
 - **together** — Parakeet (`nvidia/parakeet-tdt-0.6b-v3`) over HTTPS, `en`. **Sends user speech off-AWS — treat as dev-only** if you have a data-residency requirement.
+
+**Deployed** (`amplify/constants.ts`): `transcribe`. Together is the local-dev provider, since `BRIDGE_LOCAL=1` refuses the AWS-backed one.
 
 ## VAD
 
@@ -92,9 +100,9 @@ Read by `runtime/bridge/config.py` — plain environment reads, all runtime-side
 | `REFEREE_PROMPT_PATH` | `resources/referee.txt` | Referee system prompt. Deployed: `/app/resources/referee.txt` |
 | `PATIENT_PROMPT_PATH` | `resources/patient.txt` | Patient persona template. Deployed: `/app/resources/patient.txt` |
 | `PATIENT_CASE_PATH` | `resources/patient.json` | Patient case file. Deployed: `/app/resources/patient.json` |
-| `REFEREE_PROVIDER` | `openrouter` | `openrouter` \| `bedrock`. OpenRouter is sent `require_parameters` so routing only picks backends that honour the strict `json_schema` |
-| `REFEREE_MODEL` | `anthropic/claude-haiku-4.5` | Separate from `LLM_MODEL`. The referee and the patient are different calls |
-| `REFEREE_REASONING` | `none` | Same vocabulary as `LLM_REASONING` |
+| `REFEREE_PROVIDER` | `openrouter` | `openrouter` \| `bedrock`. OpenRouter is sent `require_parameters` so routing only picks backends that honour the strict `json_schema`; bedrock-mantle ignores `response_format` entirely, leaving the prompt to hold the shape. Deployed: `bedrock` |
+| `REFEREE_MODEL` | `anthropic/claude-haiku-4.5` | Separate from `LLM_MODEL`. The referee and the patient are different calls, and today both are deployed on `openai.gpt-oss-120b` |
+| `REFEREE_REASONING` | `none` | Same vocabulary as `LLM_REASONING`. Deployed: `medium` |
 | `REFEREE_TIMEOUT_SECONDS` | `7.0` | The referee is on every turn's serial critical path; past this it fails open (scores the turn as no-detection) |
 | `GAME_GRACE_SECONDS` | `45.0` | Window between `game_over` and the reaper cancelling the pipeline, so the client can render the debrief |
 

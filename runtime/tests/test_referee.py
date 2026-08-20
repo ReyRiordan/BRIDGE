@@ -22,6 +22,7 @@ from bridge.referee import (  # noqa: E402
     RefereeProcessor,
     build_referee_payload,
     build_response_format,
+    parse_referee_verdict,
 )
 from bridge.session import GameSession  # noqa: E402
 from voice_kit.errors import UpstreamServiceError  # noqa: E402
@@ -319,4 +320,64 @@ def test_referee_llm_carries_its_own_provider_model_reasoning(monkeypatch):
     llm = referee.build_referee_llm(timeout_seconds=3.0)
 
     assert llm.model == "some/model"
+    assert llm.reasoning_effort == "medium"
+
+
+# ---------------------------------------------------------------------------
+# parse_referee_verdict — the whole safety margin on a provider that ignores
+# response_format (BedrockChat does), so these are not hypothetical inputs.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        '{"detected_actions": [{"type": "Environmental"}]}',
+        '```json\n{"detected_actions": [{"type": "Environmental"}]}\n```',
+        '```\n{"detected_actions": [{"type": "Environmental"}]}\n```',
+        '  {"detected_actions": [{"type": "Environmental"}]}  \n',
+    ],
+)
+def test_parse_referee_verdict_tolerates_the_wrappers_a_model_adds(raw):
+    verdict = parse_referee_verdict(raw)
+    assert [a.type for a in verdict.detected_actions] == ["Environmental"]
+
+
+def test_parse_referee_verdict_ignores_extra_keys():
+    """A model that also echoes point/visual fields must still validate."""
+    raw = json.dumps(
+        {
+            "detected_actions": [{"type": "Environmental", "point_change": -99}],
+            "reasoning": "it stepped back",
+        }
+    )
+    assert [a.type for a in parse_referee_verdict(raw).detected_actions] == [
+        "Environmental"
+    ]
+
+
+def test_parse_referee_verdict_defaults_to_empty_not_missing():
+    assert parse_referee_verdict("{}").detected_actions == []
+
+
+@pytest.mark.parametrize("raw", ["", "Sure! Here is the JSON.", "{not json"])
+def test_parse_referee_verdict_raises_on_unusable_output(raw):
+    """It raises rather than guessing — _detect turns that into a fail-open turn."""
+    with pytest.raises(Exception):
+        parse_referee_verdict(raw)
+
+
+def test_the_referee_can_run_on_bedrock(monkeypatch):
+    """The deployed pairing: keyless SigV4, and response_format is dropped."""
+    from bridge import config, referee
+    from voice_kit.providers.llm import BedrockChat
+
+    monkeypatch.setattr(config, "REFEREE_PROVIDER", "bedrock")
+    monkeypatch.setattr(config, "REFEREE_MODEL", "openai.gpt-oss-120b")
+    monkeypatch.setattr(config, "REFEREE_REASONING", "medium")
+
+    llm = referee.build_referee_llm(timeout_seconds=7.0)
+
+    assert isinstance(llm, BedrockChat)
+    assert llm.model == "openai.gpt-oss-120b"
     assert llm.reasoning_effort == "medium"

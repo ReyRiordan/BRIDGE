@@ -17,6 +17,11 @@ module:
 The model is asked only for action *types*, constrained by a strict json_schema
 whose enum is generated from the scenario. Point values are never accepted from
 the model: the server looks them up in the scenario itself.
+
+The schema is a request, not a guarantee. ``BedrockChat`` ignores
+``response_format`` outright, so on Bedrock the output shape rests on the prompt
+and on ``parse_referee_verdict``; unknown action types are filtered against the
+scenario either way.
 """
 
 import asyncio
@@ -39,8 +44,8 @@ from . import config
 
 logger = logging.getLogger(__name__)
 
-# Legacy defensive strip: even with structured output a model can wrap its JSON
-# in a markdown fence, and one stray fence must not cost the student a turn.
+# Defensive strip: a model can wrap its JSON in a markdown fence, and one stray
+# fence must not cost the student a turn. See parse_referee_verdict below.
 _FENCE_RE = re.compile(r"```(?:json)?\s*")
 
 
@@ -57,6 +62,20 @@ class RefereeVerdict(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     detected_actions: List[DetectedAction] = []
+
+
+def parse_referee_verdict(raw: str) -> RefereeVerdict:
+    """Parse one raw referee completion. Raises on anything unusable.
+
+    The tolerance here is the whole reason the referee can run on a provider
+    without structured output: on the bedrock-mantle chat-completions surface
+    ``response_format`` is ignored, so the JSON shape comes from the prompt and
+    a stray markdown fence is a live failure mode rather than a legacy one.
+    ``runtime/evals/referee_eval.py`` calls this too, so the eval measures the
+    same parse the pipeline does.
+    """
+    clean = _FENCE_RE.sub("", raw).strip().rstrip("`").strip()
+    return RefereeVerdict.model_validate_json(clean)
 
 
 def build_referee_payload(scenario: dict, utterance: str, escalation: int) -> str:
@@ -238,8 +257,7 @@ class RefereeProcessor(FrameProcessor):
                 # also covers connector/DNS stalls the request timeout misses.
                 timeout=self._timeout_seconds + 1,
             )
-            clean = _FENCE_RE.sub("", raw).strip().rstrip("`").strip()
-            verdict = RefereeVerdict.model_validate_json(clean)
+            verdict = parse_referee_verdict(raw)
         # Expected: asyncio.TimeoutError, UpstreamServiceError,
         # aiohttp.ClientError, json.JSONDecodeError, pydantic.ValidationError —
         # caught as bare Exception on purpose, because an unforeseen sixth
