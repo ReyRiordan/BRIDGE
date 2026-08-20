@@ -52,8 +52,10 @@ describe('VOICE_CONFIG', () => {
   })
 
   test('exposes the game-engine contract', () => {
+    // The referee trio mirrors the patient's LLM_PROVIDER/MODEL/REASONING.
+    expect(VOICE_CONFIG.REFEREE_PROVIDER).toBe('openrouter')
     expect(VOICE_CONFIG.REFEREE_MODEL).toBeTruthy()
-    expect(VOICE_CONFIG.REFEREE_EFFORT).toBeTruthy()
+    expect(VOICE_CONFIG.REFEREE_REASONING).toBeTruthy()
     // Must match the image layout: Dockerfile.voice COPYs resources/ to /app.
     expect(VOICE_CONFIG.SCENARIO_PATH).toBe('/app/resources/scenario_1.json')
     expect(VOICE_CONFIG.REFEREE_PROMPT_PATH).toBe('/app/resources/referee.txt')

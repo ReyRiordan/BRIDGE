@@ -127,14 +127,14 @@ def build_referee_llm(timeout_seconds: float):
             api_key=settings.openrouter_api_key,
             base_url=settings.openrouter_base_url,
             model=config.REFEREE_MODEL,
-            reasoning_effort=config.REFEREE_EFFORT,
+            reasoning_effort=config.REFEREE_REASONING,
             timeout_seconds=timeout_seconds,
             require_parameters=True,
         )
     return get_llm_model(
         provider=config.REFEREE_PROVIDER,
         model=config.REFEREE_MODEL,
-        reasoning_effort=config.REFEREE_EFFORT,
+        reasoning_effort=config.REFEREE_REASONING,
         timeout_seconds=timeout_seconds,
     )
 

@@ -33,7 +33,8 @@ export const SECRET_NAMES = [
 export const VOICE_CONFIG: Record<string, string> = {
   ENV: 'production',
 
-  // --- LLM: the patient agent IS the pipeline LLM (no separate var block).
+  // --- LLM: the patient agent is the kit's pipeline LLM, so it has no var
+  // block of its own. The REFEREE_* trio below mirrors these three names.
   LLM_PROVIDER: 'openrouter',
   LLM_MODEL: 'anthropic/claude-haiku-4.5',
   LLM_REASONING: 'none',
@@ -65,8 +66,10 @@ export const VOICE_CONFIG: Record<string, string> = {
   // --- Game engine. REFEREE_* replaces the legacy SYSTEM_AGENT_* naming —
   // "system agent" terminology is retired. The paths are the image's copies
   // (Dockerfile.voice COPYs resources/ to /app/resources).
+  // The referee's own LLM, symmetric with the patient's LLM_* trio above.
+  REFEREE_PROVIDER: 'openrouter',
   REFEREE_MODEL: 'anthropic/claude-haiku-4.5',
-  REFEREE_EFFORT: 'none',
+  REFEREE_REASONING: 'none',
   // The referee is on the serial critical path of every turn, so it fails open
   // rather than making the student wait.
   REFEREE_TIMEOUT_SECONDS: '7',
