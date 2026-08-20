@@ -14,10 +14,10 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
-# Bundling copies resources/ next to api/ inside the package, so the default
+# The image COPYs resources/ to /app/resources, next to /app/api, so the default
 # resolves relative to this file — infra deliberately does NOT set SCENARIO_PATH
-# on the Lambda (that var carries the *container's* /app/resources path, which
-# does not exist here). The override exists for local runs.
+# on the Lambda (that var carries the *voice container's* /app/resources path,
+# which does not exist here). The override exists for local runs.
 DEFAULT_SCENARIO_PATH = (
     Path(__file__).resolve().parent.parent / "resources" / "scenario_1.json"
 )

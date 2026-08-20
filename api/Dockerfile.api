@@ -1,0 +1,71 @@
+# Control-plane API image — FastAPI under the AWS Lambda Web Adapter (LWA).
+#
+# Runs the same ASGI app as `npm run dev:api`, on a container Lambda instead of
+# a zip. The point of the conversion is layer caching: pip runs in a layer keyed
+# on exactly two files, so an `api/` or `voice_kit/` edit re-runs only a COPY.
+#
+# Key decisions:
+#   - python:3.11-slim, NOT public.ecr.aws/lambda/python:3.11. The Lambda base
+#     image's runtime-interface ENTRYPOINT fights the uvicorn CMD, and LWA
+#     supplies the Runtime API client itself. It also shares a base layer with
+#     runtime/Dockerfile.voice.
+#   - The LWA tag is arch-suffixed (`-aarch64`). The multi-arch tag can resolve
+#     to the BUILDER's platform under emulation, which surfaces only as "exec
+#     format error" at invoke time.
+#   - Mangum stays in api/main.py as a zip fallback; production invokes the ASGI
+#     app through LWA, not the handler.
+#
+# Build context is the REPO ROOT (the image needs api/, resources/ and the
+# vendored runtime/voice_kit); the root .dockerignore keeps that context small.
+#
+# Local pre-deploy gate (run before every deploy):
+#   docker build --platform linux/arm64 -f api/Dockerfile.api -t bridge-api .
+#   docker run --rm -p 8000:8000 -e ALLOWED_ORIGINS=http://localhost:5173 bridge-api
+#   curl -s localhost:8000/health     # {"status":"ok","scenario_loaded":true}
+FROM --platform=linux/arm64 python:3.11-slim
+
+# The Lambda Web Adapter: a Runtime API client that proxies each invocation to
+# a normal HTTP server on AWS_LWA_PORT. Ships as an extension layer.
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1-aarch64 /lambda-adapter /opt/extensions/lambda-adapter
+
+# LWA's default readiness probe is `GET /`, which this app does not serve —
+# without AWS_LWA_READINESS_CHECK_PATH the adapter retries a 404 through the
+# whole init window.
+ENV AWS_LWA_PORT=8000 \
+    AWS_LWA_READINESS_CHECK_PATH=/health \
+    PYTHONPATH=/app \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# --- Layer 1: third-party deps. Cache key is exactly these two files.
+#
+# The `./runtime` line can't resolve here (runtime/ isn't COPYed yet), and the
+# tooling pins have no business in a deployed image — strip both, then take the
+# kit's own dependency list straight out of its pyproject.toml so the two lists
+# resolve together in ONE pip run.
+COPY api/requirements.txt runtime/pyproject.toml /tmp/deps/
+RUN grep -v -e '^ruff==' -e '^pytest==' -e '^httpx==' -e '^./runtime$' /tmp/deps/requirements.txt > /tmp/deps/app.txt \
+    && python -c "import tomllib,pathlib; d=tomllib.loads(pathlib.Path('/tmp/deps/pyproject.toml').read_text())['project']['dependencies']; pathlib.Path('/tmp/deps/kit.txt').write_text(chr(10).join(d))" \
+    && pip install --no-cache-dir -r /tmp/deps/app.txt -r /tmp/deps/kit.txt
+
+# --- Layer 2: the vendored kit. --no-deps is correct only because layer 1
+# installed exactly what this same pyproject.toml declares; an undeclared import
+# fails at container start, which the local `docker run` gate above catches.
+COPY runtime/pyproject.toml /tmp/kit/pyproject.toml
+COPY runtime/voice_kit /tmp/kit/voice_kit
+RUN pip install --no-cache-dir --no-deps /tmp/kit
+
+# --- Layer 3: app source. resources/ sits NEXT TO api/ so api/scenario.py's
+# default path resolves to /app/resources — infra deliberately sets no
+# SCENARIO_PATH on this function (that var carries the container's path).
+# api/tests/ never reaches the image (root .dockerignore `**/tests/`).
+COPY api /app/api
+COPY resources /app/resources
+
+EXPOSE 8000
+
+# One worker: LWA proxies one request per invocation, so extra workers only
+# multiply cold-start cost.
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

@@ -1,12 +1,14 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 import {
   ALLOWED_ORIGINS,
-  API_ASSET_EXCLUDE,
+  API_IMAGE_EXCLUDE,
   API_LAMBDA,
   AVAILABILITY_ZONES,
   RUNTIME_NAME_MAX_LENGTH,
   SECRET_NAMES,
   VOICE_CONFIG,
+  VOICE_IMAGE_EXCLUDE,
   voiceRuntimeName,
 } from './constants'
 
@@ -137,10 +139,6 @@ describe('voiceRuntimeName', () => {
 })
 
 describe('API_LAMBDA', () => {
-  test('handler points at the bundled api/main.py', () => {
-    expect(API_LAMBDA.handler).toBe('api.main.handler')
-  })
-
   test('fits inside the Function URL 30s response window', () => {
     expect(API_LAMBDA.timeoutSeconds).toBeLessThanOrEqual(30)
   })
@@ -166,23 +164,52 @@ describe('ALLOWED_ORIGINS', () => {
   })
 })
 
-describe('API_ASSET_EXCLUDE', () => {
-  test('drops the legacy trees and node_modules from the Lambda asset', () => {
-    for (const path of ['frontend/', 'backend/', 'visuals/', 'web/', 'node_modules/']) {
-      expect(API_ASSET_EXCLUDE).toContain(path)
+describe('image asset excludes', () => {
+  // These shape the asset HASHES. Both images build from the repo root, so each
+  // must subtract the other's tree — and neither may subtract a tree its own
+  // Dockerfile COPYs, which would freeze the hash and ship stale code silently.
+  test('API_IMAGE_EXCLUDE drops the container-only runtime trees', () => {
+    expect(API_IMAGE_EXCLUDE).toContain('runtime/bridge/')
+  })
+
+  test('API_IMAGE_EXCLUDE keeps everything api/Dockerfile.api COPYs', () => {
+    for (const path of ['api/', 'resources/', 'runtime/voice_kit/', 'runtime/pyproject.toml']) {
+      expect(API_IMAGE_EXCLUDE).not.toContain(path)
     }
   })
 
-  test('excludes CDK output dirs, which live inside the asset source', () => {
-    // The asset source is the repo root and CDK stages into
-    // .amplify/artifacts/cdk.out/ — without these, staging copies its own
-    // output into itself until the path hits ENAMETOOLONG.
-    expect(API_ASSET_EXCLUDE).toContain('.amplify/')
-    expect(API_ASSET_EXCLUDE).toContain('cdk.out/')
+  test('VOICE_IMAGE_EXCLUDE drops api/, which the voice image never COPYs', () => {
+    expect(VOICE_IMAGE_EXCLUDE).toContain('api/')
+  })
+})
+
+describe('.dockerignore', () => {
+  const lines = readFileSync(new URL('../.dockerignore', import.meta.url), 'utf8')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('#'))
+
+  test('does not ignore api/ — the API image COPYs it', () => {
+    // CDK merges .dockerignore with the per-asset exclude and hashes the STAGED
+    // copy, so ignoring api/ here would freeze the API asset's hash and deploy
+    // stale code with no error. api/ is subtracted from the VOICE asset only,
+    // via VOICE_IMAGE_EXCLUDE.
+    expect(lines).not.toContain('api/')
   })
 
-  test('keeps api/ and resources/ — the bundling step copies both', () => {
-    expect(API_ASSET_EXCLUDE).not.toContain('api/')
-    expect(API_ASSET_EXCLUDE).not.toContain('resources/')
+  test('ignores the CDK output dirs that live inside the context root', () => {
+    // The context is the repo root and CDK stages into .amplify/artifacts/
+    // cdk.out/ — without these, staging copies its own output into itself until
+    // the path hits ENAMETOOLONG. (`amplify/` does NOT match `.amplify/`.)
+    expect(lines).toContain('.amplify/')
+    expect(lines).toContain('cdk.out/')
+  })
+
+  test('ignores local build junk recursively, at any depth', () => {
+    // `pip install ./runtime` regenerates runtime/build/ + runtime/*.egg-info;
+    // root-anchored patterns would let that untracked junk bust both hashes.
+    for (const pattern of ['**/build/', '**/dist/', '**/*.egg-info/']) {
+      expect(lines).toContain(pattern)
+    }
   })
 })

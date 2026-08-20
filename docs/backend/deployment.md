@@ -34,12 +34,12 @@ One real environment: the **`main` branch stack**. A sandbox is used only to sha
 
 ```
 Amplify Hosting (web/dist)  ──fetch──>  Lambda Function URL  ──invoke_agent_runtime──>  AgentCore runtime
-        ▲ built from amplify.yml            ▲ api/main.py (Mangum)         ▲ runtime/Dockerfile.voice, in-VPC
+        ▲ built from amplify.yml            ▲ api/main.py (FastAPI + LWA container)  ▲ runtime/Dockerfile.voice, in-VPC
         │                                   └── amplify_outputs.json custom.apiUrl
         └── frontend only (no Docker in the build image)
 ```
 
-**Backend deploys always run from a local machine.** Amplify Hosting's build images have no Docker, and both the AgentCore image asset and the Lambda bundling need it. Hosting therefore builds the SPA only (`amplify.yml` has no `backend` phase); the branch backend goes up via `ampx pipeline-deploy` run locally.
+**Backend deploys always run from a local machine.** Amplify Hosting's build images have no Docker, and both image assets — the AgentCore runtime and the API Lambda — need it. Hosting therefore builds the SPA only (`amplify.yml` has no `backend` phase); the branch backend goes up via `ampx pipeline-deploy` run locally.
 
 **API exposure** is a Lambda **Function URL** with `authType: NONE` — no API Gateway, since there are no auth, throttling, or custom-domain needs while auth is out of scope. The URL is configured with **no CORS block**: FastAPI's `CORSMiddleware` in `api/main.py` owns CORS, and configuring both duplicates the response headers, which browsers reject.
 
@@ -61,16 +61,23 @@ For the branch, set the same three in the Amplify console under App settings →
 
 Order matters at steps 5 → 6 → 7.
 
-1. **Pre-deploy gate** — the image builds and answers:
+1. **Pre-deploy gate** — both images build and answer:
    ```bash
    docker build --platform linux/arm64 -f runtime/Dockerfile.voice -t bridge-voice .
    docker run --rm -p 8080:8080 bridge-voice   # then: curl localhost:8080/ping
+
+   docker build --platform linux/arm64 -f api/Dockerfile.api -t bridge-api .
+   docker run --rm -p 8000:8000 -e ALLOWED_ORIGINS=http://localhost:5173 bridge-api
+   curl -s localhost:8000/health     # {"status":"ok","scenario_loaded":true}
+   curl -s localhost:8000/scenario | head
    ```
+   The API image installs the kit with `--no-deps`, so an undeclared import surfaces
+   only at container start — which is exactly what the `docker run` above catches.
 2. **Sandbox** — `npx ampx sandbox --profile compass-test`. Watch for AZ `UPDATE_FAILED`; confirm the AgentCore runtime reaches **READY**.
 3. **Secrets** — `ampx sandbox secret set` ×3 (above). The command prompts on a TTY and rejects an empty value, so in a non-interactive shell pipe the value in instead: `printf '%s' "$KEY" | npx ampx sandbox secret set NAME --profile compass-test`.
 4. **Verify** —
    - `aws lambda get-function-configuration` shows `VOICE_RUNTIME_ARN` + `KVS_CHANNEL_NAME`.
-   - `curl <fnUrl>/health` returns `{"status":"ok","scenario_loaded":true}` (this is the proof that `resources/` really is in the bundle).
+   - `curl <fnUrl>/health` returns `{"status":"ok","scenario_loaded":true}` (this is the proof that `resources/` really is in the image).
    - `aws ssm describe-parameters` lists the three keys under the runtime's first `SECRETS_SSM_PREFIXES` path.
    - `aws bedrock-agentcore invoke-agent-runtime` with a **fresh** `runtimeSessionId` (containers are pinned per session — reusing one gets you a warm container from before the secrets existed) triggers a cold start. CloudWatch should show "Application startup complete" and no `UnrecognizedClientException` / `None`-key errors.
    - `_export_ssm_secrets()` logs nothing on success and swallows `ParameterNotFound`, so there is no positive log line to grep for. What the clean start *does* prove is that the read did not raise: it runs at import time (`config.py`), so an `AccessDenied` would stop the container before it ever served `/ping`. Confirm the grant itself with `aws iam simulate-principal-policy --action-names ssm:GetParameter` against the runtime role, including a negative control outside the prefix (expect `implicitDeny`).
@@ -110,11 +117,10 @@ One NAT gateway is the fixed floor (~$32/month, always on) — the reason the sa
   ```
 
   Cost-wise this is not urgent: the NAT gateway and Elastic IP — the only meaningful charges — delete successfully in the first pass. What lingers is a free, empty VPC shell.
-- **Bundle with the SAM build image, not the Lambda runtime image.** `public.ecr.aws/lambda/python:3.11` is for *running* Lambdas; its runtime-interface `ENTRYPOINT` swallows any bundling command and docker exits 142. Use `Runtime.PYTHON_3_11.bundlingImage`.
-- **Keep CDK's own output out of the asset source.** Both assets here are rooted at the repo (`Code.fromAsset('.')` and the docker context) while CDK stages into `.amplify/artifacts/cdk.out/` *inside* that root, so staging copies its output into itself until `ENAMETOOLONG`. Both exclude lists need `.amplify/` and `cdk.out/` — and note `.dockerignore`'s `amplify/` does **not** match `.amplify/`.
-- **`pip --target /asset-output` fails on the bind mount** with "Invalid cross-device link" (pip finishes with a hard-link move). Install container-side, then `cp` across.
-- The asset `exclude` shapes the asset **hash**; bundling still mounts the raw source tree at `/asset-input`. Anything the bundling command copies must prune tests/`__pycache__` itself.
-- The Docker asset rebuild is the slow step of every deploy. The root `.dockerignore` and `API_ASSET_EXCLUDE` keep the hashes stable so unchanged code skips it.
+- **Never `.dockerignore` a tree an image COPYs.** CDK merges the context root's `.dockerignore` with the per-asset `exclude` prop, stages the tree, and derives the asset hash from the *staged copy*. An ignored tree therefore freezes the hash and the deploy ships **stale code with no error** — the worst failure mode here, because nothing fails. `api/` is subtracted from the voice asset only, via `VOICE_IMAGE_EXCLUDE`, never in `.dockerignore`.
+- **Keep CDK's own output out of the asset source.** Both image assets are rooted at the repo while CDK stages into `.amplify/artifacts/cdk.out/` *inside* that root, so staging copies its output into itself until `ENAMETOOLONG`. `.dockerignore` needs `.amplify/` and `cdk.out/` — and note `amplify/` does **not** match `.amplify/`.
+- **The image build/push is the slow step of every deploy, so guard the hashes.** Two image assets share the repo root as their context: `.dockerignore` is the shared subtraction, and each asset's `exclude` (`API_IMAGE_EXCLUDE` / `VOICE_IMAGE_EXCLUDE` in `constants.ts`) subtracts the other's tree so their hashes never cross-bleed. Junk patterns there are recursive on purpose — a local `pip install ./runtime` regenerates `runtime/build/` + `runtime/*.egg-info` and root-anchored patterns would let that untracked junk bust both hashes. Inside the API image, pip is a cached layer keyed on exactly `api/requirements.txt` + `runtime/pyproject.toml`, so an `api/` or `voice_kit/` edit re-runs only a `COPY`.
+- **Both Lambdas' images push to the CDK bootstrap ECR repo** (`cdk-hnb659fds-container-assets-<account>-<region>`) — no per-asset repo and no bootstrap change. Untagged old images accumulate there; a lifecycle policy is not configured yet. The API image also pays image-pull latency (~1–2s) on the first invoke after a deploy; the untried levers if that ever bites are `AWS_LWA_ASYNC_INIT=true` (changes readiness semantics) and a 512→1024 memory bump (CPU scales with memory, and this cold start is import-bound).
 - Use `npm install`, not `npm ci`, at the repo root. `@aws-amplify/backend` pulls `@aws-amplify/data-construct` and `@aws-amplify/graphql-api-construct`, whose bundled nested dependencies npm reports as "Missing from lock file" even immediately after a clean install. Amplify CI runs `npm install` plus a `git diff --exit-code package-lock.json` drift check; `web/` is unaffected and still uses `npm ci`.
 - **`esbuild` is a direct root devDependency on purpose.** CDK's `NodejsFunction` bundling (the `AmplifyBranchLinker` asset) probes for `node_modules/.bin/esbuild` and, if it is missing, silently falls back to bundling in an amd64 Docker image — emulated under QEMU on Apple silicon, and slow. Nothing imports esbuild directly; the dependency exists so npm hoists that binary. It is pinned to the version tsx already depends on so npm dedupes to one copy.
 - If the install skipped install scripts (esbuild, `@parcel/watcher`), `ampx` will fail to start and the esbuild binary will not exist — approve them with `npm install-scripts approve <pkg>`. The esbuild failure is silent, so verify after any dependency change:

@@ -6,11 +6,11 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 
 | Tree | What it is | Runs on |
 |---|---|---|
-| `api/` | Thin FastAPI control plane (Mangum): `/scenario` + the voice signaling router. Deliberately **pipecat-free**. | Lambda |
+| `api/` | Thin FastAPI control plane: `/scenario` + the voice signaling router. Deliberately **pipecat-free**. Ships as a container image (`api/Dockerfile.api`) served by uvicorn under the Lambda Web Adapter; the Mangum `handler` is a zip fallback. | Lambda (container image, LWA) |
 | `runtime/voice_kit/` | Vendored voice pipeline kit — control plane (router, config, KVS, errors) + pipeline (pipecat, providers, processors). | Lambda (control-plane half) + container (pipeline half) |
 | `runtime/bridge/` | BRIDGE's own runtime code: the game engine and the wire contract. Container-only. | AgentCore container |
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
-| `resources/` | Scenario config + prompts. Shared with the legacy app; COPYed into the runtime image at `/app/resources`. | Both |
+| `resources/` | Scenario config + prompts. Shared with the legacy app; COPYed to `/app/resources` in **both** images. | Both |
 | `runtime/evals/` | Manual, network-hitting prompt evals (referee eval + patient probe). Never run by CI; still linted. See `prompts.md`. | Local |
 | `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke), `make_transparent.py` (visual asset tool). | Local / CI |
 
@@ -75,7 +75,7 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 
 `runtime/pyproject.toml` publishes **`voice_kit` only**, with just its pipecat-free core deps (`fastapi`, `pydantic`, `pydantic-settings`, `boto3`, `aiohttp`) — that is what makes the control plane installable into the Lambda without dragging pipecat in. `runtime/bridge/` is not packaged: it reaches the container through `Dockerfile.voice`, whose dependency source is `runtime/requirements-voice.txt` (`COPY` + `PYTHONPATH=/app`, no pip-install of the package).
 
-`api/` consumes the package through the `./runtime` line in `api/requirements.txt` — the single source of truth for CI, local dev, and Lambda bundling (`pip install -r api/requirements.txt` from the repo root; the bundling `sed` strips only tooling pins). `api/` and its tests do a plain `import voice_kit` against the installed package.
+`api/` consumes the package through the `./runtime` line in `api/requirements.txt` — the single source of truth for CI and local dev (`pip install -r api/requirements.txt` from the repo root). `api/Dockerfile.api` installs the same set in layered form: the third-party deps first (that file minus the tooling pins and the `./runtime` line, plus the kit's own `pyproject.toml` dependency list), then the kit itself with `--no-deps`. `api/` and its tests do a plain `import voice_kit` against the installed package.
 
 ## Commands
 
@@ -98,9 +98,13 @@ python3 -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
 /tmp/cp/bin/python -c "import voice_kit; voice_kit.create_voice_router()"
 /tmp/cp/bin/python -c "import pipecat"
 
-# Runtime image (context = repo root; see the root .dockerignore)
+# Both images (context = repo root; see the root .dockerignore)
 docker build --platform linux/arm64 -f runtime/Dockerfile.voice -t bridge-voice .
 docker run --rm -p 8080:8080 bridge-voice && curl localhost:8080/ping
+
+docker build --platform linux/arm64 -f api/Dockerfile.api -t bridge-api .
+docker run --rm -p 8000:8000 -e ALLOWED_ORIGINS=http://localhost:5173 bridge-api
+curl localhost:8000/health
 
 # Infra
 npm ci && npx tsc --noEmit -p amplify && npm test

@@ -1,8 +1,12 @@
 """
 Control-plane Lambda entry point: `/health`, `/scenario`, and the voice_kit
-signaling router — the thin, pipecat-free half of the BRIDGE backend. Mangum
-adapts the FastAPI app to the Function URL; keep this module free of
-startup/lifespan dependencies (Mangum compat).
+signaling router — the thin, pipecat-free half of the BRIDGE backend.
+
+Production serves this app with uvicorn under the AWS Lambda Web Adapter
+(api/Dockerfile.api), so `handler` below is not what the Function URL invokes:
+Mangum is retained as the zip-packaging fallback. Keeping this module free of
+startup/lifespan dependencies is therefore a constraint of that fallback, not a
+hard one.
 
 CORS is owned here, not by the Function URL: configuring both duplicates the
 response headers and browsers reject them.
@@ -61,4 +65,5 @@ def health() -> dict:
     return {"status": "ok", "scenario_loaded": True}
 
 
+# Zip-packaging fallback (see the module docstring) — unused under LWA.
 handler = Mangum(app)

@@ -111,11 +111,14 @@ export function voiceRuntimeName(backendId: {
   return full.slice(0, RUNTIME_NAME_MAX_LENGTH - suffix.length) + suffix;
 }
 
-/** Lambda bundling knobs for the control-plane API. */
+/**
+ * Sizing knobs for the control-plane API Lambda. No `handler`: it is a
+ * container-image function (api/Dockerfile.api), so the entry point is the
+ * image's CMD (uvicorn under the Lambda Web Adapter), not a handler string.
+ */
 export const API_LAMBDA = {
   memorySizeMb: 512,
   timeoutSeconds: 30,
-  handler: 'api.main.handler',
 };
 
 /**
@@ -134,45 +137,25 @@ export const ALLOWED_ORIGINS = [
 ];
 
 /**
- * Paths excluded from the API Lambda's bundling asset. Keeps the asset small so
- * its hash stays stable and unchanged deploys skip the rebuild.
+ * Per-asset excludes for the two container images, layered ON TOP of the root
+ * `.dockerignore` (CDK merges the two).
  *
- * `.amplify/` and `cdk.out/` are NOT optional: the asset source is the repo
- * root and CDK stages the asset INTO `.amplify/artifacts/cdk.out/`, so leaving
- * them in makes staging copy its own output into itself until the path blows
- * past the OS limit (`ENAMETOOLONG`).
+ * These exist for HASH STABILITY, not size. Both images build from the repo
+ * root, and CDK derives each asset's hash from its staged copy — so without
+ * each list subtracting the other image's tree, an `api/` edit would rebuild
+ * and re-push the pipecat image and restart the AgentCore runtime (and vice
+ * versa).
+ *
+ * The inverse rule matters more: never exclude a tree the image COPYs. The
+ * hash then freezes and the deploy ships stale code with no error. `api/`,
+ * `resources/`, `runtime/voice_kit/` and `runtime/pyproject.toml` are all
+ * COPYed by api/Dockerfile.api and must stay out of API_IMAGE_EXCLUDE.
  */
-export const API_ASSET_EXCLUDE = [
-  // Build output that lives inside the asset source — see the note above.
-  '.amplify/',
-  'cdk.out/',
-  'amplify_outputs.json',
-  // Legacy app trees (removed at final teardown)
-  'frontend/',
-  'backend/',
-  'scenes/',
-  'visuals/',
-  'app.py',
-  'render.yaml',
-  // New trees the Lambda does not need
-  'web/',
-  'docs/',
-  'amplify/',
-  'scripts/',
-  'node_modules/',
-  // VCS / tooling / build junk
-  '.git/',
-  '.github/',
-  '.claude/',
-  '**/__pycache__/',
-  '**/*.pyc',
-  '**/tests/',
-  '.pytest_cache/',
-  '.ruff_cache/',
-  '.venv*/',
-  '*.egg-info/',
-  'dist/',
-  'coverage/',
-  '.env',
-  '.DS_Store',
+export const API_IMAGE_EXCLUDE = [
+  'runtime/bridge/',
+  'runtime/evals/',
+  'runtime/requirements-voice.txt',
+  'runtime/Dockerfile.voice',
 ];
+
+export const VOICE_IMAGE_EXCLUDE = ['api/'];

@@ -11,8 +11,8 @@ would leave a control plane wired to ``AgentCoreInvoker`` and pointed at AWS.
 environment still wins, so this module can also be run against a deployed
 backend when that is what you actually want.
 
-The deployed Lambda imports ``api.main`` directly (``api.main.handler``) and
-never reaches this module.
+The deployed image runs ``uvicorn api.main:app`` directly and never reaches
+this module.
 """
 
 import os
