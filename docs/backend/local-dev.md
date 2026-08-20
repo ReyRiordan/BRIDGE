@@ -100,7 +100,7 @@ npm run dev                                  # in another terminal
 .venv/bin/python scripts/local_voice_smoke.py
 ```
 
-It asserts `/start` returned no ICE servers, that the answer carries a **non-relay** candidate (proving the filter was skipped), that ICE reaches `connected`, and that `/end` is clean. Non-zero exit on any failure. Not wired into CI — it needs three live processes and the provider keys.
+It asserts `/start` returned no ICE servers, that the answer carries a **non-relay** candidate (proving the filter was skipped), that ICE reaches `connected`, that a v1 game event arrives over the data channel and parses to an *object* (a double-encoded payload leaves audio working while the SPA drops every event — kit gotcha #34), and that `/end` is clean. Non-zero exit on any failure. Not wired into CI — it needs three live processes and the provider keys.
 
 ### Tier 2: a full game in the browser
 

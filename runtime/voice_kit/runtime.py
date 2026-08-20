@@ -50,6 +50,7 @@ APIs verified against pipecat-ai 1.3.0: ``SmallWebRTCRequestHandler``,
 
 import asyncio
 import concurrent.futures
+import json
 import logging
 import threading
 
@@ -159,8 +160,14 @@ async def _handle_offer(payload: dict) -> dict:
         )
 
         # Push each finalized transcript turn to the browser over the data channel.
+        #
+        # The emit seam carries a JSON *string*, but ``send_app_message`` takes
+        # the object and serializes it itself — handing it the string double-
+        # encodes the payload, so the browser's ``JSON.parse`` yields a string
+        # instead of an event and every message is silently dropped. Decode
+        # here, at the one boundary where the two conventions meet.
         def emit(message_json: str) -> None:
-            connection.send_app_message(message_json)
+            connection.send_app_message(json.loads(message_json))
 
         context = await build_pipeline_for_session(session_id, transport, emit=emit)
         _loop.create_task(_run_task(context.task, session_id))

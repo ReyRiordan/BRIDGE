@@ -17,7 +17,10 @@ What it proves, in order:
   2. The runtime's answer contains a NON-relay candidate — the relay-only SDP
      filter was skipped (in deploy, every candidate is `typ relay`).
   3. ICE reaches `connected` on loopback host candidates.
-  4. `/end` tears the session down cleanly.
+  4. A v1 game event arrives over the data channel and parses to an OBJECT —
+     the check that catches a double-encoded payload, which leaves audio
+     working and every event silently dropped by the browser's reducer.
+  5. `/end` tears the session down cleanly.
 
 Exits non-zero on the first failure. Deliberately NOT wired into CI: it needs
 three live processes and the provider API keys. And it is never a substitute
@@ -36,6 +39,8 @@ import uuid
 DEFAULT_API_BASE = "http://127.0.0.1:8000"
 ICE_CONNECT_TIMEOUT = 20
 GATHER_TIMEOUT = 10
+# The runtime's clock ticks at 1 Hz, so a few seconds is plenty of margin.
+EVENT_TIMEOUT = 10
 
 # 20 ms of 48 kHz mono silence per frame — the runtime's VAD needs a real audio
 # track to attach to, not what it carries.
@@ -109,7 +114,12 @@ async def run(api_base: str) -> None:
         pc = RTCPeerConnection(RTCConfiguration(iceServers=[]))
         pc.addTrack(silent_audio_track())
         # The runtime's pipeline blocks until the data channel is established.
-        pc.createDataChannel("data")
+        channel = pc.createDataChannel("data")
+        events = []
+
+        @channel.on("message")
+        def _on_message(message):
+            events.append(message)
 
         await pc.setLocalDescription(await pc.createOffer())
         deadline = time.monotonic() + GATHER_TIMEOUT
@@ -158,7 +168,23 @@ async def run(api_base: str) -> None:
             await asyncio.sleep(0.25)
         ok(f"ICE {pc.iceConnectionState} on host candidates")
 
-        # --- 5. end ---------------------------------------------------------
+        # --- 5. data channel ------------------------------------------------
+        deadline = time.monotonic() + EVENT_TIMEOUT
+        while not events:
+            if time.monotonic() > deadline:
+                fail("no game event arrived on the data channel")
+            await asyncio.sleep(0.25)
+        event = json.loads(events[0])
+        if not isinstance(event, dict):
+            fail(
+                f"game event parsed to {type(event).__name__}, not an object — "
+                "the payload is double-encoded and the SPA drops every event"
+            )
+        if event.get("v") != 1 or "type" not in event:
+            fail(f"game event is not a v1 envelope: {event!r}")
+        ok(f"data channel delivered a v1 {event['type']} event")
+
+        # --- 6. end ---------------------------------------------------------
         await pc.close()
         end = await _post(
             http,
