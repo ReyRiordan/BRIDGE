@@ -116,4 +116,9 @@ One NAT gateway is the fixed floor (~$32/month, always on) — the reason the sa
 - The asset `exclude` shapes the asset **hash**; bundling still mounts the raw source tree at `/asset-input`. Anything the bundling command copies must prune tests/`__pycache__` itself.
 - The Docker asset rebuild is the slow step of every deploy. The root `.dockerignore` and `API_ASSET_EXCLUDE` keep the hashes stable so unchanged code skips it.
 - Use `npm install`, not `npm ci`, at the repo root. `@aws-amplify/backend` pulls `@aws-amplify/data-construct` and `@aws-amplify/graphql-api-construct`, whose bundled nested dependencies npm reports as "Missing from lock file" even immediately after a clean install. Amplify CI runs `npm install` plus a `git diff --exit-code package-lock.json` drift check; `web/` is unaffected and still uses `npm ci`.
-- If the install skipped install scripts (esbuild, `@parcel/watcher`), `ampx` will fail to start — approve them with `npm install-scripts approve <pkg>`.
+- **`esbuild` is a direct root devDependency on purpose.** CDK's `NodejsFunction` bundling (the `AmplifyBranchLinker` asset) probes for `node_modules/.bin/esbuild` and, if it is missing, silently falls back to bundling in an amd64 Docker image — emulated under QEMU on Apple silicon, and slow. Nothing imports esbuild directly; the dependency exists so npm hoists that binary. It is pinned to the version tsx already depends on so npm dedupes to one copy.
+- If the install skipped install scripts (esbuild, `@parcel/watcher`), `ampx` will fail to start and the esbuild binary will not exist — approve them with `npm install-scripts approve <pkg>`. The esbuild failure is silent, so verify after any dependency change:
+
+  ```bash
+  node_modules/.bin/esbuild --version   # expect 0.25.x; "no such file" means deploys are on emulated Docker
+  ```
