@@ -17,6 +17,8 @@ import {
 
 describe('SECRET_NAMES', () => {
   test('matches the three provider keys the runtime resolves from SSM', () => {
+    // Only INWORLD_API_KEY is load-bearing today (Transcribe and Bedrock use the
+    // execution role); the other two are kept for a rollback and local parity.
     expect([...SECRET_NAMES].sort()).toEqual([
       'INWORLD_API_KEY',
       'OPENROUTER_API_KEY',
@@ -45,15 +47,42 @@ describe('VOICE_CONFIG', () => {
     }
   })
 
-  test('pins the legacy-parity provider trio', () => {
-    expect(VOICE_CONFIG.STT_PROVIDER).toBe('together')
-    expect(VOICE_CONFIG.LLM_PROVIDER).toBe('openrouter')
+  test('pins AWS STT + LLM, with TTS still on Inworld', () => {
+    expect(VOICE_CONFIG.STT_PROVIDER).toBe('transcribe')
+    expect(VOICE_CONFIG.LLM_PROVIDER).toBe('bedrock')
     expect(VOICE_CONFIG.TTS_PROVIDER).toBe('inworld')
+  })
+
+  test('gives Bedrock the endpoint it has no default for', () => {
+    // Unset, BedrockChat requests the literal URL `None/chat/completions`. It is
+    // a public regional endpoint, so it is plain env config, not an SSM secret.
+    expect(VOICE_CONFIG.AWS_BEDROCK_BASE_URL).toMatch(
+      /^https:\/\/bedrock-mantle\.[a-z0-9-]+\.api\.aws\/v1$/,
+    )
+    expect(SECRET_NAMES).not.toContain('AWS_BEDROCK_BASE_URL')
+  })
+
+  test('both agents run the same Bedrock model at the same effort', () => {
+    // Deliberate: one model to reason about, one catalog entry to confirm
+    // against the deploy region before shipping.
+    expect(VOICE_CONFIG.REFEREE_PROVIDER).toBe(VOICE_CONFIG.LLM_PROVIDER)
+    expect(VOICE_CONFIG.REFEREE_MODEL).toBe(VOICE_CONFIG.LLM_MODEL)
+    expect(VOICE_CONFIG.REFEREE_REASONING).toBe(VOICE_CONFIG.LLM_REASONING)
+    expect(VOICE_CONFIG.LLM_MODEL).toBe('openai.gpt-oss-120b')
+    expect(VOICE_CONFIG.LLM_REASONING).toBe('medium')
+  })
+
+  test('bedrock model IDs carry no OpenRouter vendor prefix', () => {
+    // `anthropic/claude-haiku-4.5` is OpenRouter's format; bedrock-mantle takes
+    // the bare id, and the slashed form 404s at request time, not deploy time.
+    for (const key of ['LLM_MODEL', 'REFEREE_MODEL']) {
+      expect(VOICE_CONFIG[key], `${key}`).not.toContain('/')
+    }
   })
 
   test('exposes the game-engine contract', () => {
     // The referee trio mirrors the patient's LLM_PROVIDER/MODEL/REASONING.
-    expect(VOICE_CONFIG.REFEREE_PROVIDER).toBe('openrouter')
+    expect(VOICE_CONFIG.REFEREE_PROVIDER).toBeTruthy()
     expect(VOICE_CONFIG.REFEREE_MODEL).toBeTruthy()
     expect(VOICE_CONFIG.REFEREE_REASONING).toBeTruthy()
     // Must match the image layout: Dockerfile.voice COPYs resources/ to /app.
