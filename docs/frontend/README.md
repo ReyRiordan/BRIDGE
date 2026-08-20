@@ -2,8 +2,6 @@
 
 `web/` — the BRIDGE SPA: Vite + React 19 + TypeScript + Tailwind v4, deployed on Amplify Hosting. Self-contained npm project (its own `package.json`, lockfile and CI job); the root npm project is infra-only.
 
-> The legacy vanilla-JS UI in `frontend/` is a separate, frozen tree that stays runnable until the final teardown.
-
 ## Structure
 
 | Path | What it is |

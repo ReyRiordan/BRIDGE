@@ -4,24 +4,23 @@
 
 A voice-to-voice medical training simulation where medical students practice behavioral de-escalation with an AI patient. The student speaks aloud; their words are transcribed, analyzed for de-escalation actions, and used to drive a patient AI response. An escalation bar tracks patient agitation. The goal is to reduce it to zero before time runs out.
 
-> Formerly known as **MEWAI**. Renamed to BRIDGE as part of the ongoing rewrite; legacy references to MEWAI may persist in older files until final teardown.
+## Architecture
 
-## ⚠️ Rewrite In Progress
+- **`web/`** — Vite + React + TS + Tailwind SPA on Amplify Hosting.
+- **`api/`** — thin FastAPI control-plane Lambda (`/scenario` + voice signaling), container image under the Lambda Web Adapter.
+- **`runtime/`** — the voice pipeline on Bedrock AgentCore + pipecat, built on the vendored `voice_kit` package; `runtime/bridge/` holds the game engine.
+- **`amplify/`** — Amplify Gen 2 TS CDK infra.
+- **`resources/`** — scenario config + prompts, COPYed into both container images.
 
-The repo is mid-rewrite from a single-process prototype (FastAPI + FastRTC + Gradio) to a production app on AWS:
-
-- **New architecture:** Vite + React + TS + Tailwind SPA (`web/`) on Amplify Hosting; a thin FastAPI control-plane Lambda (`api/`, via Mangum); the voice pipeline on **Bedrock AgentCore + pipecat** (`runtime/`, built on the vendored `voice_kit` package); Amplify Gen 2 TS CDK infra (`amplify/`).
-- The rewrite is **additive**: the legacy app stays runnable until the final teardown issue. Old and new trees coexist (`frontend/` = legacy, `web/` = new).
-- The rewrite is tracked as GitHub issues `[Rewrite A]`–`[Rewrite I]`; see the tracking issue for wave ordering.
-- Every rewrite change follows: **implement → write tests → update docs → tests/lint green in CI** (`.github/workflows/`).
+Every change follows: **implement → write tests → update docs → tests/lint green in CI** (`.github/workflows/`).
 
 ## Commands
 
 Use 'python3' to run any python files. Use the GitHub CLI ('gh') for all GitHub-related tasks.
 
-### Local dev (new app)
+### Local dev
 
-The whole rewrite stack on one machine, zero AWS calls — SPA :5173, control plane :8000, voice runtime :8080:
+The whole stack on one machine, zero AWS calls — SPA :5173, control plane :8000, voice runtime :8080:
 
 ```bash
 # One-time: repo-root venv (Python 3.11) + web/.env.local with VITE_BRIDGE_LOCAL=1
@@ -49,52 +48,4 @@ You MUST keep the docs up to date at all times because they are such a core part
 | frontend | `docs/frontend/` | `web/` (SPA screens, game UI, voice client) |
 | backend | `docs/backend/` | `api/` (control-plane Lambda), `runtime/` (AgentCore voice pipeline + game engine), `amplify/` (infra). Includes `docs/backend/voice-kit/` ops docs (architecture, configuration, infrastructure, deploy runbook, gotchas). |
 
-Start at [`docs/frontend/README.md`](docs/frontend/README.md) or [`docs/backend/README.md`](docs/backend/README.md) — each carries the doc map for its layer. The legacy app is documented in the section below.
-
-## Legacy App (still runnable during the rewrite)
-
-Stack: FastAPI + FastRTC + Gradio, deployed as a single process.
-
-```
-pip install -r requirements.txt
-# Add API keys to .env (see below)
-python3 app.py
-# Visit http://localhost:7860
-```
-
-### Required .env keys
-```
-OPENROUTER_API_KEY   # Claude Haiku via OpenRouter (system + patient agents)
-TOGETHER_API_KEY     # Parakeet STT via Together AI
-INWORLD_API_KEY      # Inworld TTS (streaming audio)
-```
-
-### Optional .env keys (per-agent model + reasoning effort)
-Each defaults to `anthropic/claude-haiku-4.5` / effort `none` if unset.
-Effort values: `none | low | medium | high` (passed to OpenRouter's `reasoning.effort`).
-```
-SYSTEM_AGENT_MODEL / SYSTEM_AGENT_EFFORT     # system (referee) agent
-PATIENT_AGENT_MODEL / PATIENT_AGENT_EFFORT   # patient agent
-```
-
-### Legacy file map
-
-| File | Responsibility |
-|------|---------------|
-| `app.py` | Entry point. Loads env/resources, instantiates AI clients, wires modules, starts uvicorn. |
-| `backend/agents.py` | AI wrappers: `ParakeetSTT`, `OpenRouterChat`, `InworldTTS`. No game logic. |
-| `backend/game.py` | `GameState` dataclass + module singletons; `load_scenario()`, `load_patient_prompt()`. |
-| `backend/handlers.py` | Per-turn pipeline: STT → system agent → apply actions → check terminal → patient agent → TTS. |
-| `backend/routes.py` | FastAPI endpoints (`/`, `/scenario`, `/ws`), WebSocket broadcast, timer, `reset_game()`. |
-| `frontend/` | Legacy vanilla-JS UI (4 screens, WebSocket client, layered scene compositing). |
-| `resources/scenario_1.json` | Scenario config (actions with `point_change`/`persist`/`layer`/`active`/`inactive` visuals, point bar, time limit, TTS settings). **Shared with the new app.** |
-| `resources/patient.txt` / `patient.json` | Patient agent system prompt + case file. |
-| `resources/referee.txt` | Referee (system) agent prompt. **Shared with the new app.** |
-| `visuals/*.png` | Layered scene art: `patient_{escalation}.png` + per-action active/inactive layers composited by the frontend. |
-
-### Legacy key mechanics
-
-- **Escalation** (`0–10`) is the central mechanic: drives patient response style, locked-info reveal (only at 0), win/loss (0 → success, 10 or timeout → fail), and which visual layers render.
-- Positive `point_change` = escalating action; negative = de-escalating. The system agent returns `type` strings matching `actions` in the scenario JSON.
-- WebSocket `/ws` pushes `state_update`, `action_detected`, `timer`, `game_over`, `transcript_update`; client sends `begin` / `reset`.
-- Audio I/O runs inside a Gradio iframe mounted at `/gradio` (removed in the rewrite).
+Start at [`docs/frontend/README.md`](docs/frontend/README.md) or [`docs/backend/README.md`](docs/backend/README.md) — each carries the doc map for its layer.

@@ -1,13 +1,12 @@
 # Prompts
 
 The two LLM calls in a turn — the referee and the patient — and the manual evals
-that keep them honest. Everything here lives in `resources/` (shared with the
-legacy app, COPYed into the runtime image at `/app/resources`) and is assembled
-by `runtime/bridge/`.
+that keep them honest. Everything here lives in `resources/` (COPYed into the
+runtime image at `/app/resources`) and is assembled by `runtime/bridge/`.
 
 | File | Loaded by | Consumed by |
 |---|---|---|
-| `resources/referee.txt` | `config.load_referee_prompt()` (`REFEREE_PROMPT_PATH`) | `RefereeProcessor` — and the legacy `app.py`, so there is exactly one referee prompt |
+| `resources/referee.txt` | `config.load_referee_prompt()` (`REFEREE_PROMPT_PATH`) | `RefereeProcessor` |
 | `resources/patient.txt` | `config.load_patient_prompt_template()` (`PATIENT_PROMPT_PATH`) | `patient.build_patient_prompt()` |
 | `resources/patient.json` | `config.load_patient_case()` (`PATIENT_CASE_PATH`) | `patient.build_patient_prompt()` |
 
@@ -53,10 +52,6 @@ Behaviour is conditioned on the **per-turn marker** `[CURRENT ESCALATION: n/max]
 (`patient.turn_context()`), injected by the kit immediately before the student's
 message; the template's escalation table maps bands to terseness and
 cooperativeness.
-
-> The legacy `backend/game.py` still assembles its own patient prompt including a
-> `<locked_information>` block. That drift is accepted — legacy dies at teardown;
-> do not touch its assembly.
 
 ## Evals — `runtime/evals/`
 

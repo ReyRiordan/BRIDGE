@@ -10,9 +10,9 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `runtime/voice_kit/` | Vendored voice pipeline kit — control plane (router, config, KVS, errors) + pipeline (pipecat, providers, processors). | Lambda (control-plane half) + container (pipeline half) |
 | `runtime/bridge/` | BRIDGE's own runtime code: the game engine and the wire contract. Container-only. | AgentCore container |
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
-| `resources/` | Scenario config + prompts. Shared with the legacy app; COPYed to `/app/resources` in **both** images. | Both |
+| `resources/` | Scenario config + prompts. COPYed to `/app/resources` in **both** images. | Both |
 | `runtime/evals/` | Manual, network-hitting prompt evals (referee eval + patient probe). Never run by CI; still linted. See `prompts.md`. | Local |
-| `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke), `make_transparent.py` (visual asset tool). | Local / CI |
+| `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke). | Local / CI |
 
 ## Doc map
 
