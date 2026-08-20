@@ -17,7 +17,7 @@ All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-set
 | `VOICE_RUNTIME_URL` | control-plane | `http://localhost:8080` | `LocalInvoker` target (`{url}/invocations`); unused by `agentcore` |
 | `RUNTIME_SESSION_ID_PREFIX` | control-plane | `voicekit-` | prefix + 32 hex must land in AgentCore's 33–256 char window |
 | `SESSION_TIME_LIMIT_MINUTES` | runtime | `30` | Default `SessionContext.time_limit_seconds` — the app's conversation cap, informational only (the kit never enforces it). Keep the frontend timer aligned |
-| `IDLE_TIMEOUT_SECS` | runtime | `180` | `PipelineWorker` self-termination after this much speech-free time — the abandoned-container backstop, independent of the app's time limit |
+| `IDLE_TIMEOUT_SECS` | runtime | `180` | Default `PipelineWorker` self-termination after this much speech-free time — the abandoned-container backstop, independent of the app's time limit. Per session, `SessionContext.idle_timeout_seconds` overrides it; the idle timeout cancels the pipeline, so it must never land inside a live session (`05-gotchas.md`) |
 | `SYSTEM_PROMPT` / `SYSTEM_PROMPT_PATH` | runtime | — | Only used by the *default* context provider; ignored once you register your own |
 
 ## LLM

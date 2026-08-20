@@ -47,6 +47,12 @@ class SessionContext:
     initial_history: List[TranscriptMessage] = field(default_factory=list)
     # None → settings.session_time_limit_minutes * 60.
     time_limit_seconds: Optional[int] = None
+    # Pipeline self-termination backstop for THIS session; None →
+    # settings.idle_timeout_secs. A host whose own clock outlives the kit's
+    # default raises it here: the idle timeout cancels the pipeline and closes
+    # the peer connection, so one that lands inside a live session reads to the
+    # browser as a dropped connection.
+    idle_timeout_seconds: Optional[int] = None
     # Free-form extras for the host's own use (ignored by the kit).
     metadata: dict = field(default_factory=dict)
 

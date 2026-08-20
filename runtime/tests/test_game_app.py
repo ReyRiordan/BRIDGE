@@ -23,6 +23,7 @@ from bridge.app import (  # noqa: E402
     provide_context,
     store_turn,
 )
+from bridge.config import GAME_GRACE_SECONDS, load_scenario  # noqa: E402
 from bridge.referee import RefereeProcessor  # noqa: E402
 from voice_kit import ProcessorFactoryArgs, TranscriptMessage  # noqa: E402
 from voice_kit.processors import (  # noqa: E402
@@ -51,6 +52,20 @@ def test_context_carries_the_scenario_voice_time_limit_and_session():
     assert context.time_limit_seconds == 300
     assert context.system_prompt.strip()
     assert context.metadata["game"] is session_module.get_session("s1")
+
+
+def test_the_idle_backstop_outlives_the_whole_game_window():
+    """The regression guard for "Connection Lost" at the time limit.
+
+    pipecat cancels the pipeline on idle, closing the peer connection with no
+    end hook and no event to the browser. A run to the time limit is silent by
+    definition, so an idle timeout inside `time_limit + grace` kills the data
+    channel before `game_over` is emitted and the student sees a dropped
+    connection instead of the timeout debrief.
+    """
+    scenario = load_scenario()
+    context = asyncio.run(provide_context("s1"))
+    assert context.idle_timeout_seconds > scenario["time_limit"] + GAME_GRACE_SECONDS
 
 
 def test_a_rebuild_on_a_warm_container_resumes_the_same_session():

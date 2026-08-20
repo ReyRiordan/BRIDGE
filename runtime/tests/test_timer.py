@@ -110,6 +110,31 @@ def test_an_async_on_expire_is_awaited():
     assert expired == [1]
 
 
+def test_a_task_returned_by_on_expire_is_not_awaited():
+    """`on_expire` is `start_reaper`, which returns an already-running task.
+
+    Awaiting it would park the clock task for the whole grace window.
+    """
+    session = a_session()
+    events, _ = recorded(session)
+    session.started_at -= LIMIT
+
+    async def main():
+        slow = asyncio.create_task(asyncio.sleep(30))
+        try:
+            await asyncio.wait_for(
+                run_timer(
+                    session, events, on_expire=lambda: slow, sleep=Clock(session)
+                ),
+                timeout=1,
+            )
+        finally:
+            slow.cancel()
+        return not slow.done()
+
+    assert asyncio.run(main()) is True
+
+
 def test_returns_immediately_for_a_finished_session():
     session = a_session()
     session.expire()

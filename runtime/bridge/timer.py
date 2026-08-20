@@ -46,6 +46,14 @@ def set_pipeline_canceller(fn: Optional[Callable[[str], Awaitable]]) -> None:
 
 
 async def _maybe_await(result) -> None:
+    """Await a coroutine hook, but never a task the hook already scheduled.
+
+    ``on_expire`` is ``start_reaper``, which returns a *running* task — awaiting
+    that would park ``run_timer`` for the whole grace window, leaving the clock
+    task alive long after its own expiry.
+    """
+    if isinstance(result, asyncio.Future):
+        return
     if inspect.isawaitable(result):
         await result
 
