@@ -31,11 +31,16 @@ import type {
 const REMOTE_AUDIO_THRESHOLD = 10
 // How long the remote stream must stay silent before isAgentSpeaking → false.
 const REMOTE_SILENCE_DEBOUNCE_MS = 500
-// How long to wait for non-trickle ICE gathering to complete before giving up.
-// Without it a gathering stall hangs forever — the hook's ICE-stall detection
-// only starts once initializeConnection resolves. Mirrors GATHER_TIMEOUT in
-// scripts/local_voice_smoke.py.
+// How long to wait for non-trickle ICE gathering before signaling whatever it
+// has produced. Without a bound a gathering stall hangs forever — the hook's
+// ICE-stall detection only starts once initializeConnection resolves. Mirrors
+// GATHER_TIMEOUT in scripts/local_voice_smoke.py.
 const ICE_GATHERING_TIMEOUT_MS = 10000
+
+/** Whether an offer carries at least one ICE candidate to signal. */
+function hasCandidates(sdp: RTCSessionDescription | null | undefined): boolean {
+  return sdp ? /^a=candidate:/m.test(sdp.sdp) : false
+}
 
 /**
  * WebRTC Service Class
@@ -222,6 +227,15 @@ class WebRTCServiceClass implements WebRTCService {
       // Non-trickle ICE: the runtime needs a complete SDP with all candidates
       // before it can route media back. Wait for gathering to finish so
       // localDescription contains the full candidate list.
+      //
+      // The deadline is a floor, not a failure: `complete` requires EVERY
+      // configured server to answer or give up, and KVS hands out one
+      // stun/turn/turns triple per relay — the ones that cannot be reached
+      // from the client's network (an IPv4-only TURN host over an IPv6
+      // interface, `turns:` behind TLS interception) keep the phase open long
+      // past the point where the usable relay candidates have arrived, which
+      // here is ~100 ms. So on timeout we signal what gathering has produced
+      // and only fail when it produced nothing.
       await new Promise<void>((resolve, reject) => {
         if (this.peerConnection!.iceGatheringState === 'complete') {
           resolve()
@@ -232,7 +246,11 @@ class WebRTCServiceClass implements WebRTCService {
             'icegatheringstatechange',
             onStateChange,
           )
-          reject(new Error('ICE gathering timed out'))
+          if (hasCandidates(this.peerConnection?.localDescription)) {
+            resolve()
+          } else {
+            reject(new Error('ICE gathering timed out'))
+          }
         }, ICE_GATHERING_TIMEOUT_MS)
         const onStateChange = () => {
           if (this.peerConnection!.iceGatheringState === 'complete') {

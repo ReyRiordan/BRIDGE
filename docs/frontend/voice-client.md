@@ -20,7 +20,7 @@ known at runtime in a deployed build:
 
 ```ts
 const baseUrl = await resolveApiBaseUrl()          // src/config.ts
-configureVoiceApi(createTransport(baseUrl), `${baseUrl}/voice`)
+configureVoiceApi(createTransport(baseUrl))        // src/api/transport.ts
 ```
 
 - `resolveApiBaseUrl()` returns `''` under `BRIDGE_LOCAL` (same-origin, the Vite
@@ -29,11 +29,19 @@ configureVoiceApi(createTransport(baseUrl), `${baseUrl}/voice`)
   It memoizes; `getApiBaseUrl()` is the sync read used by `src/api/scenario.ts`.
   A build-time `VITE_API_URL` was rejected on purpose — it would couple the SPA
   build to backend deploy ordering.
-- The transport is a small `fetch` adapter (no axios dependency): JSON in/out,
-  non-2xx throws carrying the server's `{detail}` (the control plane returns
-  502-with-CORS for upstream failures). An absent body stays absent — `/end`'s
-  request model is optional and `null` would fail validation.
-- `/voice` must match the router prefix passed to `create_voice_router()`.
+- The transport (`src/api/transport.ts`) is a small `fetch` adapter (no axios
+  dependency): JSON in/out, non-2xx throws carrying the server's `{detail}`
+  (the control plane returns 502-with-CORS for upstream failures). An absent
+  body stays absent — `/end`'s request model is optional and `null` would fail
+  validation.
+- **The base URL is applied in the transport and nowhere else.** `configureVoiceApi`
+  also accepts an absolute `basePath`, and passing one on top of a base-carrying
+  transport doubles the origin into `https://host…https//host…/voice/...`, which
+  does not resolve — the fetch then fails at the network layer with no request
+  reaching the API. Local mode's base is `''`, so both spellings coincide there
+  and only a deployed build shows it; `src/api/transport.test.ts` pins it.
+- The default `/voice` base path must match the router prefix passed to
+  `create_voice_router()`.
 - Bootstrap failure renders a load-error message instead of the app.
 
 ## 2. Connect flow
@@ -59,9 +67,20 @@ const connectWithFreshRuntime = async () => {
 await connectWithFreshRuntime()
 ```
 
-`initializeConnection` also caps the non-trickle ICE-gathering wait at 10 s: a
+`initializeConnection` bounds the non-trickle ICE-gathering wait at 10 s: a
 gathering stall would otherwise hang *before* the hook's ICE-stall detection
-starts. It rejects as `CONNECTION_FAILED` through the normal cleanup path.
+starts. The deadline is a floor, not a failure — on expiry it signals whatever
+gathering has produced and rejects as `CONNECTION_FAILED` (normal cleanup path)
+only when the offer carries no candidate at all.
+
+That distinction is what makes the cloud path work. `iceGatheringState` reaches
+`complete` only once **every** configured server has answered or given up, and
+KVS hands out a `stun:`/`turn:`/`turns:` triple per relay; the members a given
+client cannot reach (an IPv4-only TURN host over an IPv6 interface, `turns:`
+behind TLS interception) keep the phase open far past the ~100 ms in which the
+usable relay candidates actually arrive. Waiting for `complete` therefore fails
+on networks where the call would have connected fine. Local mode has no TURN and
+completes instantly, so this is another divergence only a deployed build shows.
 
 ## 3. Reconnect policy
 
