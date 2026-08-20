@@ -100,6 +100,44 @@ class VoiceKitSettings(BaseSettings):
         description="Milliseconds of pre-speech audio retained before VAD start so the utterance onset (first word) is transcribed.",
     )
 
+    # VAD Configuration
+    # The defaults below reproduce pipecat 1.3.0's own VADParams/VADProcessor
+    # defaults, so an unset environment behaves exactly as before these knobs
+    # existed. sample_rate is deliberately NOT exposed: Silero accepts only
+    # 8000/16000 and STTProcessor's pre-roll math assumes 16 kHz.
+    vad_confidence: float = Field(
+        default=0.7,
+        ge=0,
+        le=1,
+        description="Silero speech-probability threshold above which a frame counts as speech.",
+    )
+    vad_start_secs: float = Field(
+        default=0.2,
+        ge=0,
+        description="Seconds of continuous speech required before VAD declares the user started talking.",
+    )
+    vad_stop_secs: float = Field(
+        default=0.2,
+        ge=0,
+        description="Seconds of continuous silence required before VAD declares the user stopped talking.",
+    )
+    vad_min_volume: float = Field(
+        default=0.6,
+        ge=0,
+        le=1,
+        description="Minimum normalized frame volume for a frame to count as speech.",
+    )
+    vad_speech_activity_period: float = Field(
+        default=0.2,
+        ge=0,
+        description="Seconds between the speech-activity notifications VADProcessor emits while the user speaks.",
+    )
+    vad_audio_idle_timeout: float = Field(
+        default=1.0,
+        ge=0,
+        description="Seconds without incoming audio after which VADProcessor force-stops the turn; 0 disables it.",
+    )
+
     # TTS Configuration
     tts_provider: str = Field(
         default="polly", description="TTS provider: inworld or polly"
