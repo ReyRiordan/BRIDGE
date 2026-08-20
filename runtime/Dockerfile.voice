@@ -9,7 +9,7 @@
 #     not be sharded across workers.
 #
 # Build context is the REPO ROOT (the image needs both runtime/ and resources/);
-# the root .dockerignore keeps that context small while the legacy tree coexists.
+# the root .dockerignore keeps that context small by subtracting what it skips.
 #
 # Local build smoke test (run before every deploy):
 #   docker build --platform linux/arm64 -f runtime/Dockerfile.voice -t bridge-voice .

@@ -2,7 +2,7 @@
  * WebRTC + voice-API type definitions.
  *
  * The API types mirror the backend control-plane schemas
- * (backend/voice_kit/control_plane/schemas.py) — keep them in sync (or
+ * (runtime/voice_kit/control_plane/schemas.py) — keep them in sync (or
  * generate them from your OpenAPI schema and re-export here).
  */
 

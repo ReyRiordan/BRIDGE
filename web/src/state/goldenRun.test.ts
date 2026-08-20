@@ -1,5 +1,5 @@
 /**
- * The acceptance test for [Rewrite F]: fold the hand-authored golden runs
+ * The acceptance test for the game UI: fold the hand-authored golden runs
  * through the reducer and assert the projected ViewModel — the bar, the scene
  * layers, the badge, the transcript, the clock and the end state — at every
  * milestone. No snapshots: the expected values are written out so a semantic

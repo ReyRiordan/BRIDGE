@@ -4,7 +4,7 @@ Prose companion to `amplify/voice-runtime.ts` — the self-contained CDK module 
 
 ## Wiring it up (worked example)
 
-`backend.ts` ([Rewrite B]) calls `addVoiceRuntime(...)`:
+`backend.ts` calls `addVoiceRuntime(...)`:
 
 ```ts
 import { addVoiceRuntime } from './voice-runtime';
@@ -27,7 +27,7 @@ const { runtime } = addVoiceRuntime({
   stack,
   // The image needs runtime/ AND resources/, so the context is the REPO ROOT
   // and the Dockerfile path is relative to it. The root .dockerignore keeps the
-  // context from picking up the legacy trees.
+  // context small by subtracting the trees no image COPYs.
   dockerContext: '.',
   dockerfile: 'runtime/Dockerfile.voice',
   // Only when the same context root feeds a SECOND image asset: subtract the

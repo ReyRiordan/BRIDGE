@@ -1,5 +1,0 @@
-The first image is a background image of a hospital exam room with nothing present. The second image shows a foreground visual overlayed on top of this background image. 
-
-Identify the foreground, which is the difference between the first and second image. Then remove the background completely (everything in the background image, including anything directly touching the foreground) and keep only the foreground on a pure solid white #FFFFFF background. Do not alter the foreground in any way, other than improving its quality if it appears slightly blurry. Keep the size, scale, and ratio of the image and foreground exactly the same.
-
-For example, if the foreground is a patient sitting on the examination chair, then the output should be ONLY the patient floating on a pure white background - no examination chair or any other background elements.

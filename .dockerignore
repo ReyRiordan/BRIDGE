@@ -1,23 +1,14 @@
 # Shared ignore list for the TWO image assets built from the REPO ROOT:
 # runtime/Dockerfile.voice (needs runtime/ + resources/) and api/Dockerfile.api
 # (needs api/ + resources/ + runtime/voice_kit). This list is what keeps that
-# context small while the legacy app and the rewrite coexist; each asset then
-# subtracts the OTHER's tree via its CDK `exclude` prop (amplify/constants.ts),
-# which is what keeps their hashes independent.
+# context small; each asset then subtracts the OTHER's tree via its CDK
+# `exclude` prop (amplify/constants.ts), which is what keeps their hashes
+# independent.
 #
 # NEVER list a tree an image COPYs. CDK derives the asset hash from the staged
 # copy, so an excluded tree freezes the hash and ships stale code with no error.
 
-# Legacy app trees (removed at final teardown)
-frontend/
-backend/
-scenes/
-visuals/
-app.py
-requirements.txt
-render.yaml
-
-# New trees neither image needs
+# Trees neither image needs
 web/
 docs/
 amplify/

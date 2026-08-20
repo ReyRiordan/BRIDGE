@@ -7,7 +7,7 @@
 // no VPC, no NAT gateway), all task-role grants, and the API-Lambda-side wiring
 // (grantInvoke + env vars + browser-side KVS grants).
 // docs/backend/voice-kit/03-infrastructure.md carries the worked example and
-// explains every grant. Wired from backend.ts in [Rewrite B].
+// explains every grant. Wired from backend.ts.
 //
 // The real-time WebRTC voice pipeline is the one workload that can't run on
 // Lambda (stateful, streaming, long sessions). It runs as a Pipecat pipeline on

@@ -19,7 +19,7 @@ frontend:
         # (Amplify CI guards lockfile drift instead).
         - npm install --no-audit --no-fund
         # Pull the deployed backend's outputs (apiUrl) and serve them as a
-        # static file the SPA fetches at runtime ([Rewrite F]/[Rewrite G]).
+        # static file the SPA fetches at runtime.
         - npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID
         - cp amplify_outputs.json web/public/amplify_outputs.json
         # --prefix, not `cd`: Amplify runs every command in one shell session,

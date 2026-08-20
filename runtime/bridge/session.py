@@ -7,9 +7,8 @@ affinity (one container per session), the simulation is a single sitting, and a
 DB would buy nothing a warm container does not already provide.
 
 The registry mirrors ``voice_kit.runtime._pipeline_tasks``: a module-level dict,
-single asyncio loop, **no locks** (the legacy app's ``threading.Lock``s were an
-artifact of Gradio's thread-per-request model and are deliberately not carried
-over). A pipeline rebuild on the same warm container therefore resumes the same
+single asyncio loop, **no locks** — nothing here is touched from a worker
+thread, so there is no shared state to guard. A pipeline rebuild on the same warm container therefore resumes the same
 session — escalation, action states, clock origin and transcript — including a
 session that already ended, so a reconnect after game over shows the terminal
 state instead of silently restarting.
