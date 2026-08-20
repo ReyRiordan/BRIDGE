@@ -62,14 +62,22 @@ describe('VOICE_CONFIG', () => {
     expect(SECRET_NAMES).not.toContain('AWS_BEDROCK_BASE_URL')
   })
 
-  test('both agents run the same Bedrock model at the same effort', () => {
-    // Deliberate: one model to reason about, one catalog entry to confirm
-    // against the deploy region before shipping.
+  test('both agents run the same Bedrock model', () => {
+    // One model to reason about, one catalog entry to confirm against the
+    // deploy region before shipping.
     expect(VOICE_CONFIG.REFEREE_PROVIDER).toBe(VOICE_CONFIG.LLM_PROVIDER)
     expect(VOICE_CONFIG.REFEREE_MODEL).toBe(VOICE_CONFIG.LLM_MODEL)
-    expect(VOICE_CONFIG.REFEREE_REASONING).toBe(VOICE_CONFIG.LLM_REASONING)
     expect(VOICE_CONFIG.LLM_MODEL).toBe('openai.gpt-oss-120b')
     expect(VOICE_CONFIG.LLM_REASONING).toBe('medium')
+  })
+
+  test('the referee reasons less than the patient, because it is timed', () => {
+    // Not an oversight that these differ. The referee is on the serial critical
+    // path and fails open past REFEREE_TIMEOUT_SECONDS, and on this model
+    // `medium` peaked at 7.15s against that 7s budget while scoring no better
+    // than `low` (docs/backend/prompts.md). The patient has no such budget.
+    expect(VOICE_CONFIG.REFEREE_REASONING).toBe('low')
+    expect(VOICE_CONFIG.REFEREE_REASONING).not.toBe(VOICE_CONFIG.LLM_REASONING)
   })
 
   test('bedrock model IDs carry no OpenRouter vendor prefix', () => {

@@ -81,9 +81,12 @@ export const VOICE_CONFIG: Record<string, string> = {
   // "system agent" terminology is retired. The paths are the image's copies
   // (Dockerfile.voice COPYs resources/ to /app/resources).
   // The referee's own LLM, symmetric with the patient's LLM_* trio above.
+  // `low`, not the patient's `medium`: the referee is measured, and on this
+  // model medium was both slower (7.15s max, against the 7s budget below) and
+  // no more accurate. See docs/backend/prompts.md for the numbers.
   REFEREE_PROVIDER: 'bedrock',
   REFEREE_MODEL: 'openai.gpt-oss-120b',
-  REFEREE_REASONING: 'medium',
+  REFEREE_REASONING: 'low',
   // The referee is on the serial critical path of every turn, so it fails open
   // rather than making the student wait.
   REFEREE_TIMEOUT_SECONDS: '7',

@@ -68,14 +68,17 @@ python3 runtime/evals/patient_probe.py    # replies at escalation 10/8/5/2/0, ey
 # The deployed pairing (amplify/constants.ts). --provider/--model/--reasoning
 # override the REFEREE_* trio the script otherwise reads from the environment.
 python3 runtime/evals/referee_eval.py \
-    --provider bedrock --model openai.gpt-oss-120b --reasoning medium
+    --provider bedrock --model openai.gpt-oss-120b --reasoning low
 ```
 
 `referee_eval.py` runs the production path (real scenario, real prompt,
 `build_referee_payload` / `build_response_format` / `build_referee_llm`) over the
 cases in `runtime/evals/cases/referee.json` — `{name, utterance, escalation,
 expected}`, mixing the few-shot anchors with paraphrases, near-misses for the
-strict escalating actions, a dedup case, and the actions no few-shot covers. It
+strict escalating actions, a dedup case, and the actions no few-shot covers.
+Eight of the 23 were written after the prompt was tuned, to catch exactly the
+overfitting that tuning invites: they restate rules the earlier cases already
+cover, in wording the prompt has never seen. It
 also prints median/p95/max latency, which matters: the referee sits on the
 serial critical path before the patient reply and fails open past
 `REFEREE_TIMEOUT_SECONDS`, so the p95 is what says whether that budget holds.
@@ -90,44 +93,75 @@ lose.
 escalation level and prints the replies side by side — a 30-second check that
 terseness tracks escalation and that history is deflected everywhere.
 
-Run both after touching either prompt. Two prompt rules exist only because the
-evals caught the failure and are easy to regress:
+Run both after touching either prompt. These rules exist only because an eval
+caught the failure, and each is easy to regress:
 
-- The referee's "ambient qualities are not actions" rule — without it, any calm
-  or polite utterance (small talk included) scored `Verbal Communication`.
+- The referee's "ambient qualities are not actions" rule (rule 7) — without it,
+  any calm or polite utterance (small talk included) scored
+  `Verbal Communication`.
+- The "Reading a desc" section, and the "some descs name a way of speaking"
+  carve-out under it. Descs are terse (`E.g. "We need to do this now"`), and a
+  weaker model reads them as required phrasings rather than behaviours, which
+  loses real detections. The carve-out is the counterweight to rule 7: without
+  it, rule 7 swallows the two actions whose descs are themselves about manner,
+  `Verbal Communication` and `Authoritative tone`.
+- Rule 4's decided-versus-hedged distinction. An earlier phrasing disqualified
+  future-tense mentions outright, which read "I'm going to have security hold
+  him down" as hypothetical and let a restraint order go uncharged.
+- Rule 5, checking every action rather than stopping at the first hit. Low-effort
+  models return only the most salient action of a multi-action utterance; this
+  rule alone moved the 45-run suite from 39 to 42.
 - The patient's TTS/no-emote rule and the escalation-0 row's history caveat —
   the persona otherwise emitted `*shifts uncomfortably*` (spoken verbatim by the
   TTS) and answered history questions once fully calm.
 
 ### Measured referee behaviour
 
-45 runs each (15 cases x 3), one sitting, us-east-1. Accuracy is exact set match
-on the detected action types; latency is the whole `chat()` round trip.
+69 runs each (23 cases x 3), one sitting, us-east-1, all on the current prompt.
+Accuracy is exact set match on the detected action types; latency is the whole
+`chat()` round trip.
 
 | Provider / model / effort | Passed | Median | p95 | Max |
 |---|---|---|---|---|
-| openrouter `anthropic/claude-haiku-4.5` / `none` | 44/45 | 1.51s | 3.02s | 3.42s |
-| bedrock `openai.gpt-oss-120b` / `low` | 37/45 | 0.79s | 2.81s | 4.93s |
-| bedrock `openai.gpt-oss-120b` / `medium` | 40/45 | 2.43s | 5.30s | 7.15s |
-| bedrock `openai.gpt-oss-120b` / `high` | 37/45 | 6.80s | 25.26s | 60.50s |
+| openrouter `anthropic/claude-haiku-4.5` / `none` | 68/69 | 1.12s | 2.88s | 7.47s |
+| **bedrock `openai.gpt-oss-120b` / `low` (deployed)** | **64/69** | **0.79s** | **2.81s** | **6.59s** |
 
-Read it in three parts.
+Earlier sweeps on the narrower 15-case suite, kept because they are why the
+deployed effort is `low` and not something else:
 
-**JSON held.** Zero parse failures in ~135 Bedrock calls with `response_format`
-ignored the whole way. Prompt-enforced structure is good enough on this model;
-that question is settled.
+| Config | Passed | Median | p95 | Max |
+|---|---|---|---|---|
+| gpt-oss-120b / `low` | 37/45 | 0.79s | 2.81s | 4.93s |
+| gpt-oss-120b / `medium` | 40/45 | 2.43s | 5.30s | 7.15s |
+| gpt-oss-120b / `high` | 37/45 | 6.80s | 25.26s | 60.50s |
 
-**`high` is unusable.** The tail runs past `REFEREE_TIMEOUT_SECONDS` by a factor
-of three or more (one run hit the 60s client timeout), and it buys no accuracy —
-its extra failures are false positives, mostly phantom `Verbal Communication`.
+Three things that sweep settled.
 
-**`medium` sits on the budget line.** Max 7.15s against a 7s fail-open timeout,
-so the worst turns score as no-detection. Across a separate 15-run sample, 2 of
-15 exceeded 7s. It is also 4 points less accurate than the haiku incumbent at a
-third of its speed.
+**JSON held.** Zero parse failures in several hundred Bedrock calls with
+`response_format` ignored throughout. Prompt-enforced structure is good enough on
+this model; that question is closed.
 
-One failure is not noise and not effort-related: **`openai.gpt-oss-120b` never
-detects `Authoritative tone`** in "I'm going to have security hold him down..."
-— missed 3/3 at `low`, 3/3 at `medium`, 2/3 at `high`. An escalating action that
-never fires means the student is not penalised for the exact behaviour the
-scenario is built to punish. Fixing it is a prompt job, not a knob.
+**`high` is unusable and `medium` is not worth it.** `high` runs the tail three
+times past `REFEREE_TIMEOUT_SECONDS` (one run hit a 60s client timeout) and buys
+no accuracy — its extra failures are phantom `Verbal Communication`. `medium`
+peaked at 7.15s against the 7s fail-open budget. `low` is the fastest *and*, on
+the current prompt, the most accurate of the three.
+
+**One model-specific gap remains.** `openai.gpt-oss-120b` under-detects
+`Authoritative tone` when a heavier escalating action sits in the same utterance:
+it scores the `Restraint` or `Force IV` and drops the command that ordered it.
+Reproduced on two independently worded utterances, at every effort level, and it
+survives both the completeness rule and a matching few-shot. All five of the
+Bedrock failures above are this one pattern. Asked to reason aloud the model gets
+it right, so it is a recall problem at low effort, not a judgement one.
+
+Consequence for the game: a student who orders staff to restrain the patient is
+charged for the restraint (+10) but not the +2 command. Under-charging, never
+over-charging. The next lever is the scenario's own `desc` for that action —
+`E.g. "We need to do this now"` is the narrowest desc in the set, and it is
+student-facing text, so widening it is a game-content decision rather than a
+prompt fix.
+
+The prompt is shared with whatever provider is configured, so it is checked
+against both. The rewrite that fixed the Bedrock failures left haiku slightly
+better than it was, which is what keeps a provider rollback safe.

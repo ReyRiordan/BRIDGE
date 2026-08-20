@@ -57,7 +57,7 @@
   },
   {
     "name": "coverage: delay procedure",
-    "utterance": "We don't have to do the IV right now \u2014 we can come back to it once you're ready.",
+    "utterance": "We don't have to do the IV right now — we can come back to it once you're ready.",
     "escalation": 6,
     "expected": [
       "Delay Procedure",
@@ -116,6 +116,68 @@
     "name": "neutral: small talk scores nothing",
     "utterance": "It's pretty busy out there tonight, huh.",
     "escalation": 5,
+    "expected": []
+  },
+  {
+    "name": "restraint + force IV + directive, new wording",
+    "utterance": "Pin his arms down so he can't pull away, I'm getting this line in right now.",
+    "escalation": 7,
+    "expected": [
+      "Restraint",
+      "Force IV",
+      "Authoritative tone"
+    ]
+  },
+  {
+    "name": "explanation with no choice offered",
+    "utterance": "This is just a blood pressure cuff — it'll squeeze your arm for a few seconds and then let go.",
+    "escalation": 5,
+    "expected": [
+      "Verbal Communication"
+    ]
+  },
+  {
+    "name": "choice with no explanation",
+    "utterance": "Would you like to do this sitting up, or lying down?",
+    "escalation": 5,
+    "expected": [
+      "Offer Control"
+    ]
+  },
+  {
+    "name": "environmental via noise, new wording",
+    "utterance": "Let me shut this door — it's really loud out there.",
+    "escalation": 6,
+    "expected": [
+      "Environmental"
+    ]
+  },
+  {
+    "name": "hedged sedation is not Restraint",
+    "utterance": "If we can't get anywhere at all we might have to think about other options.",
+    "escalation": 8,
+    "expected": []
+  },
+  {
+    "name": "acknowledge distress, new wording",
+    "utterance": "Being poked at when you're already hurting is a lot for anyone to deal with.",
+    "escalation": 7,
+    "expected": [
+      "Acknowledge distress"
+    ]
+  },
+  {
+    "name": "caregiver asked for guidance, new wording",
+    "utterance": "Mom, is there anything that usually helps him settle when he gets like this?",
+    "escalation": 6,
+    "expected": [
+      "Caregiver involvement"
+    ]
+  },
+  {
+    "name": "politeness alone scores nothing",
+    "utterance": "Thanks for being patient with me, I really appreciate it.",
+    "escalation": 4,
     "expected": []
   }
 ]
