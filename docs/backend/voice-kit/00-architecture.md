@@ -5,7 +5,7 @@ Voice-to-voice conversation pipeline: browser WebRTC ↔ a pipecat pipeline host
 ## Topology
 
 ```
-Browser (React)                        API host (FastAPI, e.g. Lambda)       AgentCore Runtime (VPC)
+Browser (React)                        API host (FastAPI, e.g. Lambda)       AgentCore Runtime
   ├─ POST /voice/{id}/start ─────────► authorize + on_start hooks
   │     ◄── {runtime_session_id,          mint runtime_session_id
   │          ice_servers}                 fetch browser ICE (KVS)

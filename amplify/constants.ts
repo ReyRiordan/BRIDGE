@@ -6,21 +6,6 @@
 // ---------------------------------------------------------------------------
 
 /**
- * VPC AZs for the voice runtime.
- *
- * AgentCore supports only the PHYSICAL zones use1-az1/az2/az4, and the
- * letter -> physical mapping is RANDOMIZED PER ACCOUNT. Wrong letters fail
- * runtime creation with "subnets are in unsupported availability zones" and
- * roll the whole stack back.
- *
- * VERIFIED for account 893361712219 (profile `compass-test`) on 2026-08-16 via
- * `aws ec2 describe-availability-zones`:
- *   us-east-1a -> use1-az1 | us-east-1b -> use1-az2 | us-east-1c -> use1-az4
- * Re-verify (and update this comment) before deploying into any other account.
- */
-export const AVAILABILITY_ZONES = ['us-east-1a', 'us-east-1b', 'us-east-1c'];
-
-/**
  * Provider API keys resolved at runtime cold start from SSM Parameter Store
  * (never as plain-text env values). Set them with
  * `npx ampx sandbox secret set <NAME>` / the Amplify console per branch.
