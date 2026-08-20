@@ -4,7 +4,6 @@ import {
   ALLOWED_ORIGINS,
   API_IMAGE_EXCLUDE,
   API_LAMBDA,
-  AVAILABILITY_ZONES,
   RUNTIME_NAME_MAX_LENGTH,
   SECRET_NAMES,
   VOICE_CONFIG,
@@ -15,15 +14,6 @@ import {
 // No CDK synth here (see voice-runtime.test.ts): these guard the plain data
 // that backend.ts feeds into constructs, which is where the deploy-time
 // mistakes actually live.
-
-describe('AVAILABILITY_ZONES', () => {
-  // AgentCore supports only physical use1-az1/az2/az4; these letters are the
-  // verified mapping for account 893361712219. Anything else rolls the stack
-  // back at deploy time.
-  test('is exactly the three verified us-east-1 letters', () => {
-    expect(AVAILABILITY_ZONES).toEqual(['us-east-1a', 'us-east-1b', 'us-east-1c'])
-  })
-})
 
 describe('SECRET_NAMES', () => {
   test('matches the three provider keys the runtime resolves from SSM', () => {

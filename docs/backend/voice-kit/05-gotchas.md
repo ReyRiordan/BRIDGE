@@ -15,8 +15,8 @@ The OpenAI-compatible bedrock-mantle endpoint authorizes via `bedrock-mantle:*`.
 
 ## AgentCore
 
-**4. AgentCore AZs are account-specific.**
-Only physical `use1-az1/az2/az4` are supported, and the letter→physical mapping is RANDOMIZED per account. Auto-picked or wrong AZ letters fail runtime creation with "subnets are in unsupported availability zones" and roll back the whole stack. Run `aws ec2 describe-availability-zones` before the first deploy in a new account, and pass the verified letters to `addVoiceRuntime`.
+**4. VPC mode is a cost trap — the kit runs on the managed PUBLIC network.** *(Retired as an active gotcha; number kept for cross-references.)*
+An earlier revision ran the runtime in a customer VPC, which required a NAT gateway (~$32/month + data processing, billed under EC2) and AZ pinning (AgentCore VPC mode supports only physical `use1-az1/az2/az4`, with the letter→physical mapping randomized per account — wrong letters roll back the whole stack). `RuntimeNetworkConfiguration.usingPublicNetwork()` gives the same outbound reach with no inbound exposure (the only way in is IAM-authed `invoke_agent_runtime`) and no always-on network cost. Don't reintroduce a VPC unless the runtime must reach genuinely private resources.
 
 **5. `runtimeSessionId` must be 33–256 chars.**
 botocore validates this CLIENT-SIDE, so a bare `uuid4().hex` (32 chars) raises `ParamValidationError` before any network call — which, unhandled, escapes as a CORS-less 500 the browser reports as a bare "Network Error". The kit mints `{prefix}{uuid4().hex}` (40 chars by default) and asserts the length in the router.
@@ -36,7 +36,7 @@ A stalled KVS call must not block the AgentCore handler thread forever. `runtime
 The browser must build its `RTCPeerConnection` with its *own* KVS ICE servers (returned by `/start`) and `iceTransportPolicy: 'relay'`. Without them it gathers only private host candidates and the runtime's relay `CHANNEL_BIND` is rejected with "403 Forbidden IP" — ICE silently stalls. This is why the API role also holds the three `kinesisvideo:*` actions.
 
 **10. SDP filtering is the sole relay-only enforcement on the server.**
-aiortc has no relay-only transport-policy knob; `filter_relay_only_sdp` strips host/srflx/prflx candidates from the answer so VPC-internal addresses never reach the browser. Don't remove it as "redundant".
+aiortc has no relay-only transport-policy knob; `filter_relay_only_sdp` strips host/srflx/prflx candidates from the answer so the container's internal addresses never reach the browser. Don't remove it as "redundant".
 *Local-mode carve-out:* `BRIDGE_LOCAL=1` skips both this filter and the KVS fetch (and flips the browser to `iceTransportPolicy: 'all'`) — loopback produces host candidates and nothing else. Two independent locks keep it off in deploy: the flag is absent from `amplify/voice-runtime.ts` / `VOICE_CONFIG` (asserted in the amplify tests), and the settings validator raises when `ENV=production`. The divergence is real, so the relay-only post-deploy check stays mandatory — see [`../local-dev.md`](../local-dev.md). Pass `ice_servers=[]`, never `None`: aiortc substitutes a public STUN server for `None`, which would break the offline promise.
 
 **11. Non-trickle signaling.**
@@ -124,4 +124,4 @@ BRIDGE's `transcript_event` mapper returns `None` for `user` turns, because the 
 `create_voice_router` resolves `invoker or get_invoker()` when the router is *built*, and `api/main.py` builds it at import time — so setting the flag afterwards leaves a control plane wired to `AgentCoreInvoker` and pointed at AWS. `api/local.py` exists solely to `os.environ.setdefault` the flag before that import (`# noqa: E402`).
 
 **33. Local mode diverges from the cloud exactly where WebRTC is hardest.**
-Host candidates on loopback vs TURN-only in the VPC — see #10. Never merge on local-only verification, and read [`../local-dev.md`](../local-dev.md) before adding anything to the local carve-out.
+Host candidates on loopback vs TURN-only in the deployed runtime — see #10. Never merge on local-only verification, and read [`../local-dev.md`](../local-dev.md) before adding anything to the local carve-out.

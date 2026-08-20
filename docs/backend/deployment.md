@@ -10,16 +10,6 @@ How BRIDGE gets to AWS: the environment topology, what deploys from where, and t
 | GitHub repo for Hosting | `ReyRiordan/MEWAI-BD` (pre-rename name) |
 | Bootstrap | CDK-bootstrapped ✓ |
 
-**Availability zones.** AgentCore supports only the physical zones `use1-az1/az2/az4`, and the letter → physical mapping is randomized per account. Verified for this account on 2026-08-16 with `aws ec2 describe-availability-zones`:
-
-| Letter | Physical |
-|---|---|
-| `us-east-1a` | `use1-az1` |
-| `us-east-1b` | `use1-az2` |
-| `us-east-1c` | `use1-az4` |
-
-Those three letters are pinned in `amplify/constants.ts` (`AVAILABILITY_ZONES`). **Re-verify before deploying into any other account** — wrong letters fail runtime creation with "subnets are in unsupported availability zones" and roll the whole stack back.
-
 ## Quick reference: backend redeploy
 
 Amplify app id: **`d8vcc5ya6qjw1`**. To redeploy the `main` branch backend, run from the repo root (`ampx` resolves `amplify/backend.ts` from the working directory) with Docker running:
@@ -30,11 +20,11 @@ CI=1 AWS_PROFILE=compass-test npx ampx pipeline-deploy --app-id d8vcc5ya6qjw1 --
 
 ## Topology
 
-One real environment: the **`main` branch stack**. A sandbox is used only to shake out the first deploy and is deleted afterwards, so exactly one NAT gateway and one AgentCore runtime are ever billed.
+One real environment: the **`main` branch stack**. A sandbox is used only to shake out the first deploy and is deleted afterwards, so exactly one AgentCore runtime is ever billed.
 
 ```
 Amplify Hosting (web/dist)  ──fetch──>  Lambda Function URL  ──invoke_agent_runtime──>  AgentCore runtime
-        ▲ built from amplify.yml            ▲ api/main.py (FastAPI + LWA container)  ▲ runtime/Dockerfile.voice, in-VPC
+        ▲ built from amplify.yml            ▲ api/main.py (FastAPI + LWA container)  ▲ runtime/Dockerfile.voice, managed PUBLIC network
         │                                   └── amplify_outputs.json custom.apiUrl
         └── frontend only (no Docker in the build image)
 ```
@@ -73,7 +63,7 @@ Order matters at steps 5 → 6 → 7.
    ```
    The API image installs the kit with `--no-deps`, so an undeclared import surfaces
    only at container start — which is exactly what the `docker run` above catches.
-2. **Sandbox** — `npx ampx sandbox --profile compass-test`. Watch for AZ `UPDATE_FAILED`; confirm the AgentCore runtime reaches **READY**.
+2. **Sandbox** — `npx ampx sandbox --profile compass-test`. Confirm the AgentCore runtime reaches **READY**.
 3. **Secrets** — `ampx sandbox secret set` ×3 (above). The command prompts on a TTY and rejects an empty value, so in a non-interactive shell pipe the value in instead: `printf '%s' "$KEY" | npx ampx sandbox secret set NAME --profile compass-test`.
 4. **Verify** —
    - `aws lambda get-function-configuration` shows `VOICE_RUNTIME_ARN` + `KVS_CHANNEL_NAME`.
@@ -101,22 +91,13 @@ Order matters at steps 5 → 6 → 7.
 
 ## Cost
 
-One NAT gateway is the fixed floor (~$32/month, always on) — the reason the sandbox is deleted rather than kept alongside the branch stack. Media relays through KVS managed TURN (billed per streaming minute), not the NAT. AgentCore containers scale per `runtimeSessionId` and are bounded by `maxLifetime: 1h`.
+No always-on network cost: the runtime uses AgentCore's managed PUBLIC network, so there is no VPC, NAT gateway, or Elastic IP (an earlier revision ran in-VPC and paid ~$32/month for the NAT — gotcha #4 in `voice-kit/05-gotchas.md`). Media relays through KVS managed TURN (billed per streaming minute). AgentCore containers scale per `runtimeSessionId` and are bounded by `maxLifetime: 1h`.
 
 ## Gotchas
 
 - `ampx pipeline-deploy` needs `CI=1` and an app + branch that already exist.
 - **Name every per-account resource off the backend identifier.** Both the KVS channel and the AgentCore runtime are unique per account, and sandbox + branch stacks coexist, so the kit's shared defaults (`VoiceKitSignalingChannel`, `VoiceRuntime`) make the second deploy fail with `AlreadyExists`. `voiceRuntimeName()` in `constants.ts` also sanitizes: AgentCore accepts only `[a-zA-Z][a-zA-Z0-9_]{0,47}`, so hyphenated stack names cannot be passed through.
 - A stack left in `ROLLBACK_COMPLETE` cannot be updated — delete it before redeploying.
-- **Teardown usually fails on the first attempt.** AgentCore keeps service-managed `agentic_ai` ENIs in the private subnets for a while after the runtime is deleted, so `ampx sandbox delete` ends in `DELETE_FAILED` on the security group and private subnets ("has a dependent object" / "has dependencies and cannot be deleted"). The ENIs are AWS-owned and cannot be force-deleted; wait for them to release and re-run the delete:
-
-  ```bash
-  aws ec2 describe-network-interfaces --filters Name=interface-type,Values=agentic_ai \
-    --query 'NetworkInterfaces[?VpcId==`<vpc>`].NetworkInterfaceId'
-  aws cloudformation delete-stack --stack-name <stack>   # once the list is empty
-  ```
-
-  Cost-wise this is not urgent: the NAT gateway and Elastic IP — the only meaningful charges — delete successfully in the first pass. What lingers is a free, empty VPC shell.
 - **Never `.dockerignore` a tree an image COPYs.** CDK merges the context root's `.dockerignore` with the per-asset `exclude` prop, stages the tree, and derives the asset hash from the *staged copy*. An ignored tree therefore freezes the hash and the deploy ships **stale code with no error** — the worst failure mode here, because nothing fails. `api/` is subtracted from the voice asset only, via `VOICE_IMAGE_EXCLUDE`, never in `.dockerignore`.
 - **Keep CDK's own output out of the asset source.** Both image assets are rooted at the repo while CDK stages into `.amplify/artifacts/cdk.out/` *inside* that root, so staging copies its output into itself until `ENAMETOOLONG`. `.dockerignore` needs `.amplify/` and `cdk.out/` — and note `amplify/` does **not** match `.amplify/`.
 - **The image build/push is the slow step of every deploy, so guard the hashes.** Two image assets share the repo root as their context: `.dockerignore` is the shared subtraction, and each asset's `exclude` (`API_IMAGE_EXCLUDE` / `VOICE_IMAGE_EXCLUDE` in `constants.ts`) subtracts the other's tree so their hashes never cross-bleed. Junk patterns there are recursive on purpose — a local `pip install ./runtime` regenerates `runtime/build/` + `runtime/*.egg-info` and root-anchored patterns would let that untracked junk bust both hashes. Inside the API image, pip is a cached layer keyed on exactly `api/requirements.txt` + `runtime/pyproject.toml`, so an `api/` or `voice_kit/` edit re-runs only a `COPY`.

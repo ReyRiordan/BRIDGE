@@ -106,7 +106,7 @@ record.
 
 ## Relay-only, and the one exception
 
-`initializeConnection` / `startCall` take a trailing `relayOnly` argument that **defaults to `true`**: the browser pins `iceTransportPolicy: 'relay'`, because the runtime sits in a VPC with no browser-reachable host candidates and each peer needs its own TURN allocation (gotcha #9).
+`initializeConnection` / `startCall` take a trailing `relayOnly` argument that **defaults to `true`**: the browser pins `iceTransportPolicy: 'relay'`, because the runtime container has no browser-reachable host candidates and each peer needs its own TURN allocation (gotcha #9).
 
 The single caller that passes `false` is local dev, where both peers are on loopback and there is no TURN at all. It is driven by `RELAY_ONLY` in `src/config.ts`, which is `false` only when `web/.env.local` sets `VITE_BRIDGE_LOCAL=1`:
 

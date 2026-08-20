@@ -4,8 +4,8 @@
 // Provisions two things in one custom stack:
 //   1. The control-plane API Lambda (FastAPI under the Lambda Web Adapter, as
 //      a container image) behind a Function URL.
-//   2. The voice runtime (VPC + KVS channel + AgentCore container + IAM), via
-//      the vendored addVoiceRuntime() module.
+//   2. The voice runtime (KVS channel + AgentCore container on the managed
+//      PUBLIC network + IAM), via the vendored addVoiceRuntime() module.
 //
 // No auth/data resources: `defineBackend({})` exists only to give us the
 // Amplify app, the backend identifier, and the outputs file.
@@ -30,7 +30,6 @@ import {
   ALLOWED_ORIGINS,
   API_IMAGE_EXCLUDE,
   API_LAMBDA,
-  AVAILABILITY_ZONES,
   SECRET_NAMES,
   VOICE_CONFIG,
   VOICE_IMAGE_EXCLUDE,
@@ -98,7 +97,6 @@ const apiFnUrl = apiFn.addFunctionUrl({ authType: FunctionUrlAuthType.NONE });
 // ---------------------------------------------------------------------------
 addVoiceRuntime({
   stack,
-  availabilityZones: AVAILABILITY_ZONES,
   // Per-backend, like channelName below: AgentCore runtime names are unique per
   // ACCOUNT, so the kit's 'VoiceRuntime' default makes the second backend fail
   // with AlreadyExists while sandbox and branch stacks coexist.

@@ -2,12 +2,12 @@
 // Voice runtime infra — Pipecat pipeline on AWS Bedrock AgentCore Runtime.
 //
 // Drop-in for an Amplify Gen 2 backend.ts (CDK). Call addVoiceRuntime(...) from
-// your backend.ts and it provisions: a VPC (NAT + private subnets), the KVS
-// signaling channel, the AgentCore runtime built from Dockerfile.voice, all
-// task-role grants, and the API-Lambda-side wiring (grantInvoke + env vars +
-// browser-side KVS grants). docs/backend/voice-kit/03-infrastructure.md carries
-// the worked example and explains every grant. Wired from backend.ts in
-// [Rewrite B].
+// your backend.ts and it provisions: the KVS signaling channel, the AgentCore
+// runtime built from Dockerfile.voice (on AgentCore's managed PUBLIC network —
+// no VPC, no NAT gateway), all task-role grants, and the API-Lambda-side wiring
+// (grantInvoke + env vars + browser-side KVS grants).
+// docs/backend/voice-kit/03-infrastructure.md carries the worked example and
+// explains every grant. Wired from backend.ts in [Rewrite B].
 //
 // The real-time WebRTC voice pipeline is the one workload that can't run on
 // Lambda (stateful, streaming, long sessions). It runs as a Pipecat pipeline on
@@ -15,17 +15,11 @@
 // (invoke_agent_runtime, IAM/SigV4); media flows browser<->runtime directly
 // over KVS-managed TURN.
 //
-// This whole block is validated only at deploy time (`ampx sandbox` — watch for
-// AZ UPDATE_FAILED; confirm the runtime reaches READY).
+// This whole block is validated only at deploy time (`ampx sandbox` — confirm
+// the runtime reaches READY).
 // ---------------------------------------------------------------------------
 
 import { CfnOutput, Duration, Stack } from 'aws-cdk-lib';
-import {
-  GatewayVpcEndpointAwsService,
-  Port,
-  SubnetType,
-  Vpc,
-} from 'aws-cdk-lib/aws-ec2';
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { CfnSignalingChannel } from 'aws-cdk-lib/aws-kinesisvideo';
@@ -38,15 +32,6 @@ import type { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
 
 export interface VoiceRuntimeProps {
   stack: Stack;
-  /**
-   * VPC AZs for the voice runtime. AgentCore supports only the PHYSICAL zones
-   * use1-az1/az2/az4, and the letter->physical mapping is RANDOMIZED PER
-   * ACCOUNT — verify with `aws ec2 describe-availability-zones` before the
-   * first deploy into a new account. Wrong letters (or letting CDK auto-pick)
-   * fail AgentCore runtime creation with "subnets are in unsupported
-   * availability zones" and roll back the whole stack.
-   */
-  availabilityZones: string[];
   /**
    * Docker build context. In BRIDGE this is the REPO ROOT ('.'): the image
    * needs both runtime/ and resources/, and the root .dockerignore keeps the
@@ -88,29 +73,11 @@ export interface VoiceRuntimeProps {
   /** Extra task-role policies (e.g. DynamoDB reads for your context provider,
    * writes for your transcript sink). */
   extraRuntimePolicies?: PolicyStatement[];
-  /** Add a free DynamoDB gateway endpoint to the VPC. Enable when your context
-   * provider / transcript sink talk to DynamoDB: their traffic then routes
-   * over the endpoint instead of the NAT gateway — lower latency on the
-   * hottest voice write path and no NAT cost. */
-  addDynamoDbEndpoint?: boolean;
 }
 
 export function addVoiceRuntime(props: VoiceRuntimeProps) {
   const { stack } = props;
   const channelName = props.channelName ?? 'VoiceKitSignalingChannel';
-
-  // VPC for the runtime: a NAT gateway lets the in-VPC runtime reach external AI
-  // providers and the KVS TURN endpoint (NAT -> IGW) while keeping the container
-  // off the public internet (PRIVATE_WITH_EGRESS subnets). AZs pinned per the
-  // availabilityZones doc above.
-  const voiceVpc = new Vpc(stack, 'VoiceKitVpc', {
-    availabilityZones: props.availabilityZones,
-    natGateways: 1,
-    subnetConfiguration: [
-      { name: 'public', subnetType: SubnetType.PUBLIC, cidrMask: 24 },
-      { name: 'private', subnetType: SubnetType.PRIVATE_WITH_EGRESS, cidrMask: 24 },
-    ],
-  });
 
   // KVS signaling channel — the runtime lazily calls GetIceServerConfig against
   // this channel (per session) to obtain managed-TURN credentials (relay-only).
@@ -121,7 +88,9 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
   });
 
   // AgentCore Runtime: CDK builds the ARM64 image from Dockerfile.voice -> ECR
-  // and provisions the runtime in the VPC's PRIVATE_WITH_EGRESS subnets.
+  // and provisions the runtime on AgentCore's managed PUBLIC network — outbound
+  // internet (AI providers, KVS TURN) with no inbound exposure (the only way in
+  // is IAM-authed invoke_agent_runtime), and no VPC/NAT gateway to pay for.
   // Inbound auth defaults to IAM/SigV4 (no authorizerConfiguration) — keyless,
   // and required for session affinity (invoke_agent_runtime(runtimeSessionId=...)
   // pins all signaling round-trips to one container).
@@ -132,10 +101,7 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
       platform: Platform.LINUX_ARM64,
       exclude: props.dockerExclude,
     }),
-    networkConfiguration: RuntimeNetworkConfiguration.usingVpc(stack, {
-      vpc: voiceVpc,
-      vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
-    }),
+    networkConfiguration: RuntimeNetworkConfiguration.usingPublicNetwork(),
     // Self-terminate runaway containers (the pipeline also self-terminates at
     // SESSION_TIME_LIMIT_MINUTES; this is a backstop ceiling).
     lifecycleConfiguration: { maxLifetime: Duration.hours(1) },
@@ -238,16 +204,6 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
     voiceRuntime.role.addToPrincipalPolicy(policy);
   }
 
-  // Optional free DynamoDB gateway endpoint (see prop doc).
-  if (props.addDynamoDbEndpoint) {
-    voiceVpc.addGatewayEndpoint('DynamoDBEndpoint', {
-      service: GatewayVpcEndpointAwsService.DYNAMODB,
-    });
-  }
-
-  // Outbound UDP to anywhere for WebRTC media to KVS-managed TURN (relay).
-  voiceRuntime.connections.allowToAnyIpv4(Port.allUdp(), 'WebRTC media to KVS TURN');
-
   // API-Lambda wiring: each invoker proxies signaling to the runtime
   // (server-to-server, IAM/SigV4) and needs the runtime ARN + channel name.
   for (const fn of props.invokers) {
@@ -278,5 +234,5 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
     value: voiceRuntime.agentRuntimeArn,
   });
 
-  return { runtime: voiceRuntime, vpc: voiceVpc, kvsChannel, channelName };
+  return { runtime: voiceRuntime, kvsChannel, channelName };
 }
