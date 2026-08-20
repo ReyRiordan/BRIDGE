@@ -306,3 +306,17 @@ def test_process_frame_pushes_the_user_frame_after_scoring(monkeypatch):
 
     assert h.types() == ["transcript_update", "action_detected", "state_update"]
     assert order == [("push", frame)]
+
+
+def test_referee_llm_carries_its_own_provider_model_reasoning(monkeypatch):
+    """The REFEREE_* trio mirrors the patient's LLM_* trio and reaches the client."""
+    from bridge import config, referee
+
+    monkeypatch.setattr(config, "REFEREE_PROVIDER", "openrouter")
+    monkeypatch.setattr(config, "REFEREE_MODEL", "some/model")
+    monkeypatch.setattr(config, "REFEREE_REASONING", "medium")
+
+    llm = referee.build_referee_llm(timeout_seconds=3.0)
+
+    assert llm.model == "some/model"
+    assert llm.reasoning_effort == "medium"

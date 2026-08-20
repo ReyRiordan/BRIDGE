@@ -37,10 +37,11 @@ PATIENT_CASE_PATH = os.environ.get("PATIENT_CASE_PATH") or str(
 )
 
 # The referee is a separate LLM call from the patient agent (LLM_* in the kit's
-# settings), so it carries its own provider/model/effort knobs.
+# settings), so it carries its own provider/model/reasoning trio — same three
+# concepts, same suffixes, REFEREE_ prefix instead of LLM_.
 REFEREE_PROVIDER = os.environ.get("REFEREE_PROVIDER", "openrouter")
 REFEREE_MODEL = os.environ.get("REFEREE_MODEL", "anthropic/claude-haiku-4.5")
-REFEREE_EFFORT = os.environ.get("REFEREE_EFFORT", "none")
+REFEREE_REASONING = os.environ.get("REFEREE_REASONING", "none")
 
 # The referee sits on the serial critical path (STT -> referee -> patient -> TTS),
 # so it fails open rather than making the student wait.
