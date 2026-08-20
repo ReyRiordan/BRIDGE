@@ -91,3 +91,32 @@ def test_the_flag_off_touches_nothing():
 
 def test_voice_runtime_url_defaults_to_the_local_runtime_port():
     assert VoiceKitSettings(_env_file=None).voice_runtime_url == "http://localhost:8080"
+
+
+def test_vad_defaults_reproduce_pipecat():
+    """Pinned at pipecat 1.3.0's own values, so an unset env changes nothing."""
+    settings = _settings()
+
+    assert settings.vad_confidence == 0.7
+    assert settings.vad_start_secs == 0.2
+    assert settings.vad_stop_secs == 0.2
+    assert settings.vad_min_volume == 0.6
+    assert settings.vad_speech_activity_period == 0.2
+    assert settings.vad_audio_idle_timeout == 1.0
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("vad_confidence", 1.5),
+        ("vad_confidence", -0.1),
+        ("vad_min_volume", 1.5),
+        ("vad_start_secs", -1),
+        ("vad_stop_secs", -1),
+        ("vad_speech_activity_period", -1),
+        ("vad_audio_idle_timeout", -1),
+    ],
+)
+def test_out_of_range_vad_values_are_refused(field, value):
+    with pytest.raises(ValueError, match=field):
+        _settings(**{field: value})

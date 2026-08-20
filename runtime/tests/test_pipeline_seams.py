@@ -241,3 +241,56 @@ def test_session_context_idle_timeout_overrides_the_setting(monkeypatch):
 
     assert context.idle_timeout_seconds == 375
     assert context.task._idle_timeout_secs == 375
+
+
+def test_build_pipeline_wires_vad_settings_into_the_analyzer(monkeypatch):
+    """The six VAD_* settings reach the single VADProcessor construction site."""
+    import asyncio
+
+    import pipecat.processors.audio.vad_processor as vad_processor_module
+    from pipecat.processors.frame_processor import FrameProcessor
+    from voice_kit import set_context_provider
+    from voice_kit.config import settings
+
+    captured = {}
+    real_vad_processor = vad_processor_module.VADProcessor
+
+    def recording_vad_processor(**kwargs):
+        captured.update(kwargs)
+        return real_vad_processor(**kwargs)
+
+    monkeypatch.setattr(vad_processor_module, "VADProcessor", recording_vad_processor)
+    for field, value in {
+        "vad_confidence": 0.55,
+        "vad_start_secs": 0.15,
+        "vad_stop_secs": 0.9,
+        "vad_min_volume": 0.4,
+        "vad_speech_activity_period": 0.35,
+        "vad_audio_idle_timeout": 2.5,
+    }.items():
+        monkeypatch.setattr(settings, field, value)
+
+    async def provider(session_id: str) -> SessionContext:
+        return a_context()
+
+    class FakeTransport:
+        def input(self):
+            return FrameProcessor()
+
+        def output(self):
+            return FrameProcessor()
+
+    set_processor_factory(lambda args: [FrameProcessor()])
+    set_context_provider(provider)
+    try:
+        asyncio.run(build_pipeline_for_session("sess-1", FakeTransport(), emit=None))
+    finally:
+        set_context_provider(default_context_provider)
+
+    params = captured["vad_analyzer"].params
+    assert params.confidence == 0.55
+    assert params.start_secs == 0.15
+    assert params.stop_secs == 0.9
+    assert params.min_volume == 0.4
+    assert captured["speech_activity_period"] == 0.35
+    assert captured["audio_idle_timeout"] == 2.5
