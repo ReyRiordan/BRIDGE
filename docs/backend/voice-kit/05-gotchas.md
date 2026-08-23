@@ -37,6 +37,7 @@ The browser must build its `RTCPeerConnection` with its *own* KVS ICE servers (r
 
 **10. SDP filtering is the sole relay-only enforcement on the server.**
 aiortc has no relay-only transport-policy knob; `filter_relay_only_sdp` strips host/srflx/prflx candidates from the answer so the container's internal addresses never reach the browser. Don't remove it as "redundant".
+*Checking the answer:* the bar is **≥1 relay and 0 non-relay**, not just "no non-relay". An answer with zero candidates passes the naive check and still stalls the browser for 30s — that was the gotcha-#37 outage. `runtime.py` logs the candidate-type histogram before filtering and warns on zero relay.
 *Local-mode carve-out:* `BRIDGE_LOCAL=1` skips both this filter and the KVS fetch (and flips the browser to `iceTransportPolicy: 'all'`) — loopback produces host candidates and nothing else. Two independent locks keep it off in deploy: the flag is absent from `amplify/voice-runtime.ts` / `VOICE_CONFIG` (asserted in the amplify tests), and the settings validator raises when `ENV=production`. The divergence is real, so the relay-only post-deploy check stays mandatory — see [`../local-dev.md`](../local-dev.md). Pass `ice_servers=[]`, never `None`: aiortc substitutes a public STUN server for `None`, which would break the offline promise.
 
 **11. Non-trickle signaling.**
@@ -47,6 +48,11 @@ CloudFormation exposes no name attribute on `CfnSignalingChannel`, and the runti
 
 **13. Lazy KVS / boto3 init in the runtime.**
 IAM creds aren't ready at container boot; any boto3 client built at import time (worst: an import-time `GetIceServerConfig`) crashes the container. Every client in `runtime/voice_kit/kvs.py` (and the AgentCore client in the control plane) is constructed inside a function.
+
+**37. aiortc uses ONE TURN URI, and on the PUBLIC network it must be TCP/TLS.**
+Two library rules combine into an outage. `aiortc.rtcicetransport.connection_kwargs()` keeps the **first acceptable TURN URI across all servers** and ignores every later one, and it rejects `turns:` unless the URI carries `transport=tcp`. KVS returns `[turn:…?transport=udp, turns:…?transport=udp, turns:…?transport=tcp]` per server, so inheriting that order lands the runtime on TURN over UDP — and the UDP allocation gets no reply from AgentCore's managed PUBLIC network. Gathering then ends with host-only candidates, `filter_relay_only_sdp` strips them all, and the browser receives an answer with **zero** candidates. Everything returns 200; the SPA just times out at `ICE_STALL` 30 s later.
+*Log fingerprint:* ICE gathering goes `gathering → complete` in a flat ~5.0 s (aioice's hardcoded gather timeout), on every session.
+*Fix:* `select_turn_uri` in `kvs.py` picks the URI under `TURN_TRANSPORT` (default `turns_tcp`) and `build_ice_servers` emits one `IceServer` per server with a single `urls` string. aioice's TURN-over-TLS relay candidate is a normal UDP relay candidate, so the browser and the relay-only filter are unaffected — and the browser still receives every URI from `/start`, since Chrome and Firefox happily try all of them. `runtime/tests/test_kvs.py` locks the selection against `connection_kwargs()` itself.
 
 ## Event loop & pipeline
 

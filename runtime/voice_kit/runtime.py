@@ -205,7 +205,7 @@ def _log_candidate_types(sdp: str, session_id: str) -> None:
     A zero-relay answer is the silent outage shape: the filter strips everything,
     the browser gets a candidate-free answer, and ICE stalls for 30s behind 200s
     all the way down. Keep returning 200 — this is the log fingerprint that names
-    the cause (voice-kit gotcha #14).
+    the cause (voice-kit gotcha #37).
     """
     counts: dict[str, int] = {}
     for line in sdp.splitlines():

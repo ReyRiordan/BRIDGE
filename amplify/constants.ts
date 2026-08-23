@@ -70,7 +70,7 @@ export const VOICE_CONFIG: Record<string, string> = {
   // lists the UDP one first — which never completes an allocation from
   // AgentCore's managed PUBLIC network. Pin TLS-over-TCP so the transport is a
   // deploy-time choice, not KVS list order. Runtime-side only: the browser
-  // still receives every URI from /start. See voice-kit gotcha #14.
+  // still receives every URI from /start. See voice-kit gotcha #37.
   TURN_TRANSPORT: 'turns_tcp',
 
   // --- TTS

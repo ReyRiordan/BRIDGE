@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 # Preference order used when ``turn_transport`` is "auto". TLS-over-TCP first:
 # aiortc keeps exactly ONE TURN URI per connection and on AgentCore's managed
-# PUBLIC network the UDP allocation never completes (gotcha #14).
+# PUBLIC network the UDP allocation never completes (gotcha #37).
 TURN_URI_PREFERENCE: Tuple[str, ...] = ("turns_tcp", "turn_tcp", "turn_udp")
 
 

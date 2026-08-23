@@ -64,7 +64,7 @@ The real-time WebRTC pipeline is the one workload that can't run on Lambda: stat
 
 ## Network: managed PUBLIC, no VPC
 
-The runtime uses `RuntimeNetworkConfiguration.usingPublicNetwork()` — AgentCore's default managed network. Outbound internet (external AI providers, the KVS TURN endpoint, SSM) works directly; there is **no inbound exposure** in either mode, because the only way to reach the container is IAM-authed `invoke_agent_runtime` through the AgentCore service endpoint. A customer VPC would buy nothing here and costs a NAT gateway (~$32/month + data processing) plus AZ-pinning constraints (AgentCore VPC mode supports only physical `use1-az1/az2/az4`, with per-account letter randomization). An earlier revision ran in-VPC; it was removed for exactly that cost.
+The runtime uses `RuntimeNetworkConfiguration.usingPublicNetwork()` — AgentCore's default managed network. Outbound TCP/TLS (external AI providers, the KVS TURN endpoint, SSM) works directly; **don't rely on outbound UDP here** — a TURN allocation over UDP gets no reply from this network, which is why `TURN_TRANSPORT` defaults to `turns_tcp` (gotcha #37). There is **no inbound exposure** in either mode, because the only way to reach the container is IAM-authed `invoke_agent_runtime` through the AgentCore service endpoint. A customer VPC would buy nothing here and costs a NAT gateway (~$32/month + data processing) plus AZ-pinning constraints (AgentCore VPC mode supports only physical `use1-az1/az2/az4`, with per-account letter randomization). An earlier revision ran in-VPC; it was removed for exactly that cost.
 
 ## KVS signaling channel
 
