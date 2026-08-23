@@ -66,6 +66,13 @@ export const VOICE_CONFIG: Record<string, string> = {
   VAD_SPEECH_ACTIVITY_PERIOD: '0.2',
   VAD_AUDIO_IDLE_TIMEOUT: '1.0',
 
+  // --- ICE. aiortc keeps exactly one TURN URI per peer connection, and KVS
+  // lists the UDP one first — which never completes an allocation from
+  // AgentCore's managed PUBLIC network. Pin TLS-over-TCP so the transport is a
+  // deploy-time choice, not KVS list order. Runtime-side only: the browser
+  // still receives every URI from /start. See voice-kit gotcha #37.
+  TURN_TRANSPORT: 'turns_tcp',
+
   // --- TTS
   TTS_PROVIDER: 'inworld',
   TTS_VOICE: 'Mark',

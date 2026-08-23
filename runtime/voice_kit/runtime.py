@@ -193,9 +193,41 @@ async def _handle_offer(payload: dict) -> dict:
         logger.info("Local mode: returning the unfiltered answer for %s", session_id)
         return {"sdp": answer["sdp"], "type": answer["type"]}
 
+    _log_candidate_types(answer["sdp"], session_id)
     filtered_sdp = filter_relay_only_sdp(answer["sdp"])
     logger.info("Returning relay-only answer for session %s", session_id)
     return {"sdp": filtered_sdp, "type": answer["type"]}
+
+
+def _log_candidate_types(sdp: str, session_id: str) -> None:
+    """Log what ICE gathering actually produced, and warn when it produced no relay.
+
+    A zero-relay answer is the silent outage shape: the filter strips everything,
+    the browser gets a candidate-free answer, and ICE stalls for 30s behind 200s
+    all the way down. Keep returning 200 — this is the log fingerprint that names
+    the cause (voice-kit gotcha #37).
+    """
+    counts: dict[str, int] = {}
+    for line in sdp.splitlines():
+        stripped = line.strip()
+        if not (
+            stripped.startswith("a=candidate:") or stripped.startswith("candidate:")
+        ):
+            continue
+        fields = stripped.split()
+        typ = fields[fields.index("typ") + 1] if "typ" in fields else "unknown"
+        counts[typ] = counts.get(typ, 0) + 1
+
+    summary = ", ".join(f"{typ}={n}" for typ, n in sorted(counts.items())) or "none"
+    logger.info("Session %s gathered candidates: %s", session_id, summary)
+    if not counts.get("relay"):
+        logger.warning(
+            "Session %s gathered ZERO relay candidates (%s) — the answer will "
+            "carry no candidates and the browser will stall at 'checking'. "
+            "Check TURN_TRANSPORT and the KVS TURN reachability from this network.",
+            session_id,
+            summary,
+        )
 
 
 async def end_session(session_id: str) -> dict:

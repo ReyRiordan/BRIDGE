@@ -5,8 +5,14 @@ The voice runtime never ships STUN/TURN servers to the browser. Instead it asks
 KVS for managed TURN credentials (``GetIceServerConfig``), configures the aiortc
 peer connection to use **relay only**, and strips every non-relay candidate from
 the SDP answer before returning it. The browser therefore connects exclusively
-over KVS-managed TURN (UDP), and VPC-internal host candidates (which the browser
-could never reach) never leak into signaling.
+over KVS-managed TURN, and internal host candidates (which the browser could
+never reach) never leak into signaling.
+
+The runtime's own TURN leg runs over TLS/TCP by default (``TURN_TRANSPORT``):
+aiortc keeps exactly one TURN URI per connection, and the UDP allocation does
+not complete from AgentCore's managed PUBLIC network. The relay candidate aioice
+emits is an ordinary UDP relay candidate either way, so the browser side and
+:func:`filter_relay_only_sdp` are unaffected.
 
 Operational lessons honored here (from the AWS "Pipecat voice agents on
 AgentCore" blog):
@@ -26,11 +32,77 @@ cutoff; the call sites below are marked for deploy-time verification.
 """
 
 import logging
-from typing import List
+from typing import List, Optional, Sequence, Tuple
+from urllib.parse import urlparse
 
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+# Preference order used when ``turn_transport`` is "auto". TLS-over-TCP first:
+# aiortc keeps exactly ONE TURN URI per connection and on AgentCore's managed
+# PUBLIC network the UDP allocation never completes (gotcha #37).
+TURN_URI_PREFERENCE: Tuple[str, ...] = ("turns_tcp", "turn_tcp", "turn_udp")
+
+
+def _classify_turn_uri(uri: str) -> Optional[str]:
+    """Map one TURN URI to a ``turns_tcp`` / ``turn_tcp`` / ``turn_udp`` kind.
+
+    Returns ``None`` for anything else (``stun:``, a bogus scheme, a transport
+    aiortc would reject). TURN URIs are not standard URLs — the host lives in
+    the path and the transport rides a ``?transport=`` query — so the scheme is
+    split off by hand rather than trusting ``urlparse`` netloc parsing.
+    """
+    scheme, _, rest = uri.partition(":")
+    scheme = scheme.strip().lower()
+    if scheme not in ("turn", "turns"):
+        return None
+
+    query = urlparse("//" + rest).query if "?" in rest else ""
+    transport = ""
+    for part in query.split("&"):
+        key, _, value = part.partition("=")
+        if key.strip().lower() == "transport":
+            transport = value.strip().lower()
+
+    # RFC 7065: no transport param means UDP for turn:, TCP for turns:.
+    if not transport:
+        transport = "tcp" if scheme == "turns" else "udp"
+    if transport not in ("udp", "tcp"):
+        return None
+    # aiortc refuses turns: over UDP outright (rtcicetransport.connection_kwargs).
+    if scheme == "turns" and transport != "tcp":
+        return None
+    return f"{scheme}_{transport}"
+
+
+def select_turn_uri(
+    uris: Sequence[str], preference: Sequence[str] = TURN_URI_PREFERENCE
+) -> Optional[str]:
+    """Pick the one TURN URI aiortc should use for a connection.
+
+    aiortc's ``connection_kwargs()`` keeps the FIRST acceptable TURN URI it sees
+    and ignores every later one, across all servers. KVS hands out
+    ``[turn:...?transport=udp, turns:...?transport=udp, turns:...?transport=tcp]``
+    in that order, so inheriting list order means UDP always wins — and UDP TURN
+    does not complete on the managed PUBLIC network. Choosing here makes the
+    transport an explicit decision instead of an accident of ordering.
+
+    Args:
+        uris: TURN/STUN URIs for a single KVS server.
+        preference: Kinds to try, best first. Defaults to
+            :data:`TURN_URI_PREFERENCE`.
+
+    Returns:
+        The first URI whose kind matches the earliest satisfiable preference, or
+        ``None`` if nothing in ``uris`` is usable.
+    """
+    classified = [(uri, _classify_turn_uri(uri)) for uri in uris]
+    for kind in preference:
+        for uri, uri_kind in classified:
+            if uri_kind == kind:
+                return uri
+    return None
 
 
 def fetch_ice_servers(channel_name: str | None = None) -> List[dict]:
@@ -118,22 +190,49 @@ def build_ice_servers(ice_servers: List[dict]):
     :func:`filter_relay_only_sdp`, which strips every non-relay candidate from the
     answer SDP before it is returned to the browser.
 
+    Each server contributes a **single** URI, chosen by :func:`select_turn_uri`
+    under ``settings.turn_transport``, rather than the raw KVS triple. aiortc
+    honors only one TURN URI per connection anyway; emitting one makes that
+    visible. A server with no usable URI is dropped with a warning.
+
+    This narrowing is aiortc-only and must not leak to the browser —
+    :func:`fetch_ice_servers` still returns every URI, and ``/start`` still hands
+    the full list to the client, which tries all of them.
+
     Args:
         ice_servers: ICE server dicts from :func:`fetch_ice_servers`.
 
     Returns:
-        A list of ``pipecat.transports.smallwebrtc.connection.IceServer``.
+        A list of ``pipecat.transports.smallwebrtc.connection.IceServer``, each
+        with a single-string ``urls``.
     """
     from pipecat.transports.smallwebrtc.connection import IceServer
 
-    return [
-        IceServer(
-            urls=s["urls"],
-            username=s.get("username"),
-            credential=s.get("credential"),
+    configured = settings.turn_transport
+    preference = TURN_URI_PREFERENCE if configured == "auto" else (configured,)
+
+    built = []
+    for index, server in enumerate(ice_servers):
+        urls = server["urls"]
+        uris = [urls] if isinstance(urls, str) else list(urls)
+        chosen = select_turn_uri(uris, preference)
+        if chosen is None:
+            logger.warning(
+                "No TURN URI matching %s for KVS server %d — dropping it (had: %s)",
+                configured,
+                index,
+                ", ".join(uris) or "nothing",
+            )
+            continue
+        logger.info("Using TURN URI %s for KVS server %d", chosen, index)
+        built.append(
+            IceServer(
+                urls=chosen,
+                username=server.get("username"),
+                credential=server.get("credential"),
+            )
         )
-        for s in ice_servers
-    ]
+    return built
 
 
 def filter_relay_only_sdp(sdp: str) -> str:

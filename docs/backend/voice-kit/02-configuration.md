@@ -12,6 +12,7 @@ All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-set
 | `BRIDGE_LOCAL` | both | `false` | Local dev mode: skips the KVS fetch + the relay-only SDP filter, implies `VOICE_INVOKER=local`, and **raises** on `ENV=production` or any AWS-backed provider. See [`../local-dev.md`](../local-dev.md) |
 | `AWS_REGION` | both | `us-east-1` | Region for KVS, Polly, Transcribe, Bedrock, AgentCore client |
 | `KVS_CHANNEL_NAME` | both | — | Set by infra on both sides (runtime + API both fetch ICE servers) |
+| `TURN_TRANSPORT` | runtime | `turns_tcp` | Which KVS TURN URI the runtime's aiortc connection uses: `turns_tcp` \| `turn_tcp` \| `turn_udp` \| `auto` (first available, in that order). aiortc honors one URI per connection and UDP TURN doesn't complete on the managed PUBLIC network, so the default is TLS-over-TCP (gotcha #37). Runtime-side only — `/start` still hands the browser every URI |
 | `VOICE_RUNTIME_ARN` | control-plane | — | `invoke_agent_runtime` target; set by infra on the API host |
 | `VOICE_INVOKER` | control-plane | `agentcore` | Router→runtime backend: `agentcore` \| `local`. Implied by `BRIDGE_LOCAL`; an explicit value still wins |
 | `VOICE_RUNTIME_URL` | control-plane | `http://localhost:8080` | `LocalInvoker` target (`{url}/invocations`); unused by `agentcore` |

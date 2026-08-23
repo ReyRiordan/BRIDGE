@@ -53,6 +53,13 @@ describe('VOICE_CONFIG', () => {
     expect(VOICE_CONFIG.TTS_PROVIDER).toBe('inworld')
   })
 
+  test('pins the runtime TURN transport off UDP', () => {
+    // Gotcha #14: aiortc keeps one TURN URI per connection and KVS lists the
+    // UDP one first, which gets no reply on the managed PUBLIC network — the
+    // runtime then gathers zero relay candidates and every session stalls.
+    expect(VOICE_CONFIG.TURN_TRANSPORT).toBe('turns_tcp')
+  })
+
   test('gives Bedrock the endpoint it has no default for', () => {
     // Unset, BedrockChat requests the literal URL `None/chat/completions`. It is
     // a public regional endpoint, so it is plain env config, not an SSM secret.
