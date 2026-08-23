@@ -12,7 +12,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
 | `resources/` | Scenario config + prompts. COPYed to `/app/resources` in **both** images. | Both |
 | `runtime/evals/` | Manual, network-hitting prompt evals (referee eval + patient probe). Never run by CI; still linted. See `prompts.md`. | Local |
-| `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke). | Local / CI |
+| `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke), `cloud_voice_probe.py` (the deployed-stack counterpart, and the post-deploy gate). | Local / CI |
 
 ## Doc map
 
@@ -83,6 +83,10 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 # The whole stack on localhost, zero AWS calls (see local-dev.md).
 npm run dev                                    # SPA :5173 + API :8000 + runtime :8080
 .venv/bin/python scripts/local_voice_smoke.py  # Tier-1 acceptance smoke
+
+# The deployed stack — real KVS TURN, real AgentCore session. Never a substitute
+# for the other direction either: run it after every backend deploy.
+python3 scripts/cloud_voice_probe.py
 
 # Two invocations, not one: `api/` tests the INSTALLED voice_kit package while
 # runtime/ tests the tree, and collecting both at once lets the installed copy

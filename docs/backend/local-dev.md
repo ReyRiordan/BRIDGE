@@ -104,6 +104,16 @@ npm run dev                                  # in another terminal
 
 It asserts `/start` returned no ICE servers, that the answer carries a **non-relay** candidate (proving the filter was skipped), that ICE reaches `connected`, that a v1 game event arrives over the data channel and parses to an *object* (a double-encoded payload leaves audio working while the SPA drops every event — kit gotcha #34), and that `/end` is clean. Non-zero exit on any failure. Not wired into CI — it needs three live processes and the provider keys.
 
+### What this smoke can never tell you
+
+Everything it proves, it proves on loopback host candidates with the relay-only filter skipped. The cloud's TURN path is a different transport with a different failure mode, and it has broken while every local check stayed green. `scripts/cloud_voice_probe.py` is the counterpart that covers it, against the deployed function URL:
+
+```bash
+python3 scripts/cloud_voice_probe.py     # --api-base overrides amplify_outputs.json
+```
+
+It gates on ≥1 `typ relay` candidate and 0 non-relay in the runtime's answer, ICE `connected`, and a v1 data-channel event. Run it after every backend deploy ([`voice-kit/04-deploy-runbook.md`](voice-kit/04-deploy-runbook.md)) — **never merge on local-only verification.**
+
 ### Tier 2: a full game in the browser
 
 Open the SPA and play, checking the paths tests cannot reach: a turn that clears a transient action, the Restraint instant-fail, the timer-expiry fail, and Play Again resetting cleanly (a brand-new `session_id`, a clean board). Kill the runtime process mid-game to check the connection-lost end state. See [`../frontend/voice-integration.md`](../frontend/voice-integration.md) for what each of those exercises.
