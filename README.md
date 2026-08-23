@@ -52,6 +52,11 @@ start under `ENV=production`. Full setup, plus where local diverges from the
 cloud, is in [`docs/backend/local-dev.md`](docs/backend/local-dev.md). **Never
 merge on local-only verification.**
 
+The smoke test runs on loopback with the relay-only TURN filter skipped, so it
+says nothing about the deployed stack. `python3 scripts/cloud_voice_probe.py`
+is the counterpart that drives the real function URL, and the gate after every
+backend deploy.
+
 ## Docs
 
 | Layer | Start here |

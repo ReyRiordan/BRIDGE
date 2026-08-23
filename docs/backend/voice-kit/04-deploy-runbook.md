@@ -34,7 +34,17 @@ Watch for the AgentCore runtime reaching **READY** in the console.
 ## 4. Post-deploy checklist
 
 1. `/start` returns `runtime_session_id` (40 chars) **and a non-empty `ice_servers`** — an empty list means the API role's KVS grants or `KVS_CHANNEL_NAME` are wrong (check API logs for the warning).
-2. One `start` → `signal` round trip returns an SDP answer whose only candidates are `typ relay` lines (`grep 'a=candidate' | grep -v relay` should be empty). **Unchanged and still mandatory now that local dev mode exists** — local mode deliberately skips this filter, so a change verified only on localhost has never exercised the TURN path (see [`../local-dev.md`](../local-dev.md)).
+2. Run the probe. It drives one `start` → `signal` → `end` round trip against the deployed function URL and gates on **≥1 `typ relay` candidate and 0 non-relay** in the answer, ICE `connected`, and one v1 data-channel event. Non-zero exit on any failure, so it gates a deploy directly.
+
+   ```sh
+   python3 scripts/cloud_voice_probe.py     # --api-base overrides amplify_outputs.json
+   ```
+
+   The "at least one" half is not optional. The check this replaced was `grep 'a=candidate' | grep -v relay` comes back empty, which also passes on an answer carrying **zero** candidates — the exact shape of a runtime that gathered no relay candidate at all. That vacuous pass is how the Aug 2026 ICE outage went unnoticed for three days.
+
+   The probe also gathers its own relay candidate from the same KVS credentials before it signals, as a control: a laptop that gets an allocation while the runtime does not means the URIs and creds are healthy and the failure is specific to AgentCore's network.
+
+   **Mandatory now that local dev mode exists** — local mode deliberately skips the relay-only filter, so a change verified only on localhost has never exercised the TURN path (see [`../local-dev.md`](../local-dev.md)).
 3. A real call connects: ICE reaches `connected` within ~10 s, you hear TTS, and transcript turns arrive on the data channel.
 4. CloudWatch (runtime log group): no `UnrecognizedClientException`, no `set_wakeup_fd`, no `Missing module: cv2`.
 5. If you registered a transcript handler: turns appear in your store *during* the call, and `/end` returns them.

@@ -33,6 +33,8 @@ npm run dev                                    # all three processes
 
 `BRIDGE_LOCAL=1` is the umbrella flag; it requires the non-AWS providers (`together`/`inworld`/`openrouter`) and refuses to run under `ENV=production`. Full setup and the local/cloud ICE divergence: [`docs/backend/local-dev.md`](docs/backend/local-dev.md) — **never merge on local-only verification.**
 
+The cloud counterpart, which the local smoke can never substitute for (it skips the TURN path by design), is `python3 scripts/cloud_voice_probe.py` — the post-deploy gate against the deployed function URL.
+
 ## Exploration Workflow
 
 When working on or exploring the codebase from a fresh start, ALWAYS start by reading the README of the relevant layer's documentation folder (frontend/, backend/). Then, use the documentation map in this README to navigate to the specific docs relevant to the current task. These docs will provide you with the core context and point to specific code files that you can read as necessary. Always do this relevant doc reading BEFORE you do actual codebase exploration.
