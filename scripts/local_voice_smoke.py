@@ -53,6 +53,10 @@ def ok(message: str) -> None:
 
 
 def fail(message: str) -> None:
+    # Flush first: redirected to a file or a pipe, stdout is block-buffered and
+    # stderr is not, so the failure would otherwise land above the ✓ lines that
+    # led to it — and this output gets pasted into issues.
+    sys.stdout.flush()
     print(f"  \033[31m✗\033[0m {message}", file=sys.stderr)
     sys.exit(1)
 
