@@ -209,9 +209,7 @@ def build_ice_servers(ice_servers: List[dict]):
     from pipecat.transports.smallwebrtc.connection import IceServer
 
     configured = settings.turn_transport
-    preference = (
-        TURN_URI_PREFERENCE if configured == "auto" else (configured,)
-    )
+    preference = TURN_URI_PREFERENCE if configured == "auto" else (configured,)
 
     built = []
     for index, server in enumerate(ice_servers):
