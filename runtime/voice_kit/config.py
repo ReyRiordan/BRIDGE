@@ -176,6 +176,16 @@ class VoiceKitSettings(BaseSettings):
         default=None,
         description="KVS signaling channel name for managed TURN (GetIceServerConfig)",
     )
+    # aiortc honors exactly one TURN URI per peer connection, so build_ice_servers
+    # picks it instead of inheriting KVS list order (which puts UDP first). UDP
+    # TURN does not complete from AgentCore's managed PUBLIC network — hence the
+    # turns_tcp default. "auto" walks the full preference ladder.
+    turn_transport: Literal["turns_tcp", "turn_tcp", "turn_udp", "auto"] = Field(
+        default="turns_tcp",
+        description="Which KVS TURN URI the runtime's aiortc connection uses: "
+        "turns_tcp (TLS over TCP), turn_tcp, turn_udp, or auto (first available "
+        "in that order). Runtime-side only — the browser still gets every URI",
+    )
 
     # AgentCore Voice Runtime (control-plane signaling proxy)
     # The /signal endpoint proxies WebRTC signaling to this runtime via
