@@ -20,7 +20,7 @@ CI=1 AWS_PROFILE=compass-test npx ampx pipeline-deploy --app-id d8vcc5ya6qjw1 --
 
 ## Topology
 
-One real environment: the **`main` branch stack**. A sandbox is used only to shake out the first deploy and is deleted afterwards, so exactly one AgentCore runtime is ever billed.
+One real environment: the **`main` branch stack**, served at https://main.d8vcc5ya6qjw1.amplifyapp.com/. A sandbox is used only to shake out the first deploy and is deleted afterwards, so exactly one AgentCore runtime is ever billed.
 
 ```
 Amplify Hosting (web/dist)  ──fetch──>  Lambda Function URL  ──invoke_agent_runtime──>  AgentCore runtime

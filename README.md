@@ -1,5 +1,7 @@
 # BRIDGE — Behavioral Response and Interactive De-escalation Guided Education
 
+**Live site:** https://main.d8vcc5ya6qjw1.amplifyapp.com/
+
 A voice-to-voice medical training simulation. A student speaks aloud with an AI
 patient in real time; each utterance is transcribed, scored for de-escalation
 actions, and used to drive the patient's reply. An escalation bar tracks the
