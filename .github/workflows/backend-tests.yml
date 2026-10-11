@@ -8,6 +8,7 @@ on:
       - 'runtime/**'
       - 'resources/**'
       - 'scripts/gen_event_types.py'
+      - 'scripts/visuals/**'
       - '.github/workflows/backend-tests.yml'
   pull_request:
     branches: [main]
@@ -16,6 +17,7 @@ on:
       - 'runtime/**'
       - 'resources/**'
       - 'scripts/gen_event_types.py'
+      - 'scripts/visuals/**'
       - '.github/workflows/backend-tests.yml'
 
 jobs:
@@ -34,10 +36,10 @@ jobs:
         run: pip install "$(grep -E '^ruff==' api/requirements.txt)"
 
       - name: Ruff lint
-        run: ruff check api runtime
+        run: ruff check api runtime scripts/visuals
 
       - name: Ruff format check
-        run: ruff format --check api runtime
+        run: ruff format --check api runtime scripts/visuals
 
   test:
     runs-on: ubuntu-latest
@@ -82,3 +84,27 @@ jobs:
         # wire contract shared with the SPA). Fails when it drifts from the
         # code — regenerate with `python3 scripts/gen_event_types.py`.
         run: python3 scripts/gen_event_types.py --check
+
+  visuals:
+    # The art-pipeline tooling (scripts/visuals/). Only the model-free,
+    # network-free subset of its requirements is installed: the tests must
+    # never need torch/transformers or google-genai.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scripts/visuals/requirements.txt
+
+      - name: Install dependencies (pins from scripts/visuals/requirements.txt)
+        run: >-
+          pip install $(grep -E '^(numpy|opencv-python-headless|pillow|pyyaml|boto3|pytest)=='
+          scripts/visuals/requirements.txt)
+
+      - name: Run tests
+        run: pytest scripts/visuals/tests/
