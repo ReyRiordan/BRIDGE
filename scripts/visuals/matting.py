@@ -29,6 +29,22 @@ def _disk(radius: int) -> np.ndarray:
     )
 
 
+def grow(mask: np.ndarray, radius: float) -> np.ndarray:
+    """Dilate a bool mask by a Euclidean ``radius`` — a distance transform, so
+    the cost doesn't scale with the radius the way a disk kernel's does."""
+    if radius <= 0:
+        return mask.astype(bool)
+    dist = cv2.distanceTransform((~mask.astype(bool)).astype(np.uint8), cv2.DIST_L2, 5)
+    return dist <= radius
+
+
+def shrink(mask: np.ndarray, radius: float) -> np.ndarray:
+    """Erode a bool mask by a Euclidean ``radius``."""
+    if radius <= 0:
+        return mask.astype(bool)
+    return cv2.distanceTransform(mask.astype(np.uint8), cv2.DIST_L2, 5) > radius
+
+
 def crop_box(
     shape: tuple[int, ...], aspect: float, offset: tuple[float, float] = (0.5, 0.5)
 ) -> tuple[int, int, int, int]:
@@ -130,19 +146,19 @@ def align_to_plate(
         return warp_to_plate(
             plate, composite, estimate_alignment(plate, composite, exclude)
         )
-    grow = _disk(_scale_px(plate.shape, 0.02))
+    radius = _scale_px(plate.shape, 0.02)
     resized = composite
     if composite.shape != plate.shape:
         resized = cv2.resize(
             composite, (plate.shape[1], plate.shape[0]), cv2.INTER_AREA
         )
     rough = diff_mask(plate, resized, 0.2, ignore_shading=False)
-    rough = cv2.dilate(rough.astype(np.uint8), grow) > 0
+    rough = grow(rough, radius)
     aligned = warp_to_plate(
         plate, composite, estimate_alignment(plate, composite, rough)
     )
     tight = diff_mask(plate, aligned, 0.05, ignore_shading=False)
-    tight = cv2.dilate(tight.astype(np.uint8), grow) > 0
+    tight = grow(tight, radius)
     return warp_to_plate(plate, composite, estimate_alignment(plate, composite, tight))
 
 
@@ -252,9 +268,8 @@ def diff_mask(
 
 def make_trimap(mask: np.ndarray, erode_px: int, dilate_px: int) -> np.ndarray:
     """Sure-foreground core, an unknown band of ``erode_px + dilate_px``, background."""
-    m = mask.astype(np.uint8)
-    fg = cv2.erode(m, _disk(erode_px)) > 0 if erode_px > 0 else mask
-    maybe = cv2.dilate(m, _disk(dilate_px)) > 0 if dilate_px > 0 else mask
+    fg = shrink(mask, erode_px)
+    maybe = grow(mask, dilate_px)
     trimap = np.zeros(mask.shape, np.uint8)
     trimap[maybe] = 128
     trimap[fg] = 255
@@ -295,9 +310,11 @@ def shadow_alpha(
     sigma = max(1.0, max(plate.shape[:2]) / 1000)
     lum, shade = shading(plate, composite, max_alpha=max_alpha)
 
-    m = person_mask.astype(np.uint8)
-    outside = cv2.dilate(m, _disk(_scale_px(plate.shape, 1 / 500))) == 0
-    near = cv2.dilate(m, _disk(_scale_px(plate.shape, reach))) > 0
+    dist = cv2.distanceTransform(
+        (~person_mask.astype(bool)).astype(np.uint8), cv2.DIST_L2, 5
+    )
+    outside = dist > _scale_px(plate.shape, 1 / 500)
+    near = dist <= _scale_px(plate.shape, reach)
 
     # Close the shade mask first: the texture test misses scattered pixels,
     # and blurring zeros into a shadow would thin it.

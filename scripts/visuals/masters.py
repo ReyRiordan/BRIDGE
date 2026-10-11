@@ -13,7 +13,7 @@ Usage:
     masters.py status <scenario_id>
 
 Uses the default AWS credential chain. ``BRIDGE_VISUALS_BUCKET`` overrides the
-bucket name.
+bucket name; ``BRIDGE_VISUALS_MANIFESTS`` the manifest directory (scratch runs).
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from pathlib import Path
 
 from common import HERE, local_path, sha256_file, work_root
 
-MANIFEST_DIR = HERE / "masters"
+MANIFEST_DIR = Path(os.environ.get("BRIDGE_VISUALS_MANIFESTS", HERE / "masters"))
 REGION = "us-east-1"
 # Only these work-dir subtrees are masters; previews and contact sheets are not.
 MASTER_DIRS = ("plate", "composites", "layers")

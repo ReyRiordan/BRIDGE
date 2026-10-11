@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 import time
 
-import cv2
 import masters
 import matte_model
 import matting
@@ -64,8 +63,7 @@ def extract_layer(
     t = time.time()
     aligned = matting.align_to_plate(plate, composite)
     changed = matting.diff_mask(plate, aligned, 0.05, ignore_shading=False)
-    grow = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * dilate_px + 1,) * 2)
-    changed = cv2.dilate(changed.astype(np.uint8), grow) > 0
+    changed = matting.grow(changed, dilate_px)
     aligned = matting.match_exposure(plate, aligned, exclude=changed)
     stats["align_s"] = round(time.time() - t, 2)
 
