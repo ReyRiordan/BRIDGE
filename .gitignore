@@ -16,3 +16,6 @@ build/
 amplify_outputs.json
 web/public/amplify_outputs.json
 .amplify/
+
+# Visuals pipeline work dir (masters cache + contact sheets; S3 is the source of truth).
+.visuals-work/
