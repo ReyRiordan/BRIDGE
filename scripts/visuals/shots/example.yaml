@@ -1,0 +1,31 @@
+# Example shot list — the schema reference (see README.md) and the fixture the
+# dry-run test plans against. Real scenario shot lists live next to it.
+room_prompt: >-
+  A small, modern hospital exam room seen from the corner opposite the door.
+  A padded exam chair stands against the left wall; a counter with a sink and
+  a wall-mounted monitor on the right; the door to the corridor is visible at
+  the back right, closed. Pale blue walls, vinyl floor, overhead fluorescent
+  light.
+patient_description: >-
+  A man in his early 40s, short dark hair, light stubble, wearing a grey
+  hoodie, dark jeans and white sneakers.
+start_level: 5
+max_level: 10
+# Normalised [x0, y0, x1, y1]: the patient's whole path (chair → door) must
+# stay inside it so it survives the 1196:880 stage crop.
+safe_area: [0.08, 0.08, 0.92, 0.98]
+# Where the stage crop sits in the 4:3 master: (0.5, 0.5) = centred.
+crop_offset: [0.5, 0.5]
+model: gemini-nano-banana-2.1
+frames:
+  0: Seated relaxed in the exam chair, shoulders down, a slight smile, making eye contact.
+  1: Seated relaxed, hands resting in his lap, calm and attentive.
+  2: Seated, attentive, a neutral expression.
+  3: Seated, arms crossed, a slight frown.
+  4: Seated, arms crossed tightly, frowning, jaw set.
+  5: Seated, leaning forward with his elbows on his knees, visibly irritated.
+  6: Seated on the chair's edge, gesturing with one open hand, brow furrowed.
+  7: Standing beside the chair, gesturing sharply with one hand, angry.
+  8: Standing, both hands raised in exasperation, shouting.
+  9: Walking toward the door, looking back over his shoulder, angry.
+  10: At the door, hand on the handle, turning to leave.
