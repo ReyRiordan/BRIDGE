@@ -68,7 +68,7 @@ def test_importing_the_tooling_does_not_import_torch_or_genai():
     here = Path(__file__).resolve().parent.parent
     code = (
         "import sys; sys.path.insert(0, %r);"
-        "import matting, matte_model;"
+        "import matting, matte_model, masters, generate, extract, export, contact_sheet;"
         "bad = [m for m in ('torch', 'transformers', 'google.genai') if m in sys.modules];"
         "assert not bad, bad"
     ) % str(here)

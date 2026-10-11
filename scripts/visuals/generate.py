@@ -6,6 +6,7 @@ Usage:
     generate.py frame  <scenario_id> <level> [-n 3] [--from <composite>]
     generate.py chain  <scenario_id> [-n 3]
     generate.py accept <scenario_id> <level|plate> <candidate>
+    generate.py reject <scenario_id> <level|plate> <candidate> [--note "why"]
     generate.py collect <scenario_id> <batch-job-name>
 
 Common flags: --model, --size, --batch, --dry-run (print the requests and the
@@ -528,6 +529,8 @@ def accept(scenario_id: str, target: str, candidate: str) -> str:
     manifest = masters.load_manifest(scenario_id)
     key = find_key(scenario_id, candidate, manifest, _slot_prefix(scenario_id, slot))
     previous = manifest["accepted"].get(slot)
+    if manifest["objects"][key].get("rejected"):
+        masters.record(scenario_id, key, {"rejected": False})
     masters.accept(scenario_id, slot, key)
     if slot == "plate" and previous and previous != key:
         frames = [s for s in manifest["accepted"] if s != "plate"]
@@ -540,6 +543,19 @@ def accept(scenario_id: str, target: str, candidate: str) -> str:
 
 
 # --- CLI ----------------------------------------------------------------------
+
+
+def reject(scenario_id: str, target: str, candidate: str, note: str | None) -> str:
+    """Flag a candidate as rejected (the contact sheet folds it away, with the note)."""
+    slot = "plate" if target == "plate" else _slot(int(target))
+    manifest = masters.load_manifest(scenario_id)
+    key = find_key(scenario_id, candidate, manifest, _slot_prefix(scenario_id, slot))
+    if manifest["accepted"].get(slot) == key:
+        raise SystemExit(
+            f"{key} is the accepted {slot}; accept another candidate first"
+        )
+    masters.record(scenario_id, key, {"rejected": True, "note": note or ""})
+    return key
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -576,6 +592,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("scenario_id")
     p.add_argument("target", help="a level number, or 'plate'")
     p.add_argument("candidate", help="file name, work-dir path, or S3 key")
+    p = sub.add_parser("reject", help="flag a candidate as rejected, with a note")
+    p.add_argument("scenario_id")
+    p.add_argument("target", help="a level number, or 'plate'")
+    p.add_argument("candidate", help="file name, work-dir path, or S3 key")
+    p.add_argument("--note", help="why (shown on the contact sheet)")
     p = sub.add_parser("collect", help="wait for and save a submitted batch job")
     p.add_argument("scenario_id")
     p.add_argument("job")
@@ -583,6 +604,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "accept":
         print(f"accepted {accept(args.scenario_id, args.target, args.candidate)}")
+        return 0
+    if args.cmd == "reject":
+        print(
+            f"rejected {reject(args.scenario_id, args.target, args.candidate, args.note)}"
+        )
         return 0
     if args.cmd == "collect":
         collect(args.scenario_id, args.job)
