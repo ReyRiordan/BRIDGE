@@ -12,7 +12,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
 | `resources/` | Scenario config + prompts. COPYed to `/app/resources` in **both** images. | Both |
 | `runtime/evals/` | Manual, network-hitting prompt evals (referee eval + patient probe). Never run by CI; still linted. See `prompts.md`. | Local |
-| `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke), `cloud_voice_probe.py` (the deployed-stack counterpart, and the post-deploy gate). | Local / CI |
+| `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke), `cloud_voice_probe.py` (the deployed-stack counterpart, and the post-deploy gate). `visuals/`: the scene-art pipeline — Nano Banana generation, clean-plate layer extraction, masters in S3, web-asset export (see `visual-pipeline.md`). | Local / CI |
 
 ## Doc map
 
@@ -21,6 +21,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `local-dev.md` | `BRIDGE_LOCAL=1`: the one-machine dev loop, what the flag changes, the Tier-1 smoke |
 | `prompts.md` | The referee + patient prompts, what the model is (and is not) shown, the manual evals |
 | `deployment.md` | Environment topology, secrets, the deploy runbook, cost |
+| `visual-pipeline.md` | The scene-art tooling (`scripts/visuals/`): shot lists, generation, extraction, the masters bucket + manifest, export, costs |
 | `voice-kit/00-architecture.md` | Topology, the pipeline chain, the two session ids, extension points |
 | `voice-kit/01-integration-guide.md` | How the halves wire together; the verification gates |
 | `voice-kit/02-configuration.md` | Every env var, provider tables, the SSM secrets mechanism |
@@ -96,6 +97,10 @@ python3 -m pytest runtime/tests
 ruff check api runtime                         # lint (config: root ruff.toml)
 ruff format --check api runtime                # format
 python3 -m compileall runtime/voice_kit runtime/bridge api
+
+# The scene-art tooling (its own venv; see visual-pipeline.md)
+python3 -m pytest scripts/visuals/tests
+ruff check scripts/visuals && ruff format --check scripts/visuals
 
 # Pipecat-free gate — the second command must FAIL (proves the venv is clean):
 python3 -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
