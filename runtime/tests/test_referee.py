@@ -8,27 +8,22 @@ assert is exactly what the browser would receive on the data channel.
 
 import asyncio
 import json
-import sys
 from datetime import datetime
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge.config import load_scenario  # noqa: E402
-from bridge.emitter import GameEvents  # noqa: E402
-from bridge.referee import (  # noqa: E402
+from bridge.config import load_scenario
+from bridge.emitter import GameEvents
+from bridge.referee import (
     RefereeProcessor,
     build_referee_payload,
     build_response_format,
     parse_referee_verdict,
 )
-from bridge.session import GameSession  # noqa: E402
-from voice_kit.errors import UpstreamServiceError  # noqa: E402
-from voice_kit.processors import TranscriptMessageFrame  # noqa: E402
-from voice_kit.providers.llm import BaseLLM  # noqa: E402
-from voice_kit.types import TranscriptMessage  # noqa: E402
+from bridge.session import GameSession
+from voice_kit.errors import UpstreamServiceError
+from voice_kit.processors import TranscriptMessageFrame
+from voice_kit.providers.llm import BaseLLM
+from voice_kit.types import TranscriptMessage
 
 SCENARIO = load_scenario()
 

@@ -10,15 +10,10 @@ pins the decode down at the one boundary where the two conventions meet.
 
 import asyncio
 import json
-import sys
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit import runtime  # noqa: E402
-from voice_kit.config import settings  # noqa: E402
+from voice_kit import runtime
+from voice_kit.config import settings
 
 
 class FakeConnection:

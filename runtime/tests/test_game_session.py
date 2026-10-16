@@ -6,17 +6,12 @@ under test are the ones the students actually play against, so a scenario edit
 that breaks the game breaks these tests.
 """
 
-import sys
 import time
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge import session as session_module  # noqa: E402
-from bridge.config import load_scenario  # noqa: E402
-from bridge.session import (  # noqa: E402
+from bridge import session as session_module
+from bridge.config import load_scenario
+from bridge.session import (
     GameSession,
     drop_session,
     get_or_create_session,

@@ -74,9 +74,9 @@ jobs:
         working-directory: runtime
 
       - name: Run tests
-        run: |
-          pytest api/tests/
-          pytest runtime/tests/
+        # Bare pytest, same as local: the root pytest.ini puts runtime/ on the
+        # path and collects api/tests + runtime/tests in one combined run.
+        run: pytest
 
       - name: Event contract freshness
         # The committed web/src/voice/gameEvents.gen.ts is generated from the

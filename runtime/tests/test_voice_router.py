@@ -5,14 +5,8 @@ Importing voice_kit here doubles as the pipecat-free gate: nothing in this test
 installs pipecat, and `create_voice_router()` must still build.
 """
 
-import sys
-from pathlib import Path
-
+import voice_kit
 from fastapi import APIRouter
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-import voice_kit  # noqa: E402  — needs the sys.path line above
 
 
 def _routes(router: APIRouter) -> set[tuple[str, frozenset]]:

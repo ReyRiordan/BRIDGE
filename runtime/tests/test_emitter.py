@@ -3,16 +3,12 @@ The emitter: v1 envelope per helper, failure isolation, and the sink mapper.
 """
 
 import json
-import sys
 from datetime import datetime
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge.config import load_scenario  # noqa: E402
-from bridge.emitter import GameEvents, transcript_event  # noqa: E402
-from bridge.session import GameSession  # noqa: E402
-from voice_kit.types import TranscriptMessage  # noqa: E402
+from bridge.config import load_scenario
+from bridge.emitter import GameEvents, transcript_event
+from bridge.session import GameSession
+from voice_kit.types import TranscriptMessage
 
 SCENARIO = load_scenario()
 

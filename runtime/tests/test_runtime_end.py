@@ -4,15 +4,10 @@ pipeline task, run the host's end hook, stay idempotent.
 """
 
 import asyncio
-import sys
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit import runtime as runtime_module  # noqa: E402
-from voice_kit import set_session_end_hook  # noqa: E402
+from voice_kit import runtime as runtime_module
+from voice_kit import set_session_end_hook
 
 
 @pytest.fixture(autouse=True)
