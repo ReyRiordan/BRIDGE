@@ -6,18 +6,13 @@ The 1 Hz session clock: tick cadence, expiry, and single-emitter restart.
 
 import asyncio
 import json
-import sys
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge import timer as timer_module  # noqa: E402
-from bridge.config import load_scenario  # noqa: E402
-from bridge.emitter import GameEvents  # noqa: E402
-from bridge.session import GameSession  # noqa: E402
-from bridge.timer import cancel_timer, run_timer, start_timer  # noqa: E402
+from bridge import timer as timer_module
+from bridge.config import load_scenario
+from bridge.emitter import GameEvents
+from bridge.session import GameSession
+from bridge.timer import cancel_timer, run_timer, start_timer
 
 SCENARIO = load_scenario()
 LIMIT = SCENARIO["time_limit"]

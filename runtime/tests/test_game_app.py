@@ -7,26 +7,21 @@ engine on the kit's extension points.
 
 import asyncio
 import json
-import sys
 from datetime import datetime
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge import session as session_module  # noqa: E402
-from bridge import timer as timer_module  # noqa: E402
-from bridge.app import (  # noqa: E402
+from bridge import session as session_module
+from bridge import timer as timer_module
+from bridge.app import (
     build_game_processors,
     on_session_start,
     provide_context,
     store_turn,
 )
-from bridge.config import GAME_GRACE_SECONDS, load_scenario  # noqa: E402
-from bridge.referee import RefereeProcessor  # noqa: E402
-from voice_kit import ProcessorFactoryArgs, TranscriptMessage  # noqa: E402
-from voice_kit.processors import (  # noqa: E402
+from bridge.config import GAME_GRACE_SECONDS, load_scenario
+from bridge.referee import RefereeProcessor
+from voice_kit import ProcessorFactoryArgs, TranscriptMessage
+from voice_kit.processors import (
     EventSinkProcessor,
     LLMProcessor,
     STTProcessor,

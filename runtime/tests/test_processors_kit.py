@@ -7,17 +7,12 @@ Frames are fed straight into ``process_frame`` and captured via a stubbed
 """
 
 import asyncio
-import sys
 from datetime import datetime
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit import TranscriptMessage, VoiceConfig  # noqa: E402
-from voice_kit import processors as processors_module  # noqa: E402
-from voice_kit.processors import (  # noqa: E402
+from voice_kit import TranscriptMessage, VoiceConfig
+from voice_kit import processors as processors_module
+from voice_kit.processors import (
     EventSinkProcessor,
     LLMProcessor,
     TranscriptMessageFrame,

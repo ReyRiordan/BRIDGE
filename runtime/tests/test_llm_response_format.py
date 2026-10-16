@@ -5,15 +5,10 @@ require_parameters routing preference; Bedrock accepts and ignores it.
 
 import asyncio
 import logging
-import sys
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit.providers import llm as llm_module  # noqa: E402
-from voice_kit.providers.llm import BedrockChat, OpenRouterChat  # noqa: E402
+from voice_kit.providers import llm as llm_module
+from voice_kit.providers.llm import BedrockChat, OpenRouterChat
 
 SCHEMA = {
     "type": "json_schema",

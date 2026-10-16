@@ -7,14 +7,8 @@ re-asserting our reading of that function. If aiortc changes its
 first-acceptable-URI rule, that test fails instead of production.
 """
 
-import sys
-from pathlib import Path
-
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit.kvs import (  # noqa: E402
+from voice_kit.kvs import (
     build_ice_servers,
     filter_relay_only_sdp,
     select_turn_uri,

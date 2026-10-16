@@ -3,19 +3,14 @@ Post-game teardown: the grace reaper, the session-end hook, and idempotency.
 """
 
 import asyncio
-import sys
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge import session as session_module  # noqa: E402
-from bridge import timer as timer_module  # noqa: E402
-from bridge.config import load_scenario  # noqa: E402
-from bridge.emitter import GameEvents  # noqa: E402
-from bridge.session import get_or_create_session, get_session  # noqa: E402
-from bridge.timer import (  # noqa: E402
+from bridge import session as session_module
+from bridge import timer as timer_module
+from bridge.config import load_scenario
+from bridge.emitter import GameEvents
+from bridge.session import get_or_create_session, get_session
+from bridge.timer import (
     cancel_reaper,
     cancel_timer,
     run_reaper,

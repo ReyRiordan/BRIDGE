@@ -10,15 +10,10 @@ iceServers is None, so the empty list is what keeps a local run offline.
 """
 
 import asyncio
-import sys
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit import runtime  # noqa: E402
-from voice_kit.config import settings  # noqa: E402
+from voice_kit import runtime
+from voice_kit.config import settings
 
 HOST_ANSWER = "v=0\r\na=candidate:1 1 udp 2130706431 127.0.0.1 5000 typ host\r\n"
 

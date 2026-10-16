@@ -13,22 +13,18 @@ import io
 import json
 import sys
 import types
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit import (  # noqa: E402
+from voice_kit import (
     AgentCoreInvoker,
     Invoker,
     LocalInvoker,
     UpstreamServiceError,
     get_invoker,
 )
-from voice_kit.config import settings  # noqa: E402
-from voice_kit.control_plane import agentcore, local  # noqa: E402
+from voice_kit.config import settings
+from voice_kit.control_plane import agentcore, local
 
 
 @pytest.fixture

@@ -8,14 +8,8 @@ real ``.env`` would otherwise leak provider values into these assertions (CI is
 unaffected — a fresh checkout has no ``.env``).
 """
 
-import sys
-from pathlib import Path
-
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit.config import VoiceKitSettings  # noqa: E402
+from voice_kit.config import VoiceKitSettings
 
 # The zero-AWS provider trio local mode requires (legacy parity, minus Bedrock).
 LOCAL_PROVIDERS = {

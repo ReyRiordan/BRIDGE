@@ -1,14 +1,7 @@
 """The v1 data-channel envelope is a frozen cross-layer contract — pin it."""
 
-import sys
-from pathlib import Path
-
 import pytest
-from pydantic import TypeAdapter, ValidationError
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge.events import (  # noqa: E402  — needs the sys.path line above
+from bridge.events import (
     EVENT_MODELS,
     ActionDetected,
     GameEvent,
@@ -17,6 +10,7 @@ from bridge.events import (  # noqa: E402  — needs the sys.path line above
     Timer,
     TranscriptUpdate,
 )
+from pydantic import TypeAdapter, ValidationError
 
 game_event = TypeAdapter(GameEvent)
 

@@ -6,22 +6,17 @@ file's ``locked_information`` must never reach the model, because history-taking
 is out of scope for the current sim.
 """
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from bridge.config import (  # noqa: E402
+from bridge.config import (
     load_patient_case,
     load_patient_prompt_template,
     load_scenario,
 )
-from bridge.patient import (  # noqa: E402
+from bridge.patient import (
     build_patient_prompt,
     build_voice_config,
     turn_context,
 )
-from bridge.session import GameSession  # noqa: E402
+from bridge.session import GameSession
 
 SCENARIO = load_scenario()
 

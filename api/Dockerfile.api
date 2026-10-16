@@ -41,12 +41,13 @@ WORKDIR /app
 
 # --- Layer 1: third-party deps. Cache key is exactly these two files.
 #
-# The `./runtime` line can't resolve here (runtime/ isn't COPYed yet), and the
-# tooling pins have no business in a deployed image — strip both, then take the
-# kit's own dependency list straight out of its pyproject.toml so the two lists
-# resolve together in ONE pip run.
+# The editable `-e ./runtime` line can't resolve here (runtime/ isn't COPYed
+# yet, and an image should hold a snapshot, not a link — layer 2 installs a real
+# copy), and the tooling pins have no business in a deployed image — strip both,
+# then take the kit's own dependency list straight out of its pyproject.toml so
+# the two lists resolve together in ONE pip run.
 COPY api/requirements.txt runtime/pyproject.toml /tmp/deps/
-RUN grep -v -e '^ruff==' -e '^pytest==' -e '^httpx==' -e '^./runtime$' /tmp/deps/requirements.txt > /tmp/deps/app.txt \
+RUN grep -v -e '^ruff==' -e '^pytest==' -e '^httpx==' -e '^-e \./runtime$' /tmp/deps/requirements.txt > /tmp/deps/app.txt \
     && python -c "import tomllib,pathlib; d=tomllib.loads(pathlib.Path('/tmp/deps/pyproject.toml').read_text())['project']['dependencies']; pathlib.Path('/tmp/deps/kit.txt').write_text(chr(10).join(d))" \
     && pip install --no-cache-dir -r /tmp/deps/app.txt -r /tmp/deps/kit.txt
 

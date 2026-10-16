@@ -3,15 +3,10 @@ The game-engine seams on the pipeline side: processor-factory dispatch, the
 session hook registry, and the metadata/game passthrough on PipelineContext.
 """
 
-import sys
 from datetime import datetime
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from voice_kit import (  # noqa: E402
+from voice_kit import (
     ProcessorFactoryArgs,
     SessionContext,
     TranscriptMessage,
@@ -23,13 +18,13 @@ from voice_kit import (  # noqa: E402
     set_session_end_hook,
     set_session_start_hook,
 )
-from voice_kit.context import default_context_provider  # noqa: E402
-from voice_kit.pipeline import (  # noqa: E402
+from voice_kit.context import default_context_provider
+from voice_kit.pipeline import (
     PipelineContext,
     build_pipeline_for_session,
     resolve_processors,
 )
-from voice_kit.processors import (  # noqa: E402
+from voice_kit.processors import (
     EventSinkProcessor,
     LLMProcessor,
     STTProcessor,

@@ -13,6 +13,8 @@ python -m venv .venv
 .venv/bin/pip install -r api/requirements.txt -r runtime/requirements-voice.txt
 ```
 
+`api/requirements.txt` installs the kit **editable** (`-e ./runtime`): the venv points at `runtime/` rather than holding a copy, so the dev servers, tests, evals and ad-hoc `python -c` all read the live source. A venv built when the kit was a copy install moves over by re-running the `pip install -r api/requirements.txt` line above; the gitignored `runtime/build/` those copy installs left behind can be deleted.
+
 `requirements-voice.txt` is pipecat + aiortc + opencv + onnxruntime (`numpy<2`): expect a multi-minute, ~1 GB install. It is the likeliest first-run failure — if `cv2` or a numpy wheel fails, check the Python version first.
 
 Then the two env files:
@@ -56,7 +58,7 @@ npm run dev     # concurrently: web (5173) + api (8000) + rt (8080)
 
 Three details in those commands are load-bearing:
 
-- **`PYTHONPATH=runtime` on both Python processes.** `api/requirements.txt` installs `./runtime` non-editably, so without this the API imports the *installed* `voice_kit` and your edits are invisible until you reinstall.
+- **`PYTHONPATH=runtime` on both Python processes.** The editable install covers only the packaged `voice_kit`; `bridge/` is not packaged, so the runtime process needs `runtime/` on the path to import it.
 - **`--reload` means exactly one worker.** Never add `--workers > 1`: peer-connection state and the game-session registry are process-local (gotcha #7).
 - **`--reload-dir resources --reload-include "*.txt" --reload-include "*.json"`.** `bridge/config.py`'s loaders are `lru_cache`d per process, so a prompt edit only takes effect on restart — the restart *is* the "iterate on prompts in seconds" payoff. Touch `resources/referee.txt` and watch the rt pane reload.
 

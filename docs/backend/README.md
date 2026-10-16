@@ -89,11 +89,10 @@ npm run dev                                    # SPA :5173 + API :8000 + runtime
 # for the other direction either: run it after every backend deploy.
 python scripts/cloud_voice_probe.py
 
-# Two invocations, not one: `api/` tests the INSTALLED voice_kit package while
-# runtime/ tests the tree, and collecting both at once lets the installed copy
-# shadow the repo. CI runs them separately for the same reason.
-python -m pytest api/tests
-python -m pytest runtime/tests
+# One combined run, same as CI: the root pytest.ini puts runtime/ on the path
+# and collects api/tests + runtime/tests (the kit is installed editable, so
+# nothing can import a stale copy).
+python -m pytest
 ruff check api runtime                         # lint (config: root ruff.toml)
 ruff format --check api runtime                # format
 python -m compileall runtime/voice_kit runtime/bridge api
