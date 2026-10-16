@@ -148,11 +148,11 @@ The client files live in `web/src/voice/`. `configureVoiceApi(adapter, `${base}/
 Cheap gates before a deploy, in order:
 
 ```bash
-python3 -m compileall runtime/voice_kit runtime/bridge api
-python3 -m pytest runtime/tests api/tests
+python -m compileall runtime/voice_kit runtime/bridge api
+python -m pytest runtime/tests api/tests
 
 # The pipecat-free gate — must succeed in a venv where `import pipecat` FAILS:
-python3 -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
+python -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
 /tmp/cp/bin/python -c "import voice_kit; voice_kit.create_voice_router()"
 
 docker build --platform linux/arm64 -f runtime/Dockerfile.voice -t bridge-voice .

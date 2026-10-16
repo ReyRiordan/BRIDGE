@@ -16,7 +16,7 @@ Every change follows: **implement → write tests → update docs → tests/lint
 
 ## Commands
 
-Use 'python3' to run any python files. Use the GitHub CLI ('gh') for all GitHub-related tasks.
+Use 'python' to run any python files. Use the GitHub CLI ('gh') for all GitHub-related tasks.
 
 ### Local dev
 
@@ -24,7 +24,7 @@ The whole stack on one machine, zero AWS calls — SPA :5173, control plane :800
 
 ```bash
 # One-time: repo-root venv (Python 3.11) + web/.env.local with VITE_BRIDGE_LOCAL=1
-python3 -m venv .venv
+python -m venv .venv
 .venv/bin/pip install -r api/requirements.txt -r runtime/requirements-voice.txt
 
 npm run dev                                    # all three processes
@@ -33,7 +33,7 @@ npm run dev                                    # all three processes
 
 `BRIDGE_LOCAL=1` is the umbrella flag; it requires the non-AWS providers (`together`/`inworld`/`openrouter`) and refuses to run under `ENV=production`. Full setup and the local/cloud ICE divergence: [`docs/backend/local-dev.md`](docs/backend/local-dev.md) — **never merge on local-only verification.**
 
-The cloud counterpart, which the local smoke can never substitute for (it skips the TURN path by design), is `python3 scripts/cloud_voice_probe.py` — the post-deploy gate against the deployed function URL.
+The cloud counterpart, which the local smoke can never substitute for (it skips the TURN path by design), is `python scripts/cloud_voice_probe.py` — the post-deploy gate against the deployed function URL.
 
 ## Exploration Workflow
 

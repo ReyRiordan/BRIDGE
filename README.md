@@ -38,7 +38,7 @@ plane on :8000, voice runtime on :8080. Needs Python 3.11 and Node 20+.
 
 ```bash
 # One-time
-python3 -m venv .venv
+python -m venv .venv
 .venv/bin/pip install -r api/requirements.txt -r runtime/requirements-voice.txt
 npm install && npm --prefix web install
 cp .env.example .env                      # fill in the provider API keys
@@ -55,7 +55,7 @@ cloud, is in [`docs/backend/local-dev.md`](docs/backend/local-dev.md). **Never
 merge on local-only verification.**
 
 The smoke test runs on loopback with the relay-only TURN filter skipped, so it
-says nothing about the deployed stack. `python3 scripts/cloud_voice_probe.py`
+says nothing about the deployed stack. `python scripts/cloud_voice_probe.py`
 is the counterpart that drives the real function URL, and the gate after every
 backend deploy.
 

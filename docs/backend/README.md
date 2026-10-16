@@ -47,8 +47,8 @@ Transcript roles are domain roles (`student`/`patient`) — deliberately not `vo
 Regenerate the TS after any change to the models (CI fails on drift):
 
 ```bash
-python3 scripts/gen_event_types.py           # write
-python3 scripts/gen_event_types.py --check   # verify
+python scripts/gen_event_types.py           # write
+python scripts/gen_event_types.py --check   # verify
 ```
 
 **Invoker interface** (control plane → runtime): `voice_kit.Invoker`, both methods async — `await invoker.signal(session_id, runtime_session_id, sdp, type="offer") -> dict` and `await invoker.end(session_id, runtime_session_id) -> dict`. Selected by `VOICE_INVOKER` via `get_invoker()`: `AgentCoreInvoker` (boto3 `invoke_agent_runtime` in `asyncio.to_thread`, hides the streaming-body response) or `LocalInvoker` (aiohttp POST to `{VOICE_RUNTIME_URL}/invocations`, same payloads and same error contract; implied by `BRIDGE_LOCAL=1` — see `local-dev.md`). `create_voice_router(invoker=...)` accepts an override for tests/custom backends. Teardown is router-owned: `/end` with a `SessionEndRequest` body (`{runtime_session_id}`) best-effort invokes `end()` (payload `{"session_id", "action": "end"}`) before the `on_end` hook; no body skips it. The runtime entrypoint dispatches on `payload.action`: `"signal"` (default) | `"end"`.
@@ -87,23 +87,23 @@ npm run dev                                    # SPA :5173 + API :8000 + runtime
 
 # The deployed stack — real KVS TURN, real AgentCore session. Never a substitute
 # for the other direction either: run it after every backend deploy.
-python3 scripts/cloud_voice_probe.py
+python scripts/cloud_voice_probe.py
 
 # Two invocations, not one: `api/` tests the INSTALLED voice_kit package while
 # runtime/ tests the tree, and collecting both at once lets the installed copy
 # shadow the repo. CI runs them separately for the same reason.
-python3 -m pytest api/tests
-python3 -m pytest runtime/tests
+python -m pytest api/tests
+python -m pytest runtime/tests
 ruff check api runtime                         # lint (config: root ruff.toml)
 ruff format --check api runtime                # format
-python3 -m compileall runtime/voice_kit runtime/bridge api
+python -m compileall runtime/voice_kit runtime/bridge api
 
 # The scene-art tooling (its own venv; see visual-pipeline.md)
-python3 -m pytest scripts/visuals/tests
+python -m pytest scripts/visuals/tests
 ruff check scripts/visuals && ruff format --check scripts/visuals
 
 # Pipecat-free gate — the second command must FAIL (proves the venv is clean):
-python3 -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
+python -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
 /tmp/cp/bin/python -c "import voice_kit; voice_kit.create_voice_router()"
 /tmp/cp/bin/python -c "import pipecat"
 

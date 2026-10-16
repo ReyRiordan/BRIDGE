@@ -62,12 +62,12 @@ them: `ruff check runtime`). On the OpenRouter defaults both need
 and `AWS_BEDROCK_BASE_URL` instead.
 
 ```bash
-python3 runtime/evals/referee_eval.py     # pass/fail table + per-case latency; nonzero on failure
-python3 runtime/evals/patient_probe.py    # replies at escalation 10/8/5/2/0, eyeball only
+python runtime/evals/referee_eval.py     # pass/fail table + per-case latency; nonzero on failure
+python runtime/evals/patient_probe.py    # replies at escalation 10/8/5/2/0, eyeball only
 
 # The deployed pairing (amplify/constants.ts). --provider/--model/--reasoning
 # override the REFEREE_* trio the script otherwise reads from the environment.
-python3 runtime/evals/referee_eval.py \
+python runtime/evals/referee_eval.py \
     --provider bedrock --model openai.gpt-oss-120b --reasoning low
 ```
 
