@@ -37,7 +37,7 @@ Watch for the AgentCore runtime reaching **READY** in the console.
 2. Run the probe. It drives one `start` → `signal` → `end` round trip against the deployed function URL and gates on **≥1 `typ relay` candidate and 0 non-relay** in the answer, ICE `connected`, and one v1 data-channel event. Non-zero exit on any failure, so it gates a deploy directly.
 
    ```sh
-   python3 scripts/cloud_voice_probe.py     # --api-base overrides amplify_outputs.json
+   python scripts/cloud_voice_probe.py     # --api-base overrides amplify_outputs.json
    ```
 
    The "at least one" half is not optional. The check this replaced was `grep 'a=candidate' | grep -v relay` comes back empty, which also passes on an answer carrying **zero** candidates — the exact shape of a runtime that gathered no relay candidate at all. That vacuous pass is how the Aug 2026 ICE outage went unnoticed for three days.

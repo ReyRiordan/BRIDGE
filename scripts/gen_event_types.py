@@ -2,8 +2,8 @@
 """
 Generate the TypeScript data-channel event types from the pydantic models.
 
-    python3 scripts/gen_event_types.py            # write web/src/voice/gameEvents.gen.ts
-    python3 scripts/gen_event_types.py --check    # exit 1 if the committed file drifted
+    python scripts/gen_event_types.py            # write web/src/voice/gameEvents.gen.ts
+    python scripts/gen_event_types.py --check    # exit 1 if the committed file drifted
 
 `runtime/bridge/events.py` is the source of truth for the wire contract; the
 generated file is committed so the SPA builds without a Python toolchain, and
@@ -29,7 +29,7 @@ from bridge.events import EVENT_MODELS  # noqa: E402  — needs the sys.path lin
 HEADER = """// GENERATED — do not edit.
 //
 // Source of truth: runtime/bridge/events.py
-// Regenerate:      python3 scripts/gen_event_types.py
+// Regenerate:      python scripts/gen_event_types.py
 //
 // The v1 envelope for every message the voice runtime pushes over the WebRTC
 // data channel. Backend CI fails if this file drifts from the pydantic models."""
@@ -100,7 +100,7 @@ def main() -> int:
         if current != generated:
             print(
                 f"{rel} is out of date with runtime/bridge/events.py.\n"
-                "Regenerate it: python3 scripts/gen_event_types.py",
+                "Regenerate it: python scripts/gen_event_types.py",
                 file=sys.stderr,
             )
             return 1

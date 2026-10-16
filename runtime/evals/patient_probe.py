@@ -7,7 +7,7 @@ it prints the patient's replies at a ladder of escalation levels so you can read
 them side by side. A 30-second check before a manual voice run.
 
     export OPENROUTER_API_KEY=...
-    python3 runtime/evals/patient_probe.py [--model m]
+    python runtime/evals/patient_probe.py [--model m]
 
 The prompt is the real one (``build_patient_prompt``), and the per-turn marker
 is the real one (``turn_context``'s format), so what the model sees here is what

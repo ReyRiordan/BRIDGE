@@ -37,8 +37,8 @@
 `src/voice/gameEvents.gen.ts` is generated from the pydantic models in `runtime/bridge/events.py` and committed. Never hand-edit it:
 
 ```bash
-python3 scripts/gen_event_types.py           # regenerate
-python3 scripts/gen_event_types.py --check   # what Backend CI runs
+python scripts/gen_event_types.py           # regenerate
+python scripts/gen_event_types.py --check   # what Backend CI runs
 ```
 
 It is excluded from Prettier and ESLint — the generator owns its formatting, and CI diffs the file byte for byte.

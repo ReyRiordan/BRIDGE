@@ -10,8 +10,8 @@ endpoints against the real function URL, with real KVS TURN credentials, and
 gates on the thing that actually breaks in the cloud: relay candidates in the
 runtime's answer.
 
-    python3 scripts/cloud_voice_probe.py                       # amplify_outputs.json
-    python3 scripts/cloud_voice_probe.py --api-base https://...lambda-url...aws/
+    python scripts/cloud_voice_probe.py                       # amplify_outputs.json
+    python scripts/cloud_voice_probe.py --api-base https://...lambda-url...aws/
 
 What it proves, in order:
   1. `/start` returns a valid `runtime_session_id` and a NON-EMPTY `ice_servers`

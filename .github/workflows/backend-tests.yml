@@ -70,7 +70,7 @@ jobs:
         # The API Lambda must import the voice control plane without any
         # pipeline dependencies installed — guarded here by importing it
         # before the runtime requirements would matter at runtime.
-        run: python3 -c "import voice_kit; voice_kit.create_voice_router()"
+        run: python -c "import voice_kit; voice_kit.create_voice_router()"
         working-directory: runtime
 
       - name: Run tests
@@ -82,8 +82,8 @@ jobs:
         # The committed web/src/voice/gameEvents.gen.ts is generated from the
         # pydantic event models in runtime/bridge/events.py (the data-channel
         # wire contract shared with the SPA). Fails when it drifts from the
-        # code — regenerate with `python3 scripts/gen_event_types.py`.
-        run: python3 scripts/gen_event_types.py --check
+        # code — regenerate with `python scripts/gen_event_types.py`.
+        run: python scripts/gen_event_types.py --check
 
   visuals:
     # The art-pipeline tooling (scripts/visuals/). Only the model-free,

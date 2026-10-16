@@ -150,6 +150,6 @@ per turn `transcript_update{student}` → `action_detected`×N → `state_update
 The file is generated from `runtime/bridge/events.py` and committed — never edit it by hand:
 
 ```bash
-python3 scripts/gen_event_types.py           # regenerate
-python3 scripts/gen_event_types.py --check   # what Backend CI runs
+python scripts/gen_event_types.py           # regenerate
+python scripts/gen_event_types.py --check   # what Backend CI runs
 ```

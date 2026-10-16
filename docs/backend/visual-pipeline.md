@@ -25,7 +25,7 @@ Agent-driven tooling that produces a scenario's scene art: one photoreal empty-r
 ## Setup
 
 ```bash
-python3 -m venv .venv-visuals                 # gitignored by .venv*/
+python -m venv .venv-visuals                 # gitignored by .venv*/
 .venv-visuals/bin/pip install -r scripts/visuals/requirements.txt
 export GEMINI_API_KEY=...                     # generation only
 # AWS: the default credential chain (masters bucket only)

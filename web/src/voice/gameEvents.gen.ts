@@ -1,7 +1,7 @@
 // GENERATED — do not edit.
 //
 // Source of truth: runtime/bridge/events.py
-// Regenerate:      python3 scripts/gen_event_types.py
+// Regenerate:      python scripts/gen_event_types.py
 //
 // The v1 envelope for every message the voice runtime pushes over the WebRTC
 // data channel. Backend CI fails if this file drifts from the pydantic models.

@@ -7,10 +7,10 @@ needs the network, and is nondeterministic, so CI must never collect it. CI does
 lint it (``ruff check runtime``).
 
     export OPENROUTER_API_KEY=...
-    python3 runtime/evals/referee_eval.py [--cases path] [--model m] [--repeat n]
+    python runtime/evals/referee_eval.py [--cases path] [--model m] [--repeat n]
 
     # The deployed pairing. Needs AWS credentials and AWS_BEDROCK_BASE_URL.
-    python3 runtime/evals/referee_eval.py \
+    python runtime/evals/referee_eval.py \
         --provider bedrock --model openai.gpt-oss-120b --reasoning medium
 
 Everything under test comes from the production path: the real scenario, the

@@ -9,7 +9,7 @@
 Python **3.11** (`.python-version`), and a repo-root `.venv` — the dev scripts expect `.venv/bin/python` and fail fast with this exact hint if it is missing:
 
 ```bash
-python3 -m venv .venv
+python -m venv .venv
 .venv/bin/pip install -r api/requirements.txt -r runtime/requirements-voice.txt
 ```
 
@@ -109,7 +109,7 @@ It asserts `/start` returned no ICE servers, that the answer carries a **non-rel
 Everything it proves, it proves on loopback host candidates with the relay-only filter skipped. The cloud's TURN path is a different transport with a different failure mode, and it has broken while every local check stayed green. `scripts/cloud_voice_probe.py` is the counterpart that covers it, against the deployed function URL:
 
 ```bash
-python3 scripts/cloud_voice_probe.py     # --api-base overrides amplify_outputs.json
+python scripts/cloud_voice_probe.py     # --api-base overrides amplify_outputs.json
 ```
 
 It gates on ≥1 `typ relay` candidate and 0 non-relay in the runtime's answer, ICE `connected`, and a v1 data-channel event. Run it after every backend deploy ([`voice-kit/04-deploy-runbook.md`](voice-kit/04-deploy-runbook.md)) — **never merge on local-only verification.**
