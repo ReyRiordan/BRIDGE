@@ -1,0 +1,14 @@
+# The visuals pipeline (scripts/visuals/) — tooling only, never in an image.
+# CI installs the model-free, network-free subset (see backend-tests.yml):
+# numpy, opencv-python-headless, pillow, pyyaml, boto3.
+numpy==2.4.6
+opencv-python-headless==5.0.0.93
+pillow==12.3.0
+pyyaml==6.0.3
+boto3==1.43.111
+# Generation (generate.py) — imported lazily, only when calling the API.
+google-genai==2.29.0
+# Matting (matte_model.py) — imported lazily, only by extract.py.
+torch==2.14.1
+transformers==5.19.0
+pytest==9.1.1
