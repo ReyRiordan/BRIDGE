@@ -7,8 +7,10 @@
 fastapi==0.141.1
 # The vendored voice_kit package (control-plane surface only — its
 # pyproject.toml carries no pipecat). Single source of truth for CI and local
-# dev; api/Dockerfile.api installs the same deps in its own layered form.
-./runtime
+# dev. Editable, so the venv points at runtime/ instead of holding a copy and
+# local code always reads the live source; api/Dockerfile.api strips this line
+# and installs a real snapshot of the kit in its own layered form.
+-e ./runtime
 # The image's ASGI server: api/Dockerfile.api runs `uvicorn api.main:app` under
 # the Lambda Web Adapter, and `npm run dev:api` runs the same command locally.
 uvicorn[standard]==0.52.4
@@ -17,7 +19,7 @@ uvicorn[standard]==0.52.4
 mangum==0.21.0
 
 # Tooling (CI + local): the lint job installs the ruff line, the test job runs
-# pytest over both api/tests and runtime/tests, and httpx backs fastapi's
+# a bare `pytest` (root pytest.ini collects api/tests + runtime/tests), and httpx backs fastapi's
 # TestClient. api/Dockerfile.api's dependency layer strips these three lines by
 # name — add a tooling pin here and add it there too.
 ruff==0.16.3
