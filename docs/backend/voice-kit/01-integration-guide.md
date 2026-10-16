@@ -149,7 +149,7 @@ Cheap gates before a deploy, in order:
 
 ```bash
 python -m compileall runtime/voice_kit runtime/bridge api
-python -m pytest runtime/tests api/tests
+python -m pytest   # root pytest.ini: api/tests + runtime/tests
 
 # The pipecat-free gate — must succeed in a venv where `import pipecat` FAILS:
 python -m venv /tmp/cp && /tmp/cp/bin/pip install ./runtime
