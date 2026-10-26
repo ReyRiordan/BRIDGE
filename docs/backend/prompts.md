@@ -6,9 +6,9 @@ runtime image at `/app/resources`) and is assembled by `runtime/bridge/`.
 
 | File | Loaded by | Consumed by |
 |---|---|---|
-| `resources/referee.txt` | `config.load_referee_prompt()` (`REFEREE_PROMPT_PATH`) | `RefereeProcessor` |
-| `resources/patient.txt` | `config.load_patient_prompt_template()` (`PATIENT_PROMPT_PATH`) | `patient.build_patient_prompt()` |
-| `resources/patient.json` | `config.load_patient_case()` (`PATIENT_CASE_PATH`) | `patient.build_patient_prompt()` |
+| `resources/referee.txt` (shared) | `config.load_referee_prompt()` (`REFEREE_PROMPT_PATH`) | `RefereeProcessor` |
+| `resources/scenarios/<id>/patient.txt` | `config.load_patient_prompt_template(id)` (`SCENARIOS_DIR`) | `patient.build_patient_prompt()` |
+| `resources/scenarios/<id>/patient.json` | `config.load_patient_case(id)` (`SCENARIOS_DIR`) | `patient.build_patient_prompt()` |
 
 ## Referee
 
@@ -21,10 +21,11 @@ Per turn the referee gets a JSON user message built by
 ```
 
 - **Point values never leave the server.** The model sees only `escalates` — the
-  sign of `point_change` — so it cannot tempt us into trusting numbers it echoed
+  sign of `point_change`, or `true` for an END SIMULATION action (`point_change: 0`,
+  `ends_simulation: true`), the most consequential call it makes — so it cannot tempt us into trusting numbers it echoed
   back. The prompt keys its strictness on that flag ("be liberal with
   `escalates: false`, strict with `escalates: true`) rather than naming actions,
-  which is what makes **adding an action to `scenario_1.json` require no prompt
+  which is what makes **adding an action to a `scenario.json` require no prompt
   edit**: the enum, the action list, and `escalates` are all generated.
 - The reply is constrained by a strict `json_schema` whose `type` enum is
   generated from the scenario (`referee.build_response_format()`); only action
@@ -34,7 +35,8 @@ Per turn the referee gets a JSON user message built by
 
 ## Patient
 
-`patient.build_patient_prompt(scenario)` = the `patient.txt` template with
+`patient.build_patient_prompt(scenario)` = the scenario's own `patient.txt` template
+(read by `scenario["id"]`) with
 `{patient_name}` substituted (via `str.replace` — the body is curly-brace-heavy),
 plus a rendered `=== PATIENT CASE DETAILS ===` section carrying
 `<demographics>`, `<behavior>` (when present), `<chief_concern>` and
@@ -47,6 +49,13 @@ prompt entirely is a stronger guarantee than any instruction, since the model
 cannot leak what it never sees. `patient.txt` carries the matching standing
 rule: never volunteer clinical history, deflect history questions in a manner
 consistent with the current escalation level — at *every* level, including 0.
+
+The template is per scenario because it carries the setting (emergency
+department, clinic exam room, inpatient ward) and a scenario-specific escalation
+table. In scenario_2/3 that table also carries the source docs' non-visual scene
+changes, mapped onto bands, so the patient voices them ("I'm not trying to be
+difficult, I just can't lose this job" at 3–4). Visual scene changes are action
+layers, not prompt text.
 
 Behaviour is conditioned on the **per-turn marker** `[CURRENT ESCALATION: n/max]`
 (`patient.turn_context()`), injected by the kit immediately before the student's
@@ -63,7 +72,7 @@ and `AWS_BEDROCK_BASE_URL` instead.
 
 ```bash
 python runtime/evals/referee_eval.py     # pass/fail table + per-case latency; nonzero on failure
-python runtime/evals/patient_probe.py    # replies at escalation 10/8/5/2/0, eyeball only
+python runtime/evals/patient_probe.py [--scenario scenario_3]  # replies at escalation 10/8/5/2/0, eyeball only
 
 # The deployed pairing (amplify/constants.ts). --provider/--model/--reasoning
 # override the REFEREE_* trio the script otherwise reads from the environment.
@@ -71,7 +80,7 @@ python runtime/evals/referee_eval.py \
     --provider bedrock --model openai.gpt-oss-120b --reasoning low
 ```
 
-`referee_eval.py` runs the production path (real scenario, real prompt,
+`referee_eval.py` runs the production path (real scenario_1 config, real prompt,
 `build_referee_payload` / `build_response_format` / `build_referee_llm`) over the
 cases in `runtime/evals/cases/referee.json` — `{name, utterance, escalation,
 expected}`, mixing the few-shot anchors with paraphrases, near-misses for the

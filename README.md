@@ -14,14 +14,14 @@ patient's agitation, and the scene reacts as actions land.
 
 ```
 Browser (SPA)  ──HTTPS──▶  Control plane (Lambda)  ──invoke──▶  Voice runtime (AgentCore)
-     │                     /scenario + WebRTC signaling                    │
+     │                   /scenario(s) + WebRTC signaling                   │
      └──────────────────── WebRTC audio + data channel ─────────────────────┘
 ```
 
 | Tree | What it is |
 |---|---|
 | `web/` | Vite + React + TypeScript + Tailwind SPA, deployed on Amplify Hosting. Own package.json and CI job. |
-| `api/` | Thin FastAPI control plane — `GET /scenario` plus the voice signaling router. Container image on Lambda under the Lambda Web Adapter. Deliberately pipecat-free. |
+| `api/` | Thin FastAPI control plane — `GET /scenarios` + `GET /scenario/{id}` plus the voice signaling router. Container image on Lambda under the Lambda Web Adapter. Deliberately pipecat-free. |
 | `runtime/` | The voice pipeline: `voice_kit/` (vendored pipecat kit — STT, LLM, TTS, WebRTC transport) and `bridge/` (the game engine: referee, session state, events, timer). Runs on Bedrock AgentCore. |
 | `amplify/` | Amplify Gen 2 / CDK infra that provisions the Lambda, its Function URL, and the voice runtime. |
 | `resources/` | Scenario config and prompts, COPYed into both container images. |

@@ -61,7 +61,7 @@ Order matters at steps 5 → 6 → 7.
    docker build --platform linux/arm64 -f api/Dockerfile.api -t bridge-api .
    docker run --rm -p 8000:8000 -e ALLOWED_ORIGINS=http://localhost:5173 bridge-api
    curl -s localhost:8000/health     # {"status":"ok","scenario_loaded":true}
-   curl -s localhost:8000/scenario | head
+   curl -s localhost:8000/scenarios
    ```
    The API image installs the kit with `--no-deps`, so an undeclared import surfaces
    only at container start — which is exactly what the `docker run` above catches.

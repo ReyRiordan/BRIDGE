@@ -33,7 +33,7 @@ OPENROUTER_API_KEY=...
 
 These four deliberately differ from the deploy, which runs Transcribe for STT and Bedrock for both LLM agents (`amplify/constants.ts`). Copying the deployed values into `.env` makes local mode refuse to start, which is the intended outcome, not a bug.
 
-Leave `SCENARIO_PATH` / `REFEREE_PROMPT_PATH` / `PATIENT_*_PATH` **unset**: they default to the repo's own `resources/` files, and the deployed `/app/resources/...` values crash a local run.
+Leave `SCENARIOS_DIR` / `REFEREE_PROMPT_PATH` **unset**: they default to the repo's own `resources/` files, and the deployed `/app/resources/...` values crash a local run.
 
 **`web/.env.local`** (gitignored via `.env*.local`):
 
@@ -51,7 +51,7 @@ npm run dev     # concurrently: web (5173) + api (8000) + rt (8080)
 
 | Script | What it starts |
 |---|---|
-| `dev:web` | `npm --prefix web run dev` — Vite, with a `server.proxy` sending `/voice` and `/scenario` to :8000 (same-origin, so no CORS on the local path) |
+| `dev:web` | `npm --prefix web run dev` — Vite, with a `server.proxy` sending `/voice` and `/scenario` (a prefix, so `/scenarios` too) to :8000 (same-origin, so no CORS on the local path) |
 | `dev:api` | `uvicorn api.local:app` on :8000 — `api/local.py` is `api/main.py` with `BRIDGE_LOCAL` set *before* the import |
 | `dev:runtime` | `uvicorn bridge.app:app` on :8080 — the same AgentCore app the container runs, serving `/ping` + `/invocations` |
 | `dev:venv` | The `.venv` guard both backend scripts run first |
@@ -118,7 +118,7 @@ It gates on ≥1 `typ relay` candidate and 0 non-relay in the runtime's answer, 
 
 ### Tier 2: a full game in the browser
 
-Open the SPA and play, checking the paths tests cannot reach: a turn that clears a transient action, the Restraint instant-fail, the timer-expiry fail, and Play Again resetting cleanly (a brand-new `session_id`, a clean board). Kill the runtime process mid-game to check the connection-lost end state. See [`../frontend/voice-integration.md`](../frontend/voice-integration.md) for what each of those exercises.
+Open the SPA, pick a scenario, and play, checking the paths tests cannot reach: a turn that clears a transient action, the Restraint instant-fail (scenario_1), an END SIMULATION action showing its debrief and an inactivity charge (scenario_2/3), the timer-expiry fail, and Play Again resetting cleanly (a brand-new `session_id`, a clean board). Kill the runtime process mid-game to check the connection-lost end state. See [`../frontend/voice-integration.md`](../frontend/voice-integration.md) for what each of those exercises.
 
 ## Gotchas
 

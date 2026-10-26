@@ -1,7 +1,7 @@
 """
 GameSession point math, terminal logic, and the process-wide session registry.
 
-Every bound comes from the real ``resources/scenario_1.json`` — the point values
+Every bound comes from the real ``resources/scenarios/*/scenario.json`` — the point values
 under test are the ones the students actually play against, so a scenario edit
 that breaks the game breaks these tests.
 """
