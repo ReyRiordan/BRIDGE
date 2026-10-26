@@ -1,4 +1,5 @@
 import Button from '../components/Button'
+import { visualSrc } from '../state/useGame'
 import type { Scenario } from '../types/scenario'
 
 interface IntroScreenProps {
@@ -24,8 +25,8 @@ function IntroScreen({
   return (
     <main className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-12 md:grid-cols-2">
       <img
-        src="/visuals/intro.jpg"
-        alt="The emergency department room where the encounter takes place"
+        src={visualSrc(scenario, scenario.intro_image)}
+        alt={`The room where the encounter takes place: ${scenario.title}`}
         className="w-full rounded-card border border-edge object-cover shadow-2xl"
       />
 
@@ -34,6 +35,7 @@ function IntroScreen({
           <h1 className="text-xs font-semibold tracking-[0.3em] text-accent uppercase">
             Case Introduction
           </h1>
+          <p className="text-lg font-semibold text-ink">{scenario.title}</p>
           <p className="text-base leading-relaxed text-ink">{scenario.intro}</p>
         </div>
 

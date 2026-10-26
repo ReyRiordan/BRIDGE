@@ -7,9 +7,11 @@
  * status against `state.phase` to decide what renders.
  *
  * Two ids, two jobs:
- *  - `session_id` — the domain key, minted here with `crypto.randomUUID()` and
- *    stable for the whole game. The control plane treats it as a free-form
- *    path key.
+ *  - `session_id` — the domain key, minted here as
+ *    `${scenarioId}--${crypto.randomUUID()}` and stable for the whole game.
+ *    The control plane treats it as a free-form path key; the voice runtime
+ *    reads the scenario off its prefix (the kit hands the runtime nothing but
+ *    the session id, so the id is the only channel there is).
  *  - `runtime_session_id` — the AgentCore container-affinity key. Freshly
  *    minted by `/start` on EVERY connect attempt; reusing a stale one pins
  *    signaling to a container that may be gone.
@@ -74,6 +76,7 @@ export function useVoiceSession(
   const [status, setStatus] = useState<VoiceSessionStatus>('idle')
   const [error, setError] = useState<WebRTCError | null>(null)
   const [connectionLost, setConnectionLost] = useState(false)
+  const scenarioId = state.scenario?.id ?? null
 
   const sessionIdRef = useRef<string | null>(null)
   const runtimeSessionIdRef = useRef<string | null>(null)
@@ -139,7 +142,13 @@ export function useVoiceSession(
       return
     }
 
-    const sessionId = crypto.randomUUID()
+    if (scenarioId === null) {
+      setError({ code: 'NO_SCENARIO', message: 'No scenario is loaded.' })
+      setStatus('idle')
+      beginningRef.current = false
+      return
+    }
+    const sessionId = `${scenarioId}--${crypto.randomUUID()}`
     sessionIdRef.current = sessionId
     endedOnceRef.current = false
     intentionalEndRef.current = false
@@ -167,7 +176,7 @@ export function useVoiceSession(
         return
       }
     }
-  }, [dispatch, requestPermission, startCall])
+  }, [dispatch, requestPermission, scenarioId, startCall])
 
   /** Tear down locally, tell the runtime, then hand the end screen over. */
   const settle = useCallback(async () => {

@@ -89,7 +89,7 @@ describe('scenario-derived UI', () => {
     expect(vm.escalation.value).toBe(7)
     expect(vm.escalation.pct).toBe(70)
     expect(vm.layers.find((l) => l.key === '__patient__')?.src).toBe(
-      '/visuals/patient_7.png',
+      '/visuals/scenario_1/patient_7.png',
     )
   })
 })

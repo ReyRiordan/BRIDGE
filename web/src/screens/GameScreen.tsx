@@ -32,6 +32,7 @@ function GameScreen({
     <main className="mx-auto grid min-h-screen max-w-[1600px] gap-6 p-4 sm:p-6 lg:h-screen lg:grid-cols-[65fr_35fr]">
       <div className="flex min-h-0 flex-col items-center gap-5">
         <SceneStage
+          scenario={state.scenario}
           layers={selectLayers(state)}
           clock={selectClock(state)}
           badge={state.lastAction}

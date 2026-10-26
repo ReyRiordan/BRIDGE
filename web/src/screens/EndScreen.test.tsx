@@ -2,7 +2,19 @@ import { cleanup, render, screen } from '@testing-library/react'
 import EndScreen from './EndScreen'
 import GameScreen from './GameScreen'
 import { selectChecklist } from '../state/useGame'
-import { failRun, foldTo, successRun } from '../state/__fixtures__/goldenRun'
+import {
+  failRun,
+  foldTo,
+  successRun,
+  wardBaseState,
+  wardEndRun,
+} from '../state/__fixtures__/goldenRun'
+import {
+  WARD_BARRIER,
+  WARD_DEBRIEF,
+  WARD_END,
+  WARD_KEY,
+} from '../state/__fixtures__/scenario.fixture'
 
 afterEach(cleanup)
 
@@ -107,9 +119,36 @@ describe('EndScreen', () => {
       document
         .querySelector('[data-layer="__patient__"]')
         ?.getAttribute('data-src'),
-    ).toBe('/visuals/patient_0.png')
+    ).toBe('/visuals/scenario_1/patient_0.png')
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe(
       '0',
     )
+  })
+})
+
+describe('EndScreen — END SIMULATION', () => {
+  const state = foldTo(wardEndRun, wardEndRun.length, wardBaseState)
+
+  it('shows the debrief as the reason and the END row as bad', () => {
+    render(
+      <EndScreen
+        gameOver={state.gameOver!}
+        checklist={selectChecklist(state)}
+        onPlayAgain={() => {}}
+      />,
+    )
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe(
+      'Simulation Ended',
+    )
+    expect(screen.getByText(WARD_DEBRIEF)).toBeDefined()
+
+    const row = (type: string) =>
+      document.querySelector(`[data-action="${type}"]`)
+    expect(row(WARD_END)?.getAttribute('data-status')).toBe('found-bad')
+    expect(row(WARD_END)?.textContent).toContain('END')
+    expect(row(WARD_KEY)?.getAttribute('data-status')).toBe('found-good')
+    // The conditional row: with-KEY value, plus the muted without note.
+    expect(row(WARD_BARRIER)?.textContent).toContain('-2')
+    expect(row(WARD_BARRIER)?.textContent).toContain(`(-1 without ${WARD_KEY})`)
   })
 })

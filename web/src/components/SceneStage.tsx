@@ -9,8 +9,11 @@ import {
   type LastAction,
   type SceneLayerView,
 } from '../state/useGame'
+import type { Scenario } from '../types/scenario'
 
 interface SceneStageProps {
+  /** Null only before a scenario loads; nothing is preloaded then. */
+  scenario: Scenario | null
   layers: SceneLayerView[]
   clock: ClockView
   badge: LastAction | null
@@ -26,15 +29,16 @@ interface SceneStageProps {
  * column resized; pinning one aspect on the container and absolutely filling it
  * with every layer makes drift impossible.
  */
-function SceneStage({ layers, clock, badge, mic }: SceneStageProps) {
-  // Warm every patient frame once, so escalation changes cross-fade instead of
-  // popping in after a network round trip mid-turn.
+function SceneStage({ scenario, layers, clock, badge, mic }: SceneStageProps) {
+  // Warm every patient frame once per scenario, so escalation changes
+  // cross-fade instead of popping in after a network round trip mid-turn.
   useEffect(() => {
-    for (const src of patientFrameSources) {
+    if (scenario === null) return
+    for (const src of patientFrameSources(scenario)) {
       const img = new Image()
       img.src = src
     }
-  }, [])
+  }, [scenario])
 
   return (
     <div className="relative aspect-stage w-full max-w-4xl overflow-hidden rounded-card border border-edge bg-canvas shadow-2xl">

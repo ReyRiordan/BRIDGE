@@ -7,30 +7,43 @@
  * it testable without a DOM.
  */
 import type { GameState, LastAction } from './gameState'
-import type { ScenarioAction } from '../types/scenario'
+import type { Scenario, ScenarioAction } from '../types/scenario'
 
-const VISUALS = '/visuals/'
-
-/** Lowest and highest patient frames that exist in public/visuals/. */
-const PATIENT_MIN = 0
-const PATIENT_MAX = 10
-
-/** Sorts before every real layer value in scenario_1 except a negative one. */
-const PATIENT_LAYER = 0
-export const PATIENT_KEY = '__patient__'
-
-export function patientSrc(escalation: number): string {
-  const frame = Math.min(
-    PATIENT_MAX,
-    Math.max(PATIENT_MIN, Math.round(escalation)),
-  )
-  return `${VISUALS}patient_${frame}.png`
+/** Every scenario's art lives in its own folder: public/visuals/<id>/. */
+export function visualSrc(scenario: Scenario, file: string): string {
+  return `/visuals/${scenario.id}/${file}`
 }
 
-export const patientFrameSources: string[] = Array.from(
-  { length: PATIENT_MAX - PATIENT_MIN + 1 },
-  (_, i) => `${VISUALS}patient_${PATIENT_MIN + i}.png`,
-)
+/** Patient frames run 0..point_bar.max, one per escalation level. */
+const PATIENT_MIN = 0
+
+/** Sorts before every real layer value except a negative one. */
+const PATIENT_LAYER = 0
+export const PATIENT_KEY = '__patient__'
+/** The scenario's static plate, always the bottom of the stack. */
+export const ENVIRONMENT_KEY = '__environment__'
+
+function patientFrame(scenario: Scenario, frame: number): string {
+  return visualSrc(
+    scenario,
+    `patient_${frame}.${scenario.patient_frame_ext ?? 'png'}`,
+  )
+}
+
+export function patientSrc(scenario: Scenario, escalation: number): string {
+  const frame = Math.min(
+    scenario.point_bar.max,
+    Math.max(PATIENT_MIN, Math.round(escalation)),
+  )
+  return patientFrame(scenario, frame)
+}
+
+export function patientFrameSources(scenario: Scenario): string[] {
+  return Array.from(
+    { length: scenario.point_bar.max - PATIENT_MIN + 1 },
+    (_, i) => patientFrame(scenario, PATIENT_MIN + i),
+  )
+}
 
 export interface SceneLayerView {
   /** Action `type`, or PATIENT_KEY for the synthetic patient layer. */
@@ -48,16 +61,18 @@ export interface SceneLayerView {
  * Actions carrying a `layer` are stacked together with a synthetic patient
  * layer at 0, sorted ascending. The sort is stable and the patient entry is
  * appended last, so ties resolve by the scenario's `actions` array order and
- * an action at layer 0 would sit behind the patient.
+ * an action at layer 0 would sit behind the patient. A scenario-level
+ * `environment` plate goes underneath everything (layer −∞).
  *
  * For scenario_1 that yields: Environmental (−1) → patient (0) → Caregiver →
  * Force IV → Restraint (all layer 1, in file order).
  */
 export function selectLayers(state: GameState): SceneLayerView[] {
-  const actions: ScenarioAction[] = state.scenario?.actions ?? []
+  const scenario = state.scenario
+  if (scenario === null) return []
   const entries: Omit<SceneLayerView, 'z'>[] = []
 
-  for (const action of actions) {
+  for (const action of scenario.actions) {
     if (action.layer === null) continue
     const file = state.activeActions.includes(action.type)
       ? action.active
@@ -65,20 +80,25 @@ export function selectLayers(state: GameState): SceneLayerView[] {
     entries.push({
       key: action.type,
       layer: action.layer,
-      src: file ? `${VISUALS}${file}` : null,
+      src: file ? visualSrc(scenario, file) : null,
     })
   }
 
   entries.push({
     key: PATIENT_KEY,
     layer: PATIENT_LAYER,
-    src: patientSrc(state.escalation),
+    src: patientSrc(scenario, state.escalation),
   })
 
-  return entries
-    .slice()
-    .sort((a, b) => a.layer - b.layer)
-    .map((entry, index) => ({ ...entry, z: index + 1 }))
+  const sorted = entries.slice().sort((a, b) => a.layer - b.layer)
+  if (scenario.environment) {
+    sorted.unshift({
+      key: ENVIRONMENT_KEY,
+      layer: Number.NEGATIVE_INFINITY,
+      src: visualSrc(scenario, scenario.environment),
+    })
+  }
+  return sorted.map((entry, index) => ({ ...entry, z: index + 1 }))
 }
 
 export type EscTone = 'calm' | 'watch' | 'warn' | 'crit'
@@ -129,26 +149,43 @@ export interface ChecklistRow {
   type: string
   desc: string
   pointChange: number
-  /** Signed, e.g. `-3` / `+4`. Rendered green when the change is negative. */
+  /** Signed, e.g. `-3` / `+4`, or `END` for an END SIMULATION action. Rendered green when the change is negative. */
   delta: string
+  /** A conditional action's lesser value, e.g. `(-1 without Acknowledge …)`. */
+  note: string | null
   status: ChecklistStatus
 }
 
-/** Scenario order, always the full action list — misses are the point. */
+function signed(n: number): string {
+  return `${n > 0 ? '+' : ''}${n}`
+}
+
+/**
+ * Scenario order, always the full action list — misses are the point.
+ *
+ * A conditional action shows its with-KEY value plus a note for the without
+ * value; an END SIMULATION action shows `END` and counts as bad when taken.
+ */
 export function selectChecklist(state: GameState): ChecklistRow[] {
   const actions: ScenarioAction[] = state.scenario?.actions ?? []
   return actions.map((action) => {
     const taken = state.actionsTaken.has(action.type)
+    const end = action.ends_simulation === true
     const status: ChecklistStatus = !taken
       ? 'missed'
-      : action.point_change > 0
+      : end || action.point_change > 0
         ? 'found-bad'
         : 'found-good'
+    const note =
+      action.requires !== undefined && action.point_change_without !== undefined
+        ? `(${signed(action.point_change_without)} without ${action.requires})`
+        : null
     return {
       type: action.type,
       desc: action.desc,
       pointChange: action.point_change,
-      delta: `${action.point_change > 0 ? '+' : ''}${action.point_change}`,
+      delta: end ? 'END' : signed(action.point_change),
+      note,
       status,
     }
   })

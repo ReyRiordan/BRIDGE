@@ -55,6 +55,7 @@ interface Observed {
   begin: () => Promise<void>
   reset: () => void
   status: string
+  error: { code: string } | null
   connectionLost: boolean
   state: GameState
 }
@@ -149,7 +150,8 @@ describe('begin', () => {
     expect(seen().state.phase).toBe('intro')
 
     const sessionId = startApi.mock.calls[0][0]
-    expect(sessionId).toMatch(/[0-9a-f-]{36}/)
+    // `<scenario id>--<uuid>`: the runtime picks the scenario off the prefix.
+    expect(sessionId).toMatch(/^scenario_1--[0-9a-f-]{36}$/)
     expect(service.initializeConnection).toHaveBeenCalledWith(
       sessionId,
       'rt-1',
@@ -358,5 +360,17 @@ describe('reset', () => {
     await connect()
     const second = startApi.mock.calls[1][0]
     expect(second).not.toBe(first)
+  })
+})
+
+describe('scenario prefix', () => {
+  it('refuses to begin before a scenario is loaded', async () => {
+    render(<Harness />)
+    await act(async () => {
+      await seen().begin()
+    })
+    expect(startApi).not.toHaveBeenCalled()
+    expect(seen().error?.code).toBe('NO_SCENARIO')
+    expect(seen().status).toBe('idle')
   })
 })

@@ -1,6 +1,6 @@
 /**
- * The shell flow, driven the way a user drives it: Start fetches `/scenario`,
- * Begin connects a (mocked) voice session, and every subsequent screen is
+ * The shell flow, driven the way a user drives it: Start lists `/scenarios`,
+ * picking a card fetches `/scenario/{id}`, Begin connects a (mocked) voice session, and every subsequent screen is
  * derived from the payload plus the events that arrive on the data channel.
  *
  * The WebRTC service singleton is mocked; everything above it — the session
@@ -57,18 +57,41 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-const stubFetch = (impl: () => Promise<unknown>) =>
+const stubFetch = (impl: (url: string) => Promise<unknown>) =>
   vi.stubGlobal(
     'fetch',
-    vi.fn(() => impl()),
+    vi.fn((url: string) => impl(url)),
   )
 
-const ok = () =>
-  stubFetch(async () => ({
-    ok: true,
-    status: 200,
-    json: async () => scenarioFixture,
-  }))
+const SUMMARIES = [
+  {
+    id: scenarioFixture.id,
+    title: scenarioFixture.title,
+    intro_image: scenarioFixture.intro_image,
+  },
+  { id: 'scenario_3', title: 'Inpatient Ward', intro_image: 'intro.webp' },
+]
+
+const json = (body: unknown) => ({
+  ok: true,
+  status: 200,
+  json: async () => body,
+})
+
+/** Routes the two control-plane reads; `scenario` overrides the config body. */
+const ok = (scenario: unknown = scenarioFixture) =>
+  stubFetch(async (url) =>
+    url.endsWith('/scenarios') ? json(SUMMARIES) : json(scenario),
+  )
+
+/** Let the list fetch land, then click scenario_1's card. */
+async function pickScenario() {
+  await act(async () => {})
+  screen
+    .getByRole('button', { name: new RegExp(scenarioFixture.title) })
+    .click()
+  await act(async () => {})
+}
 
 describe('App', () => {
   it('walks Start → Intro → Game off the real /scenario payload', async () => {
@@ -76,7 +99,8 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.getByRole('heading', { name: 'BRIDGE' })).toBeDefined()
-    screen.getByRole('button', { name: 'Start' }).click()
+    await pickScenario()
+    expect(vi.mocked(fetch)).toHaveBeenLastCalledWith('/scenario/scenario_1')
 
     await waitFor(() =>
       screen.getByRole('button', { name: 'Begin Simulation' }),
@@ -96,13 +120,17 @@ describe('App', () => {
       document
         .querySelector('[data-layer="__patient__"]')
         ?.getAttribute('data-src'),
-    ).toBe('/visuals/patient_5.png')
+    ).toBe('/visuals/scenario_1/patient_5.png')
   })
 
   it('stays on Start and offers Retry when the fetch fails', async () => {
-    stubFetch(async () => ({ ok: false, status: 503, json: async () => ({}) }))
+    stubFetch(async (url) =>
+      url.endsWith('/scenarios')
+        ? json(SUMMARIES)
+        : { ok: false, status: 503, json: async () => ({}) },
+    )
     render(<App />)
-    screen.getByRole('button', { name: 'Start' }).click()
+    await pickScenario()
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('503')
@@ -117,13 +145,9 @@ describe('App', () => {
   })
 
   it('rejects a body that does not match the scenario contract', async () => {
-    stubFetch(async () => ({
-      ok: true,
-      status: 200,
-      json: async () => ({ intro: 'x' }),
-    }))
+    ok({ intro: 'x' })
     render(<App />)
-    screen.getByRole('button', { name: 'Start' }).click()
+    await pickScenario()
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('did not match')
@@ -157,11 +181,12 @@ describe('a full session', () => {
 
   it('plays a game end to end and starts a fresh session on Play Again', async () => {
     render(<App />)
-    screen.getByRole('button', { name: 'Start' }).click()
-    await act(async () => {})
+    await pickScenario()
     await beginSimulation()
 
     const firstSessionId = startApi.mock.calls[0][0]
+    // The runtime reads the scenario off the session id's prefix.
+    expect(firstSessionId).toMatch(/^scenario_1--[0-9a-f-]{36}$/)
     expect(screen.getByRole('progressbar')).toBeDefined()
 
     // The data channel drives everything on screen.
@@ -188,9 +213,7 @@ describe('a full session', () => {
 
     // Play Again: back to Start, then a brand-new session on a clean board.
     screen.getByRole('button', { name: 'Play Again' }).click()
-    await act(async () => {})
-    screen.getByRole('button', { name: 'Start' }).click()
-    await act(async () => {})
+    await pickScenario()
     await beginSimulation()
 
     expect(startApi.mock.calls[1][0]).not.toBe(firstSessionId)
@@ -204,8 +227,7 @@ describe('a full session', () => {
 
   it('shows connection lost — never a game fail — when the call drops mid-game', async () => {
     render(<App />)
-    screen.getByRole('button', { name: 'Start' }).click()
-    await act(async () => {})
+    await pickScenario()
     await beginSimulation()
 
     service.getConnectionState.mockReturnValue('failed')
@@ -222,8 +244,7 @@ describe('a full session', () => {
   it('keeps the student on Intro with a Retry when connecting fails', async () => {
     startApi.mockRejectedValue(new Error('Request failed (502)'))
     render(<App />)
-    screen.getByRole('button', { name: 'Start' }).click()
-    await act(async () => {})
+    await pickScenario()
     await beginSimulation()
 
     expect(screen.getByRole('alert').textContent).toContain('502')
