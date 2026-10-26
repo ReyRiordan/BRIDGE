@@ -3,7 +3,7 @@
 
 Usage:
     export.py <scenario_id> [--aspect 1196:880] [--width 2048] [--format webp]
-              [--quality 85] [--offset X,Y] [--out DIR]
+              [--quality 85] [--max-kb 500] [--offset X,Y] [--out DIR]
 
 Writes ``web/public/visuals/<scenario_id>/``:
 
@@ -39,6 +39,8 @@ from common import (
 from PIL import Image
 
 FORMATS = ("webp", "png")
+# Lossy quality never drops below this to meet --max-kb.
+MIN_QUALITY = 60
 
 
 def _resize(img: np.ndarray, size: tuple[int, int]) -> Image.Image:
@@ -51,12 +53,25 @@ def _resize(img: np.ndarray, size: tuple[int, int]) -> Image.Image:
     return pil.resize(size, Image.Resampling.LANCZOS)
 
 
-def _save(img: Image.Image, path: Path, fmt: str, quality: int) -> None:
+def _save(
+    img: Image.Image, path: Path, fmt: str, quality: int, max_kb: int | None = None
+) -> None:
+    """Save; a WebP over ``max_kb`` is re-encoded at lower colour quality (in
+    steps of 5, down to ``MIN_QUALITY``) — alpha stays lossless."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    if fmt == "webp":
-        img.save(path, "WEBP", quality=quality, method=6, alpha_quality=100)
-    else:
+    if fmt != "webp":
         img.save(path, "PNG", optimize=True)
+        return
+    q = quality
+    while True:
+        img.save(path, "WEBP", quality=q, method=6, alpha_quality=100)
+        if not max_kb or path.stat().st_size <= max_kb * 1000 or q <= MIN_QUALITY:
+            break
+        q -= 5
+    if max_kb and path.stat().st_size > max_kb * 1000:
+        print(f"warning: {path.name} is over {max_kb} KB even at quality {q}")
+    elif q != quality:
+        print(f"{path.name}: quality {q} to fit {max_kb} KB")
 
 
 def safe_area_kept(
@@ -84,6 +99,7 @@ def export_assets(
     offset: tuple[float, float] = (0.5, 0.5),
     action_layers: dict[str, np.ndarray] | None = None,
     start_visible: tuple[str, ...] = (),
+    max_kb: int | None = None,
 ) -> list[Path]:
     """Write every asset; action layers sit below the patient, in dict order."""
     action_layers = action_layers or {}
@@ -103,6 +119,7 @@ def export_assets(
             path,
             fmt,
             quality,
+            max_kb,
         )
         written.append(path)
 
@@ -136,6 +153,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--format", choices=FORMATS, default="webp")
     parser.add_argument("--quality", type=int, default=85, help="lossy quality (webp)")
+    parser.add_argument(
+        "--max-kb",
+        type=int,
+        default=500,
+        help="per-file WebP budget: lower the quality of any file over it (0 = off)",
+    )
     parser.add_argument("--offset", type=_parse_offset, help="crop offset X,Y in [0,1]")
     parser.add_argument(
         "--out", type=Path, help="default web/public/visuals/<scenario_id>/"
@@ -188,6 +211,7 @@ def main(argv: list[str] | None = None) -> int:
         offset=offset,
         action_layers=action_layers,
         start_visible=shot.start_visible,
+        max_kb=args.max_kb or None,
     )
     total = sum(p.stat().st_size for p in written)
     print(f"wrote {len(written)} file(s) to {out} ({total / 1e6:.1f} MB)")

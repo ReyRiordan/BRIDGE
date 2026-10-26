@@ -292,6 +292,30 @@ def diff_mask(
     return m
 
 
+def close_mask(mask: np.ndarray, radius: int) -> np.ndarray:
+    """Morphological closing: bridges gaps narrower than ``2·radius`` (a shin
+    lost against a shadow of the same tone) without growing the outline."""
+    m = mask.astype(np.uint8)
+    pad = radius + 1
+    m = cv2.copyMakeBorder(m, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=0)
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, _disk(radius))
+    return m[pad:-pad, pad:-pad].astype(bool)
+
+
+def keep_near(mask: np.ndarray, radius: int) -> np.ndarray:
+    """Only the largest island and the islands within ``radius`` of it: drops
+    stray far-off changes (a redrawn door leaf, floor reflections) while a
+    separate sock or hand next to the subject stays."""
+    m = mask.astype(np.uint8)
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
+    if n <= 2:
+        return mask.astype(bool)
+    main = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    zone = grow(labels == main, radius)
+    keep = np.unique(labels[zone & (labels > 0)])
+    return np.isin(labels, keep)
+
+
 def make_trimap(mask: np.ndarray, erode_px: int, dilate_px: int) -> np.ndarray:
     """Sure-foreground core, an unknown band of ``erode_px + dilate_px``, background."""
     fg = shrink(mask, erode_px)

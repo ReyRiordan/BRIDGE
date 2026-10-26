@@ -4,7 +4,7 @@ Agent-driven tooling that produces a scenario's scene art: one photoreal empty-r
 
 **The method is clean-plate extraction.** The empty room is generated once. The model edits the patient into that room, and the layer's alpha is derived locally by comparing each edit against the plate. Furniture the patient sits on matches the plate, so it stays in the backdrop with no prompt work. The stage always shows the original plate, never a model re-render.
 
-**Masters are full resolution; export is a separate step.** Candidates are generated at the model's largest tier (4K) at 4:3, and matted uncropped. `export.py` derives the web assets, so a new stage framing is a $0 re-run.
+**Masters are full resolution; export is a separate step.** Candidates are generated at 4:3 at the shot list's tier (2K for the scenario runs, 2400×1792 px; the model's largest tier, 4K, when unset), and matted uncropped. `export.py` derives the web assets, so a new stage framing is a $0 re-run.
 
 ## Files
 
@@ -78,7 +78,16 @@ Prices hard-coded in `generate.PRICES` (USD per output image, standard / batch):
 
 Input images and text add about $0.002 per request.
 
-**Cost per scenario**, first pass at 4K with 3 candidates per slot: a plate plus 11 levels is 36 images, about $4.10 standard or $2.05 batch. Every redo round adds `n × $0.113` per level redone. `masters.py status <id>` and the contact sheet header show the recorded spend.
+**Cost per scenario**, first pass with 3 candidates per slot (a plate, 11 levels and up to two action layers: 36–42 images):
+
+| Tier | Master size | Per image (standard / batch, incl. inputs) | First pass, standard / batch |
+|---|---|---|---|
+| 2K (scenario default) | 2400×1792 | ≈ $0.051 / $0.027 | $1.85–2.15 / $0.95–1.15 |
+| 4K | the model's largest | ≈ $0.115 / $0.058 | $4.10–4.85 / $2.05–2.45 |
+
+The 2K tier is still wider than the 2048 px export, so assets are downscaled; it leaves no headroom for exports wider than the master. Every redo round adds `n ×` the per-image price per slot redone. Recorded spend for both scenarios, with every redo, was $4.22 for 102 images. `masters.py status <id>` and the contact sheet header show the recorded spend.
+
+**Batch and the chain.** A chain step depends on the accepted neighbours, so a whole frame pass can't be one batch. `chain --batch` sends each step (two levels × n) as its own job; jobs of six images came back in a few minutes.
 
 ## Extraction
 
@@ -95,6 +104,16 @@ Input images and text add about $0.002 per request.
    - `--matte birefnet` is the fallback. It is not trimap-guided, so its alpha is used only inside the band.
 6. **Decontaminate**: `F = (C − (1−α)·B) / α`, which is exact because the background B is the known plate.
 7. **Shadow**: shade within a quarter of the frame of the person becomes a black layer with `α = 1 − C/B`, capped at 0.8. It is merged under the person, so the figure doesn't float. `--no-shadow` drops it.
+
+**Mask clean-up options**, all off or at their defaults unless passed. Every flag a layer was extracted with is recorded under `params` in its manifest entry, so a re-run can reproduce it.
+
+| Flag | Default | Use it when |
+|---|---|---|
+| `--max-hole F` | 0.002 | A solid prop replaces something of a similar tone (a closed door over a beige hallway) and leaves a hole. Not for people: it also fills the gap between an arm and the body. |
+| `--min-area F` | 0.0005 | Raise it to drop stray specks. Thin limbs can be islands of their own, so prefer `--near`. |
+| `--near F` | off | Keeps only islands within `F` × long edge of the largest one. Drops far-off redraws (a door leaf, floor reflections) while a separate sock or hand stays. |
+| `--close F` | off | Morphological closing of radius `F` × long edge. Bridges a gap the diff cannot see, such as dark legs over a near-black shadow under a bed. |
+| `--no-shadow` | shadow on | On a shiny floor, where re-rendered reflections read as shade and leave blotches. Floor reflections in the layer still ground the figure. |
 
 **`--relight`** (action-layer props): moving a prop both adds and *removes* shadows, and a removed shadow is a smooth brightening that the steps above cut off at the diff threshold, leaving a visible seam on a plain wall. With `--relight`:
 
@@ -120,7 +139,7 @@ If a master is too slow or too large to matte locally, run only the extraction s
 ## Export
 
 ```bash
-export.py <id> [--aspect 1196:880] [--width 2048] [--format webp|png] [--quality 85] [--offset X,Y] [--out DIR]
+export.py <id> [--aspect 1196:880] [--width 2048] [--format webp|png] [--quality 85] [--max-kb 500] [--offset X,Y] [--out DIR]
 ```
 
 Writes `web/public/visuals/<id>/`. Every file is the same crop of the plate's frame, so the layers stay registered with the backdrop.
@@ -133,9 +152,10 @@ Writes `web/public/visuals/<id>/`. Every file is the same crop of the plate's fr
 | `intro.<ext>` | The start state: the plate, the `start_visible` layers, then the `start_level` patient on top |
 
 - **Size**: the defaults give 2048×1507, the stage's 1196:880 aspect.
+- **File budget**: `--max-kb` (default 500) re-encodes any WebP over it at a lower colour quality, in steps of 5 down to 60. Alpha stays lossless, and only files over budget are touched. A relit prop layer with a wide soft tone is the usual case.
 - **Crop offset**: the crop is centred unless the shot list's `crop_offset` or `--offset` says otherwise. Export warns if the crop cuts into the `safe_area`.
 - **Resampling** is premultiplied, so transparent pixels don't bleed colour into the edges.
-- **Stacking**: action layers sit below the patient. Each is a separate file; which ones are visible at a given moment is the app's call.
+- **Stacking**: action layers sit below the patient. Each is a separate file; which ones are visible at a given moment is the app's call. Where layers overlap, a prop layer that redraws a region (`door_closed`) goes below a people layer in front of it (`staff_present`).
 - **Missing layers**: export refuses if any level or action layer has no extracted layer, unless `--allow-missing` is passed.
 - **Reframing**: re-running with new flags changes the framing and costs nothing.
 
@@ -169,6 +189,32 @@ Shot lists live at `scripts/visuals/shots/<id>.yaml`. The required fields are `r
   `BRIDGE_VISUALS_MANIFESTS` redirects it for scratch runs.
 - **The work dir** `.visuals-work/` is gitignored. It is a cache. S3 is the source of truth.
 
+## Lessons from the first run
+
+What held up, and what had to change, producing `scenario_2` and `scenario_3`:
+
+- **Plates.**
+  - Say "the room's only door" and pin its position and clearance from the workstation. Otherwise the model adds a second door at the frame edge or hides the door behind the monitor.
+  - Reject plates whose exit path leaves the frame.
+- **Nothing the patient picks up belongs in the plate.** A layer can add pixels but never remove them. A coat, jacket or belongings bag has to be drawn in the frames.
+- **Colour contrast decides matte quality.**
+  - Clothing that matches the furniture it touches leaves holes: a navy coat on a navy chair, grey scrubs against a grey bin.
+  - Pick outfit colours against the plate before generating the anchor. A colour change after the anchor means redoing it.
+- **Layers must not touch each other's changed regions.** Staff standing at the open door leaf picked up a redrawn strip of it, which ghosted over `door_closed`. Place third parties clear of anything another layer changes.
+- **Pin the lighting in prop prompts.** "Close the curtain" alone relit the whole room darker. Adding "lighting and exposure stay exactly as they are" fixed it.
+- **Expression carries along the chain.** Each frame is edited from its neighbour, so a level asking for "a slight frown" came back as tense as the next one. Write the step down explicitly ("noticeably calmer than before"), and say "looking at the camera" in every seated frame.
+- **Identity** held across both chains with the anchor attached. Faces drift slightly but stay recognisable, and outfit, build and hair stayed fixed.
+- **Thresholds used:**
+  - `scenario_2` patient frames: defaults.
+  - `monitor_turned`: `--relight`.
+  - `scenario_3` patient frames: `--no-shadow --near 0.03`, plus `--close 0.02`–`0.035` where legs cross the under-bed shadow (levels 6–10), and `--threshold 0.07` at level 8.
+  - `staff_present`: `--threshold 0.05 --no-shadow`.
+  - `door_closed`: `--relight --threshold 0.05 --max-hole 0.02`.
+- **Review tooling that paid off:**
+  - A per-candidate diff heatmap against the plate, which shows stray room changes.
+  - Every layer composited over the hardest stack (all action layers on). That's where ghosts show.
+  - A recomposite-vs-edit check for dropped limbs.
+
 ## Tests
 
 ```bash
@@ -191,5 +237,7 @@ What the tests cover:
 - **Export** sizes, alpha, crop offset, action layers and the start-state intro.
 - **Generation**: the dry-run plan and order, anchor attachment, layers as plate-only edits, cost, chain gating (plate → layers → frames), and a stubbed live run.
 - **Extraction CLI**: level and layer targets, `all`, with the pipeline stubbed.
+- **Mask clean-up**: the chroma term catches a dark hue change, closing bridges a gap without growing, and `keep_near` drops only far islands.
+- **Export budget**: only files over `--max-kb` are re-encoded.
 - **Manifest** round trip and S3 calls, via `botocore.stub.Stubber`.
 - **Contact sheet** content, including layer sections and start-state previews.

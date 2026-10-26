@@ -40,6 +40,14 @@ DEFAULTS = {
     "tile": 1024,
     # Largest hole (fraction of the frame) filled inside the subject mask.
     "max_hole": 2e-3,
+    # Smallest island (fraction of the frame) kept in the subject mask.
+    "min_area": 5e-4,
+    # Closing radius (fraction of the long edge) that bridges subject gaps the
+    # diff can't see — dark legs over a near-black shadow. 0 = off.
+    "close": 0.0,
+    # Keep only islands within this distance (fraction of the long edge) of
+    # the largest one. 0 = keep every island.
+    "near": 0.0,
 }
 
 
@@ -56,6 +64,9 @@ def extract_layer(
     shadow: bool = True,
     relight: bool = False,
     max_hole: float = DEFAULTS["max_hole"],
+    min_area: float = DEFAULTS["min_area"],
+    close: float = DEFAULTS["close"],
+    near: float = DEFAULTS["near"],
     predictor=None,
 ) -> tuple[np.ndarray, dict]:
     """The full pipeline on in-memory arrays → (RGBA layer, stats).
@@ -85,8 +96,18 @@ def extract_layer(
     stats["align_s"] = round(time.time() - t, 2)
 
     mask = matting.diff_mask(
-        plate, aligned, threshold, max_hole=max_hole, ignore_lighting=relight
+        plate,
+        aligned,
+        threshold,
+        min_area=min_area,
+        max_hole=max_hole,
+        ignore_lighting=relight,
     )
+    if close > 0:
+        radius = max(1, round(long_edge * close))
+        mask = matting.close_mask(mask, radius)
+    if near > 0:
+        mask = matting.keep_near(mask, max(1, round(long_edge * near)))
     if not mask.any():
         raise SystemExit(
             "the composite matches the plate — nothing changed (lower --threshold?)"
@@ -155,6 +176,24 @@ def main(argv: list[str] | None = None) -> int:
         help="largest hole filled in the subject mask, as a fraction of the frame",
     )
     parser.add_argument(
+        "--min-area",
+        type=float,
+        default=DEFAULTS["min_area"],
+        help="smallest island kept in the subject mask, as a fraction of the frame",
+    )
+    parser.add_argument(
+        "--close",
+        type=float,
+        default=DEFAULTS["close"],
+        help="closing radius bridging gaps in the subject mask (fraction of the long edge)",
+    )
+    parser.add_argument(
+        "--near",
+        type=float,
+        default=DEFAULTS["near"],
+        help="keep only islands this close to the largest (fraction of the long edge)",
+    )
+    parser.add_argument(
         "--relight",
         action="store_true",
         help="carry smooth lighting changes (lighter too) as a soft tone layer",
@@ -195,6 +234,9 @@ def main(argv: list[str] | None = None) -> int:
             shadow=not args.no_shadow,
             relight=args.relight,
             max_hole=args.max_hole,
+            min_area=args.min_area,
+            close=args.close,
+            near=args.near,
         )
         path = local_path(key)
         save_png(rgba, path)
@@ -212,6 +254,9 @@ def main(argv: list[str] | None = None) -> int:
                     "shadow": not args.no_shadow,
                     "relight": args.relight,
                     "max_hole": args.max_hole,
+                    "min_area": args.min_area,
+                    "close": args.close,
+                    "near": args.near,
                     "erode_px": stats["erode_px"],
                     "dilate_px": stats["dilate_px"],
                 },

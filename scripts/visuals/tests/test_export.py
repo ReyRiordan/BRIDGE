@@ -146,3 +146,30 @@ def test_safe_area_check():
         shape, 1196 / 880, (0.5, 0.5), (0.0, 0.0, 1.0, 1.0)
     )
     assert not export.safe_area_kept(shape, 16 / 9, (0.5, 0.5), (0.1, 0.05, 0.9, 0.95))
+
+
+def test_max_kb_lowers_quality_only_for_files_over_budget(tmp_path, capsys):
+    rng = np.random.default_rng(0)
+    plate = np.full((384, 512, 3), 128, np.uint8)
+    layer = np.zeros((384, 512, 4), np.uint8)
+    layer[100:200, 200:300] = (40, 200, 40, 255)
+    noisy = np.dstack(  # incompressible at full size: no downscale averages it out
+        [
+            rng.integers(0, 255, (384, 512, 3), dtype=np.uint8),
+            np.full((384, 512), 255, np.uint8),
+        ]
+    )
+    written = export.export_assets(
+        plate,
+        {0: layer},
+        0,
+        tmp_path,
+        width=512,
+        action_layers={"busy": noisy},
+        max_kb=60,
+    )
+    out = capsys.readouterr().out
+    # Only the file over budget is touched: stepped down, or warned at the floor.
+    assert "busy.webp" in out and "patient_0.webp" not in out
+    sizes = {p.name: p.stat().st_size for p in written}
+    assert sizes["busy.webp"] <= 60_000 or "warning: busy.webp" in out

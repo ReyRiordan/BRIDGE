@@ -209,3 +209,23 @@ def test_diff_mask_catches_a_dark_hue_change_rgb_distance_misses():
     shade = plate.copy()
     shade[100:200, 150:250] = (plate[100:200, 150:250] * 0.6).astype(np.uint8)
     assert not matting.diff_mask(plate, shade, 0.1, chroma_weight=2.0).any()
+
+
+def test_close_mask_bridges_a_gap_without_growing():
+    m = np.zeros((200, 200), bool)
+    m[20:90, 80:120] = True  # gown
+    m[110:180, 80:120] = True  # sock — a 20 px shin gap between them
+    closed = matting.close_mask(m, 15)
+    assert closed[90:110, 85:115].all()
+    assert not closed[:15].any() and not closed[:, :70].any()
+    assert closed.sum() < m.sum() + 40 * 25
+
+
+def test_keep_near_drops_far_islands_only():
+    m = np.zeros((200, 300), bool)
+    m[40:160, 100:150] = True  # the subject
+    m[165:180, 120:140] = True  # a sock just below it
+    m[50:120, 260:290] = True  # a redrawn door leaf far away
+    kept = matting.keep_near(m, 20)
+    assert kept[100, 120] and kept[170, 130]
+    assert not kept[80, 270]
