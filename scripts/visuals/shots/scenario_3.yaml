@@ -30,19 +30,22 @@ size: 2K
 layers:
   staff_present:
     prompt: >-
-      Add two hospital staff standing side by side against the right wall just
-      inside the open door, near the foot of the bed, watching the bed with
+      Add two hospital staff standing side by side against the back wall,
+      between the foot of the bed and the doorway, watching the bed with
       concerned, patient expressions, hands at their sides: a patient-care tech
-      in grey scrubs holding a small packet of ECG electrode stickers, and a
-      nurse in navy scrubs with a stethoscope around her neck. They do not
-      block the doorway.
+      in burgundy scrubs holding a small packet of ECG electrode stickers, and a
+      nurse in navy scrubs with a stethoscope around her neck. They stand left
+      of the doorway, clear of the door, its frame and the open door leaf, and
+      do not block the doorway.
   door_closed:
     prompt: >-
       Close the door to the corridor (the hallway is no longer visible), and
       draw the privacy curtain out along its ceiling track so it hangs closed
       along the far left side of the bed, from the back wall to the foot of the
       bed. Leave the right side of the room and the path from the bed to the
-      door open.
+      door open. The room's lighting and exposure stay exactly as they are:
+      the same brightness on every wall, the floor and the bed; only the door
+      and the curtain themselves change.
 start_visible: [staff_present]
 frames:
   0: >-

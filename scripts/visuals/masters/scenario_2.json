@@ -1,0 +1,454 @@
+{
+  "scenario_id": "scenario_2",
+  "accepted": {
+    "plate": "scenario_2/plate/plate_20261026T044425_1.jpg",
+    "monitor_turned": "scenario_2/composites/monitor_turned/monitor_turned_20261026T044533_0.jpg",
+    "level_5": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg"
+  },
+  "objects": {
+    "scenario_2/composites/level_4/level_4_20261026T045810_0.jpg": {
+      "sha256": "ff9c3267dd915bff8c1d47f8a2e283e93870ab260a9b3d69079075d24d26fbb0",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2852070,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": true,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Seated in the side chair, jacket over the chair back, arms crossed tightly, frowning, jaw set, visibly irritated.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg",
+        "anchor": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg"
+      },
+      "prompt_tokens": 2476,
+      "cost_usd": 0.0271,
+      "recorded_at": "2026-10-26T05:00:51+00:00"
+    },
+    "scenario_2/composites/level_4/level_4_20261026T045810_1.jpg": {
+      "sha256": "af3081098b03182eb8d2e4ec1ea1583acaf7821dd74d9f5a36944c475a9d0a68",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2813782,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": true,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Seated in the side chair, jacket over the chair back, arms crossed tightly, frowning, jaw set, visibly irritated.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg",
+        "anchor": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg"
+      },
+      "prompt_tokens": 2476,
+      "cost_usd": 0.0271,
+      "recorded_at": "2026-10-26T05:00:51+00:00"
+    },
+    "scenario_2/composites/level_4/level_4_20261026T045810_2.jpg": {
+      "sha256": "398d1f019827b68ccf04b2521d1882b13e13275fcfb7927d5a9207f93cc13383",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2847829,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": true,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Seated in the side chair, jacket over the chair back, arms crossed tightly, frowning, jaw set, visibly irritated.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg",
+        "anchor": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg"
+      },
+      "prompt_tokens": 2476,
+      "cost_usd": 0.0271,
+      "recorded_at": "2026-10-26T05:00:51+00:00"
+    },
+    "scenario_2/composites/level_5/level_5_20261026T045412_0.jpg": {
+      "sha256": "e2fe91d07455dc0cab40c75d27efb5b1ac85c505f1a5469db3728de83dd4d6d5",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2746312,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a blue-and-grey plaid flannel shirt over a grey t-shirt, dark jeans and brown work boots. His navy padded winter coat is with him (draped over the chair back, in his hand or worn, as the pose says).\nPose and expression: Seated in the side chair, coat over the chair back, leaning forward with his forearms on his knees, visibly irritated, glaring at the camera.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1336,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-10-26T04:54:29+00:00",
+      "rejected": true,
+      "note": "navy coat matches the navy chair (matte holes); outfit changed"
+    },
+    "scenario_2/composites/level_5/level_5_20261026T045412_1.jpg": {
+      "sha256": "24809ee92bdb47f73caf771dca2ba0ed68fbb96bf98197695148d48b7802e9af",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2778472,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a blue-and-grey plaid flannel shirt over a grey t-shirt, dark jeans and brown work boots. His navy padded winter coat is with him (draped over the chair back, in his hand or worn, as the pose says).\nPose and expression: Seated in the side chair, coat over the chair back, leaning forward with his forearms on his knees, visibly irritated, glaring at the camera.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1336,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-10-26T04:54:45+00:00",
+      "rejected": true,
+      "note": "navy coat matches the navy chair (matte holes); outfit changed"
+    },
+    "scenario_2/composites/level_5/level_5_20261026T045412_2.jpg": {
+      "sha256": "43b7ecb02d264e4a8ed8a6918893a9a9dc6fc649172825ac6fddaea2ffc79f15",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2819077,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a blue-and-grey plaid flannel shirt over a grey t-shirt, dark jeans and brown work boots. His navy padded winter coat is with him (draped over the chair back, in his hand or worn, as the pose says).\nPose and expression: Seated in the side chair, coat over the chair back, leaning forward with his forearms on his knees, visibly irritated, glaring at the camera.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1336,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-10-26T04:55:01+00:00",
+      "rejected": true,
+      "note": "navy coat matches the navy chair (matte holes); outfit changed"
+    },
+    "scenario_2/composites/level_5/level_5_20261026T045616_0.jpg": {
+      "sha256": "01f76df3d73960f99852779b4bd298a039d986ca3c6fa70d26cd414d861a8990",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2777372,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\nPose and expression: Seated in the side chair, jacket over the chair back, leaning forward with his forearms on his knees, visibly irritated, glaring at the camera.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1344,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-10-26T04:56:34+00:00"
+    },
+    "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg": {
+      "sha256": "f9ae3c728100f63289021efaf1aa629dbd726eaccbbbd7867e392b67856f7ed8",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2793594,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\nPose and expression: Seated in the side chair, jacket over the chair back, leaning forward with his forearms on his knees, visibly irritated, glaring at the camera.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1344,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-10-26T04:56:50+00:00"
+    },
+    "scenario_2/composites/level_5/level_5_20261026T045616_2.jpg": {
+      "sha256": "23550d58d69e90e693fd2a4421d71af2e4c72bd9d4ec7ab2f4db32c420bef2c9",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2813771,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\nPose and expression: Seated in the side chair, jacket over the chair back, leaning forward with his forearms on his knees, visibly irritated, glaring at the camera.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1344,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-10-26T04:57:07+00:00"
+    },
+    "scenario_2/composites/level_6/level_6_20261026T045810_0.jpg": {
+      "sha256": "666b2dde71ba284c5ddb29701f3b560d00956ecc6ea9ccaed66c6bfeb8c8d80e",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2852793,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": true,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Seated on the front edge of the side chair, jacket over the chair back, leaning forward and gesturing with one open hand, brow furrowed, mouth open mid-complaint.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg",
+        "anchor": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg"
+      },
+      "prompt_tokens": 2488,
+      "cost_usd": 0.0271,
+      "recorded_at": "2026-10-26T05:00:51+00:00"
+    },
+    "scenario_2/composites/level_6/level_6_20261026T045810_1.jpg": {
+      "sha256": "00b3bdc8412d2b9ec1cb325c4f4fbb7c01944368f5456fe7b03df53b770308e1",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2808229,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": true,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Seated on the front edge of the side chair, jacket over the chair back, leaning forward and gesturing with one open hand, brow furrowed, mouth open mid-complaint.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg",
+        "anchor": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg"
+      },
+      "prompt_tokens": 2488,
+      "cost_usd": 0.0271,
+      "recorded_at": "2026-10-26T05:00:51+00:00"
+    },
+    "scenario_2/composites/level_6/level_6_20261026T045810_2.jpg": {
+      "sha256": "e4833aae61c40315974ba6133376d22efcc9abf3768a129fac5a09526e23140e",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2743383,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": true,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Seated on the front edge of the side chair, jacket over the chair back, leaning forward and gesturing with one open hand, brow furrowed, mouth open mid-complaint.\n\nPatient: A 45-year-old white man, medium build, short brown hair greying at the temples, light stubble, wearing a red-and-grey plaid flannel shirt over a grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work jacket with a corduroy collar is with him (draped over the chair back, in his hand or worn, as the pose says).\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg",
+        "anchor": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg"
+      },
+      "prompt_tokens": 2488,
+      "cost_usd": 0.0271,
+      "recorded_at": "2026-10-26T05:00:51+00:00"
+    },
+    "scenario_2/composites/monitor_turned/monitor_turned_20261026T044533_0.jpg": {
+      "sha256": "1b2533421349421867a7be21bf4cdf17c0ee64159bdb7286e048eb6506ac2ed3",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2777242,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: Swivel the computer monitor on its arm so its screen faces the patient side chair against the left wall: the camera now sees the monitor's back and edge, not its screen. Keep the arm's wall mount, the keyboard tray and everything else exactly where they are.\n\nKeep the camera, framing, perspective, lighting and every other object in the room exactly as they are; change only the pixels this edit needs and the soft shadows it casts. Add no one who is not described above: no patient, no hands, no reflections of people. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1254,
+      "cost_usd": 0.0523,
+      "recorded_at": "2026-10-26T04:45:51+00:00"
+    },
+    "scenario_2/composites/monitor_turned/monitor_turned_20261026T044533_1.jpg": {
+      "sha256": "21661e4471f80e57ad4e14bbc8c0f6f9a648c78c37e5544530b552c991d8f7dc",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2802492,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: Swivel the computer monitor on its arm so its screen faces the patient side chair against the left wall: the camera now sees the monitor's back and edge, not its screen. Keep the arm's wall mount, the keyboard tray and everything else exactly where they are.\n\nKeep the camera, framing, perspective, lighting and every other object in the room exactly as they are; change only the pixels this edit needs and the soft shadows it casts. Add no one who is not described above: no patient, no hands, no reflections of people. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1254,
+      "cost_usd": 0.0523,
+      "recorded_at": "2026-10-26T04:46:09+00:00"
+    },
+    "scenario_2/composites/monitor_turned/monitor_turned_20261026T044533_2.jpg": {
+      "sha256": "731bc28b31c84d8a0c049aa4e6017b3aef826807893be7edbd5d9ac95d6b4983",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2758700,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: Swivel the computer monitor on its arm so its screen faces the patient side chair against the left wall: the camera now sees the monitor's back and edge, not its screen. Keep the arm's wall mount, the keyboard tray and everything else exactly where they are.\n\nKeep the camera, framing, perspective, lighting and every other object in the room exactly as they are; change only the pixels this edit needs and the soft shadows it casts. Add no one who is not described above: no patient, no hands, no reflections of people. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_2/plate/plate_20261026T044425_1.jpg"
+      },
+      "prompt_tokens": 1254,
+      "cost_usd": 0.0523,
+      "recorded_at": "2026-10-26T04:46:27+00:00"
+    },
+    "scenario_2/layers/monitor_turned.png": {
+      "sha256": "bf1399c36caf34b542312492286c6c6ada0d6f290b9a66872994e6837060269b",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 521600,
+      "source": "scenario_2/composites/monitor_turned/monitor_turned_20261026T044533_0.jpg",
+      "plate": "scenario_2/plate/plate_20261026T044425_1.jpg",
+      "matte": "vitmatte",
+      "params": {
+        "threshold": 0.1,
+        "tile": 1024,
+        "shadow": true,
+        "relight": true,
+        "max_hole": 0.002,
+        "erode_px": 6,
+        "dilate_px": 12
+      },
+      "recorded_at": "2026-10-26T04:47:19+00:00"
+    },
+    "scenario_2/layers/patient_5.png": {
+      "sha256": "efaf479b792de06c014a384ba43bbecbeaf30ac4b1cc764ca2cfc78ac4c6c800",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 1275232,
+      "source": "scenario_2/composites/level_5/level_5_20261026T045616_1.jpg",
+      "plate": "scenario_2/plate/plate_20261026T044425_1.jpg",
+      "matte": "vitmatte",
+      "params": {
+        "threshold": 0.1,
+        "tile": 1024,
+        "shadow": true,
+        "relight": false,
+        "erode_px": 6,
+        "dilate_px": 12
+      },
+      "recorded_at": "2026-10-26T04:55:37+00:00"
+    },
+    "scenario_2/plate/plate_20261026T043655_0.jpg": {
+      "sha256": "f15193d1e057ff25f907af9b9363f787dc56608e319e32a05240c9b21b837b40",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2861945,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "A small, modern family-medicine clinic exam room, seen at standing eye level from just inside the room, with a slightly wide lens. Against the left wall, a padded patient side chair with wooden armrests. Along the back wall, a padded exam table with white paper, and a small counter with a sink and cabinets. In the right foreground, close to the camera, a computer workstation on a wall-mounted swivel arm: a keyboard tray and a flat monitor whose screen faces the camera, showing an electronic health record. Beside it, an empty black rolling stool. The door to the corridor is visible in the back right wall, closed. Beige walls with a framed anatomy poster, grey vinyl floor, overhead fluorescent panel light, a window with blinds on the left wall.\n\nPhotorealistic photograph, eye-level camera, natural indoor lighting, sharp focus throughout. The room is completely empty: no people, no hands, no silhouettes, no reflections of people. 4:3 landscape frame.",
+      "references": {},
+      "prompt_tokens": 202,
+      "cost_usd": 0.0507,
+      "recorded_at": "2026-10-26T04:37:13+00:00"
+    },
+    "scenario_2/plate/plate_20261026T043655_1.jpg": {
+      "sha256": "a25023a078e3adea17d9e69938ba960a9c67abe94e9a6d2cd8f2286cb39f2108",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2782346,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "A small, modern family-medicine clinic exam room, seen at standing eye level from just inside the room, with a slightly wide lens. Against the left wall, a padded patient side chair with wooden armrests. Along the back wall, a padded exam table with white paper, and a small counter with a sink and cabinets. In the right foreground, close to the camera, a computer workstation on a wall-mounted swivel arm: a keyboard tray and a flat monitor whose screen faces the camera, showing an electronic health record. Beside it, an empty black rolling stool. The door to the corridor is visible in the back right wall, closed. Beige walls with a framed anatomy poster, grey vinyl floor, overhead fluorescent panel light, a window with blinds on the left wall.\n\nPhotorealistic photograph, eye-level camera, natural indoor lighting, sharp focus throughout. The room is completely empty: no people, no hands, no silhouettes, no reflections of people. 4:3 landscape frame.",
+      "references": {},
+      "prompt_tokens": 202,
+      "cost_usd": 0.0507,
+      "recorded_at": "2026-10-26T04:37:34+00:00",
+      "rejected": true,
+      "note": "corridor door is open and at the right frame edge; the patient's exit at 9-10 would leave the frame"
+    },
+    "scenario_2/plate/plate_20261026T043655_2.jpg": {
+      "sha256": "0f67c27d8719dd683a2cbab97b65513bf4962a753a82798c9cdad9aab897f339",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 3158339,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "A small, modern family-medicine clinic exam room, seen at standing eye level from just inside the room, with a slightly wide lens. Against the left wall, a padded patient side chair with wooden armrests. Along the back wall, a padded exam table with white paper, and a small counter with a sink and cabinets. In the right foreground, close to the camera, a computer workstation on a wall-mounted swivel arm: a keyboard tray and a flat monitor whose screen faces the camera, showing an electronic health record. Beside it, an empty black rolling stool. The door to the corridor is visible in the back right wall, closed. Beige walls with a framed anatomy poster, grey vinyl floor, overhead fluorescent panel light, a window with blinds on the left wall.\n\nPhotorealistic photograph, eye-level camera, natural indoor lighting, sharp focus throughout. The room is completely empty: no people, no hands, no silhouettes, no reflections of people. 4:3 landscape frame.",
+      "references": {},
+      "prompt_tokens": 202,
+      "cost_usd": 0.0507,
+      "recorded_at": "2026-10-26T04:37:57+00:00",
+      "rejected": true,
+      "note": "monitor hides most of the door; frames 9-10 would be occluded"
+    },
+    "scenario_2/plate/plate_20261026T044425_0.jpg": {
+      "sha256": "7445a6c1f26933de15bf27f4df8cf714c2f0f45f8f36344bb14c97db1779429b",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2777619,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "A small, modern family-medicine clinic exam room, seen at standing eye level from a corner well inside the room, with a slightly wide lens. Against the left wall, a padded patient side chair with wooden armrests. Along the back wall, on the left, a padded exam table with white paper, and a small counter with a sink and cabinets. The room's only door, to the corridor, is a closed wooden door in the back wall just right of centre, fully visible from floor to frame with its lever handle unobstructed and clear floor in front of it. In the bottom-right foreground, close to the camera and against the right wall, a computer workstation on a wall-mounted swivel arm: a keyboard tray and a flat monitor whose screen faces the camera, showing an electronic health record; the workstation sits low and to the right, well clear of the door. Beside it, an empty black rolling stool. No other doors, door edges or door frames anywhere in view. Beige walls with a framed anatomy poster, grey vinyl floor, overhead fluorescent panel light, a window with blinds on the left wall.\n\nPhotorealistic photograph, eye-level camera, natural indoor lighting, sharp focus throughout. The room is completely empty: no people, no hands, no silhouettes, no reflections of people. 4:3 landscape frame.",
+      "references": {},
+      "prompt_tokens": 272,
+      "cost_usd": 0.0508,
+      "recorded_at": "2026-10-26T04:44:43+00:00"
+    },
+    "scenario_2/plate/plate_20261026T044425_1.jpg": {
+      "sha256": "605fa9e63fa0e0e7909bd091e59bd5aa90f4d70baa716d19091c3cc96aa266ff",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2975612,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "A small, modern family-medicine clinic exam room, seen at standing eye level from a corner well inside the room, with a slightly wide lens. Against the left wall, a padded patient side chair with wooden armrests. Along the back wall, on the left, a padded exam table with white paper, and a small counter with a sink and cabinets. The room's only door, to the corridor, is a closed wooden door in the back wall just right of centre, fully visible from floor to frame with its lever handle unobstructed and clear floor in front of it. In the bottom-right foreground, close to the camera and against the right wall, a computer workstation on a wall-mounted swivel arm: a keyboard tray and a flat monitor whose screen faces the camera, showing an electronic health record; the workstation sits low and to the right, well clear of the door. Beside it, an empty black rolling stool. No other doors, door edges or door frames anywhere in view. Beige walls with a framed anatomy poster, grey vinyl floor, overhead fluorescent panel light, a window with blinds on the left wall.\n\nPhotorealistic photograph, eye-level camera, natural indoor lighting, sharp focus throughout. The room is completely empty: no people, no hands, no silhouettes, no reflections of people. 4:3 landscape frame.",
+      "references": {},
+      "prompt_tokens": 272,
+      "cost_usd": 0.0508,
+      "recorded_at": "2026-10-26T04:45:04+00:00"
+    },
+    "scenario_2/plate/plate_20261026T044425_2.jpg": {
+      "sha256": "5f3f3a840e2e41ebafe32d0e9df22c1272b443c923e90d91f6b20aacee7b5d7b",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2880123,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "A small, modern family-medicine clinic exam room, seen at standing eye level from a corner well inside the room, with a slightly wide lens. Against the left wall, a padded patient side chair with wooden armrests. Along the back wall, on the left, a padded exam table with white paper, and a small counter with a sink and cabinets. The room's only door, to the corridor, is a closed wooden door in the back wall just right of centre, fully visible from floor to frame with its lever handle unobstructed and clear floor in front of it. In the bottom-right foreground, close to the camera and against the right wall, a computer workstation on a wall-mounted swivel arm: a keyboard tray and a flat monitor whose screen faces the camera, showing an electronic health record; the workstation sits low and to the right, well clear of the door. Beside it, an empty black rolling stool. No other doors, door edges or door frames anywhere in view. Beige walls with a framed anatomy poster, grey vinyl floor, overhead fluorescent panel light, a window with blinds on the left wall.\n\nPhotorealistic photograph, eye-level camera, natural indoor lighting, sharp focus throughout. The room is completely empty: no people, no hands, no silhouettes, no reflections of people. 4:3 landscape frame.",
+      "references": {},
+      "prompt_tokens": 272,
+      "cost_usd": 0.0508,
+      "recorded_at": "2026-10-26T04:45:21+00:00"
+    }
+  }
+}
