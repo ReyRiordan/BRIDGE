@@ -1,0 +1,73 @@
+# scenario_2 — family-medicine clinic, a long wait and missed labs.
+# Source: docs/scenarios/scenario_2.md. First-person: the camera is the
+# student, standing just inside the room; the clinician is never drawn.
+# Anything the patient picks up (his coat) lives in the frames, never the
+# plate: a layer can add pixels over the plate but not remove them.
+room_prompt: >-
+  A small, modern family-medicine clinic exam room, seen at standing eye level
+  from just inside the room, with a slightly wide lens. Against the left wall,
+  a padded patient side chair with wooden armrests. Along the back wall, a
+  padded exam table with white paper, and a small counter with a sink and
+  cabinets. In the right foreground, close to the camera, a computer
+  workstation on a wall-mounted swivel arm: a keyboard tray and a flat monitor
+  whose screen faces the camera, showing an electronic health record. Beside
+  it, an empty black rolling stool. The door to the corridor is visible in the
+  back right wall, closed. Beige walls with a framed anatomy poster, grey vinyl
+  floor, overhead fluorescent panel light, a window with blinds on the left
+  wall.
+patient_description: >-
+  A 45-year-old white man, medium build, short brown hair greying at the
+  temples, light stubble, wearing a blue-and-grey plaid flannel shirt over a
+  grey t-shirt, dark jeans and brown work boots. His navy padded winter coat is
+  with him (draped over the chair back, in his hand or worn, as the pose says).
+start_level: 5
+max_level: 10
+# The path chair → door spans the room; keep it inside the stage crop.
+safe_area: [0.04, 0.04, 0.96, 0.97]
+crop_offset: [0.5, 0.5]
+model: gemini-nano-banana-2.1
+size: 2K
+layers:
+  monitor_turned:
+    prompt: >-
+      Swivel the computer monitor on its arm so its screen faces the patient
+      side chair against the left wall: the camera now sees the monitor's back
+      and edge, not its screen. Keep the arm's wall mount, the keyboard tray
+      and everything else exactly where they are.
+frames:
+  0: >-
+    Seated relaxed in the side chair, coat draped over the chair back, leaning
+    back slightly, shoulders down, a small relieved smile, making eye contact
+    with the camera.
+  1: >-
+    Seated in the side chair, coat over the chair back, hands resting loosely
+    in his lap, calm and attentive, looking at the camera.
+  2: >-
+    Seated in the side chair, coat over the chair back, leaning slightly
+    forward and engaged, a neutral, listening expression.
+  3: >-
+    Seated in the side chair, coat over the chair back, arms crossed, a
+    slight frown, looking at the camera.
+  4: >-
+    Seated in the side chair, coat over the chair back, arms crossed tightly,
+    frowning, jaw set, visibly irritated.
+  5: >-
+    Seated in the side chair, coat over the chair back, leaning forward with
+    his forearms on his knees, visibly irritated, glaring at the camera.
+  6: >-
+    Seated on the front edge of the side chair, coat over the chair back,
+    leaning forward and gesturing with one open hand, brow furrowed, mouth
+    open mid-complaint.
+  7: >-
+    Standing beside the side chair, his coat bunched in one hand, the other
+    hand gesturing sharply toward the camera, angry.
+  8: >-
+    Standing in the middle of the room, coat in one hand, the other hand
+    raised in exasperation, raising his voice, red-faced.
+  9: >-
+    Walking toward the closed door with his coat on, looking back over his
+    shoulder at the camera, angry.
+  10: >-
+    Standing at the closed door with his coat on, one hand reaching for the
+    handle, half turned back toward the camera with a dismissive, angry
+    expression.
