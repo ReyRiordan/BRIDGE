@@ -157,8 +157,9 @@ def _removed_shadow(scene):
     """A plate with a soft shadow beside the person that the edit removed."""
     h, w = scene.plate.shape[:2]
     blob = np.zeros((h, w), np.float32)
-    cv2.circle(blob, (int(w * 0.68), int(h * 0.35)), 60, 0.35, -1)
-    blob = cv2.GaussianBlur(blob, (0, 0), 12)
+    # Within tone_layer's reach of the person, as a prop's own shadow is.
+    cv2.circle(blob, (int(w * 0.62), int(h * 0.38)), 30, 0.35, -1)
+    blob = cv2.GaussianBlur(blob, (0, 0), 8)
     plate = scene.plate.astype(np.float32) * (1 - blob[..., None])
     return np.clip(plate + 0.5, 0, 255).astype(np.uint8), blob
 
@@ -171,7 +172,7 @@ def test_tone_layer_carries_a_removed_shadow(scene):
     lit = (blob > 0.1) & ~matting.grow(person, 8)
     err = np.abs(out.astype(int) - scene.truth.astype(int)).max(-1)
     assert np.median(err[lit]) <= 4
-    assert a[blob > 0.25].min() > 0.5  # the brightening is carried
+    assert a[(blob > 0.25) & ~matting.grow(person, 8)].min() > 0.5  # carried
     far = ~matting.grow(person, 0.4 * max(plate.shape[:2]))
     assert a[far].max() == 0
 
@@ -194,3 +195,17 @@ def test_relight_extraction_leaves_no_seam(scene):
     )
     err0 = np.abs(matting.composite_over(rgba0, plate).astype(int) - scene.truth)
     assert np.percentile(err0.max(-1)[lit], 95) > 2 * np.percentile(err[lit], 95)
+
+
+def test_diff_mask_catches_a_dark_hue_change_rgb_distance_misses():
+    plate = np.full((300, 400, 3), (52, 48, 50), np.uint8)  # dark grey floor
+    comp = plate.copy()
+    comp[100:200, 150:250] = (68, 30, 38)  # dark burgundy cloth
+    rgb = matting.diff_mask(plate, comp, 0.1, chroma_weight=0)
+    hue = matting.diff_mask(plate, comp, 0.1)
+    assert not rgb.any()
+    assert hue[110:190, 160:240].all() and not hue[:90].any()
+    # A shadow (same chroma, darker) still doesn't enter.
+    shade = plate.copy()
+    shade[100:200, 150:250] = (plate[100:200, 150:250] * 0.6).astype(np.uint8)
+    assert not matting.diff_mask(plate, shade, 0.1, chroma_weight=2.0).any()

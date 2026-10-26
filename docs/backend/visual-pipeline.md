@@ -86,7 +86,7 @@ Input images and text add about $0.002 per request.
 
 1. **Align**: ECC affine registration (`cv2.findTransformECC`), coarse at ≤1024 px and then refined at full resolution. It is fitted only on pixels outside a changed-region mask, found in two passes (a generous diff, then a tight one). This removes the few-pixel drift and stretch that edits introduce.
 2. **Exposure match**: a per-channel gain is fitted on unchanged pixels, so a global tone shift in the edit doesn't read as a diff or a shadow.
-3. **Diff mask** (`--threshold`, default 0.1 max per-channel): small specks are dropped and small holes filled.
+3. **Diff mask** (`--threshold`, default 0.1): the larger of the max per-channel RGB difference and 2× the Lab chroma (a\*, b\*) difference. The chroma term catches dark clothing over a dark patch of floor, which differs mostly in hue. Small specks are dropped and holes up to `--max-hole` (default 0.2% of the frame) are filled.
    - **Shade is excluded.** A pixel counts as shade when it is uniformly darker (all channels by about the same ratio) *and* the plate's texture survives. The texture test is a normalised cross-correlation of high-passed log intensity.
    - This keeps dark clothing on a textured wall in the person mask.
 4. **Trimap**: a sure-foreground core and an unknown band (`--erode` / `--dilate`, default long edge / 400 and / 200, so 10 / 20 px at 4K).
@@ -99,7 +99,7 @@ Input images and text add about $0.002 per request.
 **`--relight`** (action-layer props): moving a prop both adds and *removes* shadows, and a removed shadow is a smooth brightening that the steps above cut off at the diff threshold, leaving a visible seam on a plain wall. With `--relight`:
 
 - Uniform brightening with surviving texture is left out of the subject mask, just as shade is.
-- A **tone layer** replaces the shadow step. Its difference `D = C − B` is low-passed by a normalised convolution over pixels clear of the subject, so the subject's own large change doesn't bleed in. Alpha ramps with `|D|` up to `--threshold`, fading out toward a quarter of the frame, and its colour is `F = B + D/α`, so over the plate it reproduces `B + D` exactly, lighter or darker.
+- A **tone layer** replaces the shadow step. Its difference `D = C − B` is low-passed by a normalised convolution over pixels clear of the subject, so the subject's own large change doesn't bleed in. Pixels with `|D|` under 3% (the model's general re-render drift) are ignored. Alpha ramps with `|D|` up to `--threshold`, fading out toward an eighth of the frame, and its colour is `F = B + D/α`, so over the plate it reproduces `B + D` exactly, lighter or darker.
 - Soft edges are decontaminated against the tone layer over the plate, not the bare plate, or the tone would count twice.
 - The subject region is first **blended into** that background: the mismatch on a one-pixel ring around it is spread across the interior by a pyramid push-pull (a membrane fill), so its contour carries no tone step while its detail is kept.
 

@@ -38,6 +38,8 @@ DEFAULTS = {
     "erode": 1 / 400,
     "dilate": 1 / 200,
     "tile": 1024,
+    # Largest hole (fraction of the frame) filled inside the subject mask.
+    "max_hole": 2e-3,
 }
 
 
@@ -53,6 +55,7 @@ def extract_layer(
     device: str | None = None,
     shadow: bool = True,
     relight: bool = False,
+    max_hole: float = DEFAULTS["max_hole"],
     predictor=None,
 ) -> tuple[np.ndarray, dict]:
     """The full pipeline on in-memory arrays → (RGBA layer, stats).
@@ -81,7 +84,9 @@ def extract_layer(
     aligned = matting.match_exposure(plate, aligned, exclude=changed)
     stats["align_s"] = round(time.time() - t, 2)
 
-    mask = matting.diff_mask(plate, aligned, threshold, ignore_lighting=relight)
+    mask = matting.diff_mask(
+        plate, aligned, threshold, max_hole=max_hole, ignore_lighting=relight
+    )
     if not mask.any():
         raise SystemExit(
             "the composite matches the plate — nothing changed (lower --threshold?)"
@@ -144,6 +149,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", help="torch device (default: cuda > mps > cpu)")
     parser.add_argument("--no-shadow", action="store_true", help="drop the cast shadow")
     parser.add_argument(
+        "--max-hole",
+        type=float,
+        default=DEFAULTS["max_hole"],
+        help="largest hole filled in the subject mask, as a fraction of the frame",
+    )
+    parser.add_argument(
         "--relight",
         action="store_true",
         help="carry smooth lighting changes (lighter too) as a soft tone layer",
@@ -183,6 +194,7 @@ def main(argv: list[str] | None = None) -> int:
             device=args.device,
             shadow=not args.no_shadow,
             relight=args.relight,
+            max_hole=args.max_hole,
         )
         path = local_path(key)
         save_png(rgba, path)
@@ -199,6 +211,7 @@ def main(argv: list[str] | None = None) -> int:
                     "tile": args.tile,
                     "shadow": not args.no_shadow,
                     "relight": args.relight,
+                    "max_hole": args.max_hole,
                     "erode_px": stats["erode_px"],
                     "dilate_px": stats["dilate_px"],
                 },

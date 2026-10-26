@@ -238,11 +238,15 @@ def diff_mask(
     max_hole: float = 2e-3,
     ignore_shading: bool = True,
     ignore_lighting: bool = False,
+    chroma_weight: float = 2.0,
 ) -> np.ndarray:
     """Where ``composite`` differs from ``plate`` — the person.
 
     ``threshold`` is the max per-channel difference in [0, 1] after a light
-    blur. Shade the person casts (see ``shading``) is left out — it becomes
+    blur, or ``chroma_weight`` × the Lab chroma (a*, b*) difference if that
+    is larger: dark clothing over a dark patch of floor differs mostly in hue,
+    which RGB distance under-counts. Shade keeps its chroma, so it doesn't
+    enter through this term. Shade the person casts (see ``shading``) is left out — it becomes
     the shadow layer instead. Specks below ``min_area`` (fraction of the
     frame) are dropped and holes below ``max_hole`` filled (clothing that
     happens to match the wall). Plate-identical furniture never enters it.
@@ -253,6 +257,15 @@ def diff_mask(
     a = cv2.GaussianBlur(plate, (0, 0), sigma).astype(np.int16)
     b = cv2.GaussianBlur(composite, (0, 0), sigma).astype(np.int16)
     d = np.abs(a - b).max(axis=2).astype(np.float32) / 255.0
+    if chroma_weight:
+        la, lb = (
+            cv2.cvtColor(x.astype(np.uint8), cv2.COLOR_RGB2LAB)[..., 1:].astype(
+                np.int16
+            )
+            for x in (a, b)
+        )
+        chroma = np.abs(la - lb).max(axis=2).astype(np.float32) / 255.0
+        d = np.maximum(d, chroma * chroma_weight)
     m = d > threshold
     if ignore_shading or ignore_lighting:
         m &= ~shading(plate, composite, lighter=ignore_lighting)[1]
@@ -347,8 +360,8 @@ def tone_layer(
     composite: np.ndarray,
     subject_mask: np.ndarray,
     threshold: float = 0.1,
-    reach: float = 0.25,
-    noise: float = 0.015,
+    reach: float = 0.12,
+    noise: float = 0.03,
 ) -> tuple[np.ndarray, np.ndarray]:
     """``(colour, alpha)`` of a soft layer that carries the edit's smooth
     lighting change around the subject onto the plate.
