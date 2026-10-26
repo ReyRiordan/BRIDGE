@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Extract a pixel-registered RGBA patient layer from an accepted composite.
+"""Extract a pixel-registered RGBA layer from an accepted composite.
 
 Usage:
-    extract.py <scenario_id> <level|all> [--tile 1024] [--matte vitmatte|birefnet]
+    extract.py <scenario_id> <level|layer|all> [--tile 1024] [--matte vitmatte|birefnet]
 
-Reads the accepted plate and the accepted ``level_<n>`` composite from the
-work dir and writes the full-resolution, uncropped master
-``.visuals-work/<scenario_id>/layers/patient_<n>.png`` (plate coordinates —
-the app's backdrop is always the original plate), recorded in the manifest.
+Reads the accepted plate and the accepted ``level_<n>`` (or action-layer)
+composite from the work dir and writes the full-resolution, uncropped master
+``.visuals-work/<scenario_id>/layers/patient_<n>.png`` (or ``<layer>.png``) in
+plate coordinates — the app's backdrop is always the original plate — recorded
+in the manifest. ``all`` extracts every accepted level and layer.
 
     align → match exposure → diff mask → trimap → matte → decontaminate
           → shadow → merge
@@ -22,7 +23,14 @@ import masters
 import matte_model
 import matting
 import numpy as np
-from common import layer_key, load_rgb, load_shot_list, local_path, save_png
+from common import (
+    action_layer_key,
+    layer_key,
+    load_rgb,
+    load_shot_list,
+    local_path,
+    save_png,
+)
 
 DEFAULTS = {
     "threshold": 0.1,
@@ -70,7 +78,7 @@ def extract_layer(
     mask = matting.diff_mask(plate, aligned, threshold)
     if not mask.any():
         raise SystemExit(
-            "the composite matches the plate — no patient found (lower --threshold?)"
+            "the composite matches the plate — nothing changed (lower --threshold?)"
         )
     trimap = matting.make_trimap(mask, erode_px, dilate_px)
 
@@ -100,7 +108,10 @@ def extract_layer(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("scenario_id")
-    parser.add_argument("level", help="a level number, or 'all' (every accepted level)")
+    parser.add_argument(
+        "target",
+        help="a level number, an action-layer name, or 'all' (everything accepted)",
+    )
     parser.add_argument("--threshold", type=float, default=DEFAULTS["threshold"])
     parser.add_argument(
         "--erode", type=int, help="trimap erode px (default: long edge / 400)"
@@ -122,20 +133,22 @@ def main(argv: list[str] | None = None) -> int:
     plate_key = manifest["accepted"].get("plate")
     if not plate_key:
         raise SystemExit(f"{sid}: no accepted plate")
-    if args.level == "all":
-        levels = [
-            lv
-            for lv in range(shot.max_level + 1)
-            if f"level_{lv}" in manifest["accepted"]
-        ]
+    # (slot, output key) for each target.
+    slots = [(name, action_layer_key(sid, name)) for name in shot.layers]
+    slots += [(f"level_{lv}", layer_key(sid, lv)) for lv in range(shot.max_level + 1)]
+    if args.target == "all":
+        targets = [(s, k) for s, k in slots if s in manifest["accepted"]]
     else:
-        levels = [int(args.level)]
+        slot = f"level_{args.target}" if args.target.isdigit() else args.target
+        targets = [(s, k) for s, k in slots if s == slot]
+        if not targets:
+            raise SystemExit(f"{sid}: {args.target!r} is not a level or a layer")
     plate = load_rgb(local_path(plate_key))
 
-    for level in levels:
-        src = manifest["accepted"].get(f"level_{level}")
+    for slot, key in targets:
+        src = manifest["accepted"].get(slot)
         if not src:
-            raise SystemExit(f"{sid}: level {level} has no accepted composite")
+            raise SystemExit(f"{sid}: {slot} has no accepted composite")
         rgba, stats = extract_layer(
             plate,
             load_rgb(local_path(src)),
@@ -147,7 +160,6 @@ def main(argv: list[str] | None = None) -> int:
             device=args.device,
             shadow=not args.no_shadow,
         )
-        key = layer_key(sid, level)
         path = local_path(key)
         save_png(rgba, path)
         masters.record(

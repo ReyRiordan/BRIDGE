@@ -9,7 +9,9 @@ Writes ``web/public/visuals/<scenario_id>/``:
 
     environment.<ext>   the plate (opaque)
     patient_<n>.<ext>   full-frame RGBA patient layer per level 0..max_level
-    intro.<ext>         plate + the start-level layer, composited
+    <layer>.<ext>       full-frame RGBA action layer per shot-list ``layers``
+    intro.<ext>         the start state: plate + ``start_visible`` layers +
+                        the start-level patient, composited
 
 Every output is the same crop of the plate's frame, so the layers stay
 pixel-registered with the backdrop. Changing the stage framing later is a
@@ -26,6 +28,7 @@ import matting
 import numpy as np
 from common import (
     REPO_ROOT,
+    action_layer_key,
     layer_key,
     load_rgb,
     load_rgba,
@@ -79,7 +82,11 @@ def export_assets(
     fmt: str = "webp",
     quality: int = 85,
     offset: tuple[float, float] = (0.5, 0.5),
+    action_layers: dict[str, np.ndarray] | None = None,
+    start_visible: tuple[str, ...] = (),
 ) -> list[Path]:
+    """Write every asset; action layers sit below the patient, in dict order."""
+    action_layers = action_layers or {}
     if fmt not in FORMATS:
         raise SystemExit(f"--format must be one of {FORMATS}")
     size = (width, round(width / aspect))
@@ -102,8 +109,14 @@ def export_assets(
     emit("environment", plate)
     for level in sorted(layers):
         emit(f"patient_{level}", layers[level])
+    for name, layer in action_layers.items():
+        emit(name, layer)
     if start_level in layers:
-        emit("intro", matting.composite_over(layers[start_level], plate))
+        intro = plate
+        for name in start_visible:
+            if name in action_layers:
+                intro = matting.composite_over(action_layers[name], intro)
+        emit("intro", matting.composite_over(layers[start_level], intro))
     return written
 
 
@@ -140,17 +153,21 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"{sid}: no accepted plate")
     plate = load_rgb(local_path(plate_key))
 
-    layers, missing = {}, []
+    layers, action_layers, missing = {}, {}, []
     for level in range(shot.max_level + 1):
         path = local_path(layer_key(sid, level))
         if path.exists():
             layers[level] = load_rgba(path)
         else:
-            missing.append(level)
+            missing.append(f"level {level}")
+    for name in shot.layers:
+        path = local_path(action_layer_key(sid, name))
+        if path.exists():
+            action_layers[name] = load_rgba(path)
+        else:
+            missing.append(name)
     if missing and not args.allow_missing:
-        raise SystemExit(
-            f"{sid}: no extracted layer for level(s) {missing} — run extract.py"
-        )
+        raise SystemExit(f"{sid}: no extracted layer for {missing} — run extract.py")
 
     aspect = parse_aspect(args.aspect)
     offset = args.offset or shot.crop_offset
@@ -169,6 +186,8 @@ def main(argv: list[str] | None = None) -> int:
         fmt=args.format,
         quality=args.quality,
         offset=offset,
+        action_layers=action_layers,
+        start_visible=shot.start_visible,
     )
     total = sum(p.stat().st_size for p in written)
     print(f"wrote {len(written)} file(s) to {out} ({total / 1e6:.1f} MB)")

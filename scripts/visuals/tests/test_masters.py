@@ -54,6 +54,20 @@ def test_record_round_trip(mdir):
     assert masters.spend(data) == {"total_usd": 0.163, "accepted_usd": 0.113}
 
 
+def test_accepted_slots_order_plate_layers_levels(mdir):
+    for slot in ("level_10", "staff_present", "level_2", "plate", "door_closed"):
+        key = f"demo/x/{slot}.png"
+        masters.record("demo", key, {}, mdir)
+        masters.accept("demo", slot, key, mdir)
+    assert list(masters.load_manifest("demo", mdir)["accepted"]) == [
+        "plate",
+        "door_closed",
+        "staff_present",
+        "level_2",
+        "level_10",
+    ]
+
+
 def test_record_rejects_foreign_keys_and_accept_unknown(mdir):
     with pytest.raises(ValueError):
         masters.record("demo", "other/plate/x.png", {}, mdir)
