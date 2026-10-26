@@ -8,6 +8,10 @@ The pipeline (driven by ``extract.py``)::
 
     align_to_plate → match_exposure → diff_mask → make_trimap → [matte_model.estimate_alpha]
         → decontaminate → shadow_alpha → merge_shadow → to_rgba
+
+With ``relight`` (props and their lighting), ``tone_layer`` replaces the
+shadow step: it carries any smooth brightening *or* darkening around the
+subject as a soft, exact layer, so a removed shadow leaves no seam.
 """
 
 from __future__ import annotations
@@ -168,8 +172,12 @@ def shading(
     max_alpha: float = 0.8,
     chroma_tol: float = 0.08,
     min_ncc: float = 0.5,
+    lighter: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """``(luminance ratio C/B, is_shading)`` per pixel.
+
+    ``lighter`` also counts the mirror case — the plate, uniformly brighter
+    with its texture intact (a shadow the edit removed) — as shading.
 
     A shadow is the plate, darker: every channel drops by about the same
     ratio *and* the plate's local texture survives (normalised cross-
@@ -184,6 +192,8 @@ def shading(
     lum = ratio.mean(axis=2)
     uniform = (ratio.max(axis=2) - ratio.min(axis=2)) < chroma_tol
     darker = (lum < 1.0) & (lum >= 1.0 - max_alpha)
+    if lighter:
+        darker |= (lum > 1.0) & (lum <= 1.0 / (1.0 - max_alpha))
 
     # Texture test on high-passed log intensity: a shadow multiplies the plate
     # by a smooth factor, which the log makes additive and the high-pass drops.
@@ -227,6 +237,7 @@ def diff_mask(
     min_area: float = 5e-4,
     max_hole: float = 2e-3,
     ignore_shading: bool = True,
+    ignore_lighting: bool = False,
 ) -> np.ndarray:
     """Where ``composite`` differs from ``plate`` — the person.
 
@@ -235,14 +246,16 @@ def diff_mask(
     the shadow layer instead. Specks below ``min_area`` (fraction of the
     frame) are dropped and holes below ``max_hole`` filled (clothing that
     happens to match the wall). Plate-identical furniture never enters it.
+    ``ignore_lighting`` also leaves out uniform brightening (``shading``'s
+    ``lighter``), for ``tone_layer`` to carry.
     """
     sigma = max(1.0, max(plate.shape[:2]) / 2000)
     a = cv2.GaussianBlur(plate, (0, 0), sigma).astype(np.int16)
     b = cv2.GaussianBlur(composite, (0, 0), sigma).astype(np.int16)
     d = np.abs(a - b).max(axis=2).astype(np.float32) / 255.0
     m = d > threshold
-    if ignore_shading:
-        m &= ~shading(plate, composite)[1]
+    if ignore_shading or ignore_lighting:
+        m &= ~shading(plate, composite, lighter=ignore_lighting)[1]
     m = m.astype(np.uint8)
 
     k = _disk(_scale_px(plate.shape, 1 / 800))
@@ -327,6 +340,97 @@ def shadow_alpha(
     a[a < min_alpha] = 0.0
     a[~outside] = 0.0
     return a.astype(np.float32)
+
+
+def tone_layer(
+    plate: np.ndarray,
+    composite: np.ndarray,
+    subject_mask: np.ndarray,
+    threshold: float = 0.1,
+    reach: float = 0.25,
+    noise: float = 0.015,
+) -> tuple[np.ndarray, np.ndarray]:
+    """``(colour, alpha)`` of a soft layer that carries the edit's smooth
+    lighting change around the subject onto the plate.
+
+    ``D`` is the low-passed difference ``C − B`` (re-render texture noise
+    stays out). Alpha ramps with ``|D|`` up to ``threshold`` and the colour
+    is ``F = B + D/α``, so over the plate ``α·F + (1−α)·B = B + D`` exactly,
+    whatever the sign of ``D`` — a seamless fade instead of a cut-off at the
+    diff threshold. Only pixels outside the subject, within ``reach``
+    (fraction of the frame) of it, with ``|D|`` above ``noise``, count.
+    """
+    sigma = max(1.0, max(plate.shape[:2]) / 300)
+    b = plate.astype(np.float32)
+    dist = cv2.distanceTransform(
+        (~subject_mask.astype(bool)).astype(np.uint8), cv2.DIST_L2, 5
+    )
+    # Normalised convolution over pixels clear of the subject: the subject's
+    # own large difference must not bleed into the lighting estimate beside it.
+    w = (dist > _scale_px(plate.shape, 1 / 200)).astype(np.float32)
+    raw = (composite.astype(np.float32) - b) * w[..., None]
+    norm = cv2.GaussianBlur(w, (0, 0), sigma)[..., None]
+    d = cv2.GaussianBlur(raw, (0, 0), sigma) / np.maximum(norm, 1e-3)
+    d[norm[..., 0] < 0.05] = 0.0
+    mag = np.abs(d).max(axis=2) / 255.0
+    near = (dist > 0) & (dist <= _scale_px(plate.shape, reach))
+    a = np.clip((mag - noise) / max(threshold - noise, 1e-3), 0.0, 1.0)
+    a[~near] = 0.0
+    # Fade out toward the reach limit, so the layer has no outer edge either.
+    a *= np.clip(1.0 - dist / _scale_px(plate.shape, reach), 0.0, 1.0) ** 0.5
+    a = cv2.GaussianBlur(a, (0, 0), sigma).astype(np.float32)
+    a[a < 0.01] = 0.0
+    a[~near] = 0.0
+    f = b + d / np.maximum(a, 0.01)[..., None]
+    f = np.clip(f + 0.5, 0, 255).astype(np.uint8)
+    return f, a
+
+
+def _push_pull(values: np.ndarray, weights: np.ndarray) -> np.ndarray:
+    """Fill ``values`` (known where ``weights`` > 0) smoothly everywhere: a
+    pyramid push-pull, the cheap stand-in for a membrane (Laplace) solve."""
+    vs, ws = [values * weights[..., None]], [weights]
+    while min(ws[-1].shape) > 8:
+        vs.append(cv2.pyrDown(vs[-1]))
+        ws.append(cv2.pyrDown(ws[-1]))
+    est = vs[-1] / np.maximum(ws[-1], 1e-6)[..., None]
+    for v, w in zip(reversed(vs[:-1]), reversed(ws[:-1])):
+        up = cv2.pyrUp(est, dstsize=(w.shape[1], w.shape[0]))
+        a = np.clip(w * 4.0, 0.0, 1.0)[..., None]
+        est = a * (v / np.maximum(w, 1e-6)[..., None]) + (1.0 - a) * up
+    return est
+
+
+def seamless(src: np.ndarray, dst: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """``src`` inside ``mask``, blended into ``dst`` so it meets ``dst``
+    exactly on the mask's edge: the mismatch on a one-pixel ring around the
+    mask is spread smoothly across the interior. A smooth tone offset
+    between the two fades out instead of showing as a step; ``src``'s own
+    detail is kept. Outside the mask the result is ``dst``."""
+    m = mask.astype(bool)
+    if not m.any():
+        return dst.copy()
+    ring = grow(m, 1.5) & ~m
+    diff = dst.astype(np.float32) - src.astype(np.float32)
+    corr = _push_pull(diff * ring[..., None], ring.astype(np.float32))
+    # The ring's own values are exact; push-pull only fills the interior.
+    out = np.where(m[..., None], src.astype(np.float32) + corr, dst.astype(np.float32))
+    return np.clip(out + 0.5, 0, 255).astype(np.uint8)
+
+
+def merge_layers(
+    fg: np.ndarray, alpha: np.ndarray, under: np.ndarray, under_alpha: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """``fg`` over ``under``, as one straight-alpha layer."""
+    ap = alpha.astype(np.float32)
+    au = under_alpha.astype(np.float32) * (1.0 - ap)
+    out_a = ap + au
+    mix = (
+        fg.astype(np.float32) * ap[..., None] + under.astype(np.float32) * au[..., None]
+    )
+    out_fg = mix / np.maximum(out_a, 1e-6)[..., None]
+    out_fg = np.where(out_a[..., None] > 0, out_fg, 0.0)
+    return np.clip(out_fg + 0.5, 0, 255).astype(np.uint8), out_a
 
 
 def merge_shadow(

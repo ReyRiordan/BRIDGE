@@ -96,6 +96,15 @@ Input images and text add about $0.002 per request.
 6. **Decontaminate**: `F = (C − (1−α)·B) / α`, which is exact because the background B is the known plate.
 7. **Shadow**: shade within a quarter of the frame of the person becomes a black layer with `α = 1 − C/B`, capped at 0.8. It is merged under the person, so the figure doesn't float. `--no-shadow` drops it.
 
+**`--relight`** (action-layer props): moving a prop both adds and *removes* shadows, and a removed shadow is a smooth brightening that the steps above cut off at the diff threshold, leaving a visible seam on a plain wall. With `--relight`:
+
+- Uniform brightening with surviving texture is left out of the subject mask, just as shade is.
+- A **tone layer** replaces the shadow step. Its difference `D = C − B` is low-passed by a normalised convolution over pixels clear of the subject, so the subject's own large change doesn't bleed in. Alpha ramps with `|D|` up to `--threshold`, fading out toward a quarter of the frame, and its colour is `F = B + D/α`, so over the plate it reproduces `B + D` exactly, lighter or darker.
+- Soft edges are decontaminated against the tone layer over the plate, not the bare plate, or the tone would count twice.
+- The subject region is first **blended into** that background: the mismatch on a one-pixel ring around it is spread across the interior by a pyramid push-pull (a membrane fill), so its contour carries no tone step while its detail is kept.
+
+Patient frames keep the default path. Relight shifts the subject's low-frequency colour slightly, which is invisible on a prop but not wanted on skin.
+
 Measured on an Apple M2 (16 GB) with a synthetic 4096×3072 master: `extract.py --tile 1024` takes about 28 s wall, of which matting is 17.5 s on `mps` and alignment 4.4 s, with a 2.2 GB peak RSS. Model load adds about 15 s on first use.
 
 ### EC2 matting fallback
@@ -176,6 +185,7 @@ What the tests cover:
   - The trimap band covers the soft edge, and decontamination recovers the foreground colour.
   - The shadow gets low alpha, and a global gain is undone.
   - The full layer recomposes onto the plate.
+- Relight: the membrane blend removes a tone step but keeps detail, the tone layer carries a removed shadow, and a relit extraction has no seam where the default path does.
 - **ViTMatte tiling**, with a fake predictor.
 - **Shot lists**: layer parsing and validation (reserved names, prompts, `start_visible`).
 - **Export** sizes, alpha, crop offset, action layers and the start-state intro.

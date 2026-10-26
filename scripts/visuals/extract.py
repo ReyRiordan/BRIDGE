@@ -52,9 +52,15 @@ def extract_layer(
     backend: str = "vitmatte",
     device: str | None = None,
     shadow: bool = True,
+    relight: bool = False,
     predictor=None,
 ) -> tuple[np.ndarray, dict]:
-    """The full pipeline on in-memory arrays → (RGBA layer, stats)."""
+    """The full pipeline on in-memory arrays → (RGBA layer, stats).
+
+    ``relight`` carries the edit's smooth lighting changes (brightening as
+    well as shade) as a soft tone layer instead of the black shadow — for
+    props, whose move both adds and removes shadows on the plate.
+    """
     long_edge = max(plate.shape[:2])
     erode_px = (
         erode_px
@@ -75,7 +81,7 @@ def extract_layer(
     aligned = matting.match_exposure(plate, aligned, exclude=changed)
     stats["align_s"] = round(time.time() - t, 2)
 
-    mask = matting.diff_mask(plate, aligned, threshold)
+    mask = matting.diff_mask(plate, aligned, threshold, ignore_lighting=relight)
     if not mask.any():
         raise SystemExit(
             "the composite matches the plate — nothing changed (lower --threshold?)"
@@ -88,13 +94,25 @@ def extract_layer(
     )
     stats["matte_s"] = round(time.time() - t, 2)
 
-    fg = matting.decontaminate(aligned, plate, alpha)
-    shade = (
-        matting.shadow_alpha(plate, aligned, alpha > 0.5)
-        if shadow
-        else np.zeros_like(alpha, np.float32)
-    )
-    fg, out_alpha = matting.merge_shadow(fg, alpha, shade)
+    if relight:
+        tone_fg, shade = matting.tone_layer(plate, aligned, alpha > 0.5, threshold)
+        # Soft edges sit over the tone layer, not the bare plate: decontaminate
+        # against what is actually beneath them, or the tone counts twice.
+        beneath = matting.composite_over(matting.to_rgba(tone_fg, shade), plate)
+        # Blend the edit into what lies beneath across the soft edge, so the
+        # subject's outer contour carries no tone step either.
+        region = matting.grow(alpha > 0.01, max(2, dilate_px // 4))
+        relit = matting.seamless(aligned, beneath, region)
+        fg = matting.decontaminate(relit, beneath, alpha)
+        fg, out_alpha = matting.merge_layers(fg, alpha, tone_fg, shade)
+    else:
+        fg = matting.decontaminate(aligned, plate, alpha)
+        shade = (
+            matting.shadow_alpha(plate, aligned, alpha > 0.5)
+            if shadow
+            else np.zeros_like(alpha, np.float32)
+        )
+        fg, out_alpha = matting.merge_shadow(fg, alpha, shade)
     stats.update(
         person_px=int((alpha > 0.5).sum()),
         shadow_px=int((shade > 0).sum()),
@@ -125,6 +143,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--matte", choices=matte_model.BACKENDS, default="vitmatte")
     parser.add_argument("--device", help="torch device (default: cuda > mps > cpu)")
     parser.add_argument("--no-shadow", action="store_true", help="drop the cast shadow")
+    parser.add_argument(
+        "--relight",
+        action="store_true",
+        help="carry smooth lighting changes (lighter too) as a soft tone layer",
+    )
     args = parser.parse_args(argv)
 
     sid = args.scenario_id
@@ -159,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             backend=args.matte,
             device=args.device,
             shadow=not args.no_shadow,
+            relight=args.relight,
         )
         path = local_path(key)
         save_png(rgba, path)
@@ -174,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
                     "threshold": args.threshold,
                     "tile": args.tile,
                     "shadow": not args.no_shadow,
+                    "relight": args.relight,
                     "erode_px": stats["erode_px"],
                     "dilate_px": stats["dilate_px"],
                 },

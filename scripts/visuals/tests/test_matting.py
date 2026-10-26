@@ -1,3 +1,4 @@
+import cv2
 import matting
 import numpy as np
 import pytest
@@ -129,3 +130,67 @@ def test_crop_box(shape, aspect, offset, box):
     img = np.zeros((*shape, 3), np.uint8)
     out = matting.crop_to_aspect(img, aspect, offset)
     assert out.shape[:2] == (box[3] - box[1], box[2] - box[0])
+
+
+def test_seamless_spreads_a_tone_step_and_keeps_detail(scene):
+    plate = scene.plate
+    h, w = plate.shape[:2]
+    mask = np.zeros((h, w), bool)
+    mask[100:300, 150:450] = True
+    src = plate.astype(np.int16) + 25  # the edit: brighter, same texture...
+    src[180:220, 280:320] -= 80  # ...plus a dark detail of its own
+    src = np.clip(src, 0, 255).astype(np.uint8)
+    out = matting.seamless(src, plate, mask)
+    np.testing.assert_array_equal(out[~mask], plate[~mask])
+    # No step at the edge: just inside, the +25 offset is already gone.
+    edge = out[101, 150:450].astype(int) - plate[101, 150:450].astype(int)
+    assert np.abs(edge).mean() < 3
+    # The offset is gone, the detail stays.
+    calm = mask.copy()
+    calm[170:230, 270:330] = False
+    assert np.abs(out[calm].astype(int) - plate[calm].astype(int)).mean() < 6
+    detail = out[190:210, 290:310].astype(int) - plate[190:210, 290:310].astype(int)
+    assert detail.mean() < -50
+
+
+def _removed_shadow(scene):
+    """A plate with a soft shadow beside the person that the edit removed."""
+    h, w = scene.plate.shape[:2]
+    blob = np.zeros((h, w), np.float32)
+    cv2.circle(blob, (int(w * 0.68), int(h * 0.35)), 60, 0.35, -1)
+    blob = cv2.GaussianBlur(blob, (0, 0), 12)
+    plate = scene.plate.astype(np.float32) * (1 - blob[..., None])
+    return np.clip(plate + 0.5, 0, 255).astype(np.uint8), blob
+
+
+def test_tone_layer_carries_a_removed_shadow(scene):
+    plate, blob = _removed_shadow(scene)
+    person = scene.alpha > 0.5
+    fg, a = matting.tone_layer(plate, scene.truth, person, 0.1, reach=0.4)
+    out = matting.composite_over(matting.to_rgba(fg, a), plate)
+    lit = (blob > 0.1) & ~matting.grow(person, 8)
+    err = np.abs(out.astype(int) - scene.truth.astype(int)).max(-1)
+    assert np.median(err[lit]) <= 4
+    assert a[blob > 0.25].min() > 0.5  # the brightening is carried
+    far = ~matting.grow(person, 0.4 * max(plate.shape[:2]))
+    assert a[far].max() == 0
+
+
+def test_relight_extraction_leaves_no_seam(scene):
+    import extract
+
+    plate, blob = _removed_shadow(scene)
+    composite = drifted(scene.truth)
+    rgba, _ = extract.extract_layer(
+        plate, composite, tile=None, relight=True, predictor=lambda i, t: scene.alpha
+    )
+    out = matting.composite_over(rgba, plate)
+    err = np.abs(out.astype(int) - scene.truth.astype(int)).max(-1)
+    lit = (blob > 0.02) & _interior(plate.shape) & (scene.alpha < 0.01)
+    assert np.percentile(err[lit], 95) <= 8
+    # Without relight, the brightening is cut off at the diff threshold.
+    rgba0, _ = extract.extract_layer(
+        plate, composite, tile=None, predictor=lambda i, t: scene.alpha
+    )
+    err0 = np.abs(matting.composite_over(rgba0, plate).astype(int) - scene.truth)
+    assert np.percentile(err0.max(-1)[lit], 95) > 2 * np.percentile(err[lit], 95)
