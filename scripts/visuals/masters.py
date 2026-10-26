@@ -73,7 +73,7 @@ def record(
 def accept(
     scenario_id: str, slot: str, key: str, manifest_dir: Path | None = None
 ) -> None:
-    """Mark ``key`` as the accepted master for ``slot`` (``plate`` / ``level_<n>``)."""
+    """Mark ``key`` as the accepted master for ``slot`` (``plate`` / ``level_<n>`` / a layer)."""
     manifest = load_manifest(scenario_id, manifest_dir)
     if key not in manifest["objects"]:
         raise SystemExit(
@@ -90,9 +90,14 @@ def accepted(
     return load_manifest(scenario_id, manifest_dir)["accepted"].get(slot)
 
 
-def _slot_order(item: tuple[str, str]) -> tuple[int, int]:
+def _slot_order(item: tuple[str, str]) -> tuple[int, int, str]:
+    """The plate, then action layers by name, then levels by number."""
     slot = item[0]
-    return (0, 0) if slot == "plate" else (1, int(slot.removeprefix("level_")))
+    if slot == "plate":
+        return (0, 0, "")
+    if slot.startswith("level_") and slot[6:].isdigit():
+        return (2, int(slot[6:]), "")
+    return (1, 0, slot)
 
 
 def spend(manifest: dict) -> dict:

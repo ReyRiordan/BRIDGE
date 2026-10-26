@@ -4,9 +4,10 @@
 Usage:
     contact_sheet.py <scenario_id>   →  .visuals-work/<scenario_id>/contact_sheet.html
 
-Per slot (the plate, then every level): the accepted candidate; its
-extracted layer composited over the plate (what the stage will show) and its
-alpha on a checkerboard; the runners-up beside it; and rejected candidates
+Per slot (the plate, each action layer, then every level): the accepted
+candidate; its extracted layer composited as the stage will show it (a level
+over the start state — the plate plus the ``start_visible`` layers — and an
+action layer over the bare plate) and its alpha on a checkerboard; the runners-up beside it; and rejected candidates
 with their notes (``generate.py reject``). The stage crop and the shot list's
 ``safe_area`` are outlined on each accepted frame. Previews are cached JPEG/PNG
 downscales under ``previews/`` — the masters are never touched.
@@ -25,11 +26,10 @@ import numpy as np
 from common import (
     STAGE_ASPECT,
     ShotList,
-    layer_key,
+    action_layer_key,
     load_rgb,
     load_rgba,
     load_shot_list,
-    local_path,
     work_root,
 )
 from PIL import Image
@@ -78,11 +78,14 @@ def _preview(src: Path, dest: Path, mode: str = "RGB") -> Path:
     return dest
 
 
-def _over_plate(layer: Path, plate: Path, dest: Path) -> Path:
-    newest = max(layer.stat().st_mtime, plate.stat().st_mtime)
+def _over_plate(layers: list[Path], plate: Path, dest: Path) -> Path:
+    """``layers`` composited bottom-to-top over the plate, as a cached preview."""
+    newest = max(p.stat().st_mtime for p in [plate, *layers])
     if dest.exists() and dest.stat().st_mtime >= newest:
         return dest
-    out = matting.composite_over(load_rgba(layer), load_rgb(plate))
+    out = load_rgb(plate)
+    for layer in layers:
+        out = matting.composite_over(load_rgba(layer), out)
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".full.png")
     Image.fromarray(np.ascontiguousarray(out)).save(tmp)
@@ -137,26 +140,33 @@ class Sheet:
             f"<figcaption>{html.escape(name)}{cost}{note}</figcaption></figure>"
         )
 
-    def layer_figures(self, level: int) -> str:
-        layer = local_path(layer_key(self.shot.scenario_id, level))
+    def layer_figures(self, name: str, below: list[Path], caption: str) -> str:
+        """The extracted layer ``name`` over the plate (+ ``below``), and its alpha."""
+        layer = self.root / self.shot.scenario_id / "layers" / f"{name}.png"
         plate_key = self.manifest["accepted"].get("plate")
         if not layer.exists() or not plate_key or not (self.root / plate_key).exists():
             return '<figure class="big"><figcaption>no extracted layer yet (extract.py)</figcaption></figure>'
         over = _over_plate(
-            layer, self.root / plate_key, self.previews / "layers" / f"over_{level}.jpg"
+            [*below, layer],
+            self.root / plate_key,
+            self.previews / "layers" / f"over_{name}.jpg",
         )
-        alpha = _preview(
-            layer, self.previews / "layers" / f"patient_{level}.png", mode="RGBA"
-        )
+        alpha = _preview(layer, self.previews / "layers" / f"{name}.png", mode="RGBA")
         return (
             f'<figure class="big"><span class="frame"><img src="{self.rel(over)}"></span>'
-            f"<figcaption>layer over the plate</figcaption></figure>"
+            f"<figcaption>{html.escape(caption)}</figcaption></figure>"
             f'<figure class="big"><span class="frame checker"><img src="{self.rel(alpha)}"></span>'
             f"<figcaption>extracted alpha</figcaption></figure>"
         )
 
+    def start_state(self) -> list[Path]:
+        """The extracted ``start_visible`` layers, bottom to top."""
+        sid = self.shot.scenario_id
+        paths = [self.root / action_layer_key(sid, n) for n in self.shot.start_visible]
+        return [p for p in paths if p.exists()]
+
     def section(
-        self, slot: str, title: str, subtitle: str, prefix: str, level: int | None
+        self, slot: str, title: str, subtitle: str, prefix: str, layer: str | None
     ) -> str:
         accepted = self.manifest["accepted"].get(slot)
         candidates = sorted(k for k in self.manifest["objects"] if k.startswith(prefix))
@@ -177,8 +187,10 @@ class Sheet:
         row = []
         if accepted:
             row.append(self.figure(accepted, "big", overlay=True))
-            if level is not None:
-                row.append(self.layer_figures(level))
+            if layer and slot.startswith("level_"):
+                row.append(self.layer_figures(layer, self.start_state(), "start state"))
+            elif layer:
+                row.append(self.layer_figures(layer, [], "layer over the plate"))
         row += [self.figure(k, "small" if accepted else "big") for k in live]
         parts.append(f'<div class="row">{"".join(row)}</div>')
         if dead:
@@ -201,6 +213,17 @@ class Sheet:
                 "plate", "Plate", self.shot.room_prompt, f"{sid}/plate/", None
             ),
         ]
+        for name, prompt in self.shot.layers.items():
+            tag = " (start state)" if name in self.shot.start_visible else ""
+            body.append(
+                self.section(
+                    name,
+                    f"Layer {name}{tag}",
+                    prompt,
+                    f"{sid}/composites/{name}/",
+                    name,
+                )
+            )
         for level in range(self.shot.max_level + 1):
             tag = " (anchor)" if level == self.shot.start_level else ""
             body.append(
@@ -209,7 +232,7 @@ class Sheet:
                     f"Level {level}{tag}",
                     self.shot.frames[level],
                     f"{sid}/composites/level_{level}/",
-                    level,
+                    f"patient_{level}",
                 )
             )
         return (

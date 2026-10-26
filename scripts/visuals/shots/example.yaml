@@ -17,6 +17,20 @@ safe_area: [0.08, 0.08, 0.92, 0.98]
 # Where the stage crop sits in the 4:3 master: (0.5, 0.5) = centred.
 crop_offset: [0.5, 0.5]
 model: gemini-nano-banana-2.1
+# Resolution tier; --size overrides it. Default: the model's largest.
+size: 4K
+# Action layers: scene changes that aren't the patient. Each is one edit of the
+# empty plate, extracted like a frame and exported as <name>.webp; the app
+# stacks them below the patient.
+layers:
+  security_present:
+    prompt: >-
+      Add a security guard in a dark uniform standing just inside the door,
+      hands clasped in front, watching calmly.
+  blinds_closed:
+    prompt: Close the window blinds on the left wall.
+# Layers shown in the start state (intro.webp and the contact sheet).
+start_visible: [security_present]
 frames:
   0: Seated relaxed in the exam chair, shoulders down, a slight smile, making eye contact.
   1: Seated relaxed, hands resting in his lap, calm and attentive.

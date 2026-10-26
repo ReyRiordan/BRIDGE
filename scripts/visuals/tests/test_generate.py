@@ -94,6 +94,14 @@ def test_next_chain_steps_waits_on_review(shot):
     assert not todo and waiting[0].startswith("plate")
 
     m["accepted"]["plate"] = "example/plate/p.png"
+    todo, waiting = generate.next_chain_steps(shot, 3, m)
+    assert not todo and waiting == [
+        "layer security_present (generate.py layer, then accept)",
+        "layer blinds_closed (generate.py layer, then accept)",
+    ]
+
+    m["accepted"]["security_present"] = "example/composites/security_present/s.png"
+    m["accepted"]["blinds_closed"] = "example/composites/blinds_closed/b.png"
     todo, _ = generate.next_chain_steps(shot, 3, m)
     assert [r.level for r in todo] == [5]
 
@@ -110,6 +118,47 @@ def test_next_chain_steps_waits_on_review(shot):
     todo, waiting = generate.next_chain_steps(shot, 3, m)
     assert [r.level for r in todo] == [3]
     assert waiting == ["level_6 (review candidates, then accept)"]
+
+
+def test_layer_is_one_edit_of_the_empty_plate(shot):
+    m = _empty()
+    req = generate.plan_layer(shot, "blinds_closed", 3, m)
+    assert req.slot == "blinds_closed" and req.level is None and not req.is_anchor
+    assert [(r.role, r.key) for r in req.refs] == [("plate", "<accepted plate>")]
+    assert shot.layers["blinds_closed"] in req.prompt
+    assert "no patient" in req.prompt
+    m["accepted"] = {
+        "plate": "example/plate/p.png",
+        "level_5": "example/composites/level_5/a.png",
+    }
+    req = generate.plan_layer(shot, "blinds_closed", 3, m)
+    assert [r.key for r in req.refs] == ["example/plate/p.png"]  # never a frame
+    with pytest.raises(SystemExit, match="not in the shot list"):
+        generate.plan_layer(shot, "door_closed", 3, m)
+
+
+def test_layer_dry_run(env, capsys):
+    assert generate.main(["layer", "example", "security_present", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "security_present ×3  refs: plate=<accepted plate>" in out
+    assert "1 request(s), 3 image(s)" in out
+
+
+def test_shot_list_size_is_the_default_tier(env, capsys, monkeypatch, shot):
+    shot.size = "2K"
+    monkeypatch.setattr(generate, "load_shot_list", lambda sid: shot)
+    generate.main(["plate", "example", "--dry-run"])
+    assert "· 2K ·" in capsys.readouterr().out
+    generate.main(["plate", "example", "--dry-run", "--size", "1K"])
+    assert "· 1K ·" in capsys.readouterr().out
+
+
+def test_target_slot():
+    assert generate.target_slot("example", "plate") == "plate"
+    assert generate.target_slot("example", "7") == "level_7"
+    assert generate.target_slot("example", "blinds_closed") == "blinds_closed"
+    with pytest.raises(SystemExit, match="not 'plate', a level or a layer"):
+        generate.target_slot("example", "door_closed")
 
 
 def test_live_run_without_a_key_fails_cleanly(env):
@@ -155,6 +204,22 @@ def test_sync_run_saves_records_and_accepts(env, monkeypatch, shot):
 
     generate.main(["accept", "example", "plate", keys[0].rsplit("/", 1)[1]])
     assert masters.accepted("example", "plate") == keys[0]
+
+    # A layer is an edit of the accepted plate, saved under composites/<name>/.
+    calls.clear()
+    assert generate.main(["layer", "example", "blinds_closed", "-n", "1"]) == 0
+    ((_, contents, _),) = calls
+    assert len(contents[0].parts) == 2  # the plate + the prompt
+    (key,) = [
+        k for k in masters.load_manifest("example")["objects"] if "/composites/" in k
+    ]
+    assert key.startswith("example/composites/blinds_closed/blinds_closed_")
+    assert masters.load_manifest("example")["objects"][key]["references"] == {
+        "plate": keys[0]
+    }
+    generate.main(["accept", "example", "blinds_closed", key.rsplit("/", 1)[1]])
+    assert masters.accepted("example", "blinds_closed") == key
+    masters.accept("example", "security_present", key)  # any recorded key will do
 
     # The anchor request now carries the accepted plate as its one image.
     calls.clear()

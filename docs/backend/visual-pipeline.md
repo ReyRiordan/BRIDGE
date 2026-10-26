@@ -1,10 +1,10 @@
 # Visual pipeline (`scripts/visuals/`)
 
-Agent-driven tooling that produces a scenario's scene art: one photoreal empty-room **plate** plus one full-frame, pixel-registered, transparent **patient layer** per escalation level. It is tooling only. It never runs in CI against a model or the network, and nothing in an image depends on it.
+Agent-driven tooling that produces a scenario's scene art: one photoreal empty-room **plate**, one full-frame, pixel-registered, transparent **patient layer** per escalation level, and optional **action layers** for scene changes that aren't the patient (staff in the room, a turned monitor, a closed door). It is tooling only. It never runs in CI against a model or the network, and nothing in an image depends on it.
 
 **The method is clean-plate extraction.** The empty room is generated once. The model edits the patient into that room, and the layer's alpha is derived locally by comparing each edit against the plate. Furniture the patient sits on matches the plate, so it stays in the backdrop with no prompt work. The stage always shows the original plate, never a model re-render.
 
-**Masters are full resolution; export is a separate step.** Candidates are generated at the model's largest tier (4K) at 4:3, and matted uncropped. `export.py` derives the web assets, so a new stage framing is a $0 re-run.
+**Masters are full resolution; export is a separate step.** Candidates are generated at 4:3 at the shot list's tier (2K for the scenario runs, 2400×1792 px; the model's largest tier, 4K, when unset), and matted uncropped. `export.py` derives the web assets, so a new stage framing is a $0 re-run.
 
 ## Files
 
@@ -14,7 +14,7 @@ Agent-driven tooling that produces a scenario's scene art: one photoreal empty-r
 | `matting.py` | Pure extraction functions: crop, ECC alignment, exposure match, diff mask, shading test, trimap, decontamination, shadow alpha, RGBA merge |
 | `matte_model.py` | `estimate_alpha`: ViTMatte (lazy torch/transformers) with feathered tiling; BiRefNet (`rembg`) fallback |
 | `masters.py` | CLI and module: the S3 bucket (`ensure-bucket` / `push` / `pull` / `status`) and the committed manifest (`record`, `accept`) |
-| `generate.py` | CLI: Nano Banana generation (`plate` / `frame` / `chain` / `accept` / `reject` / `collect`) |
+| `generate.py` | CLI: Nano Banana generation (`plate` / `layer` / `frame` / `chain` / `accept` / `reject` / `collect`) |
 | `extract.py` | CLI: accepted composite → full-res RGBA layer master |
 | `export.py` | CLI: masters → `web/public/visuals/<scenario_id>/` |
 | `contact_sheet.py` | CLI: the local review page |
@@ -39,32 +39,34 @@ Run every command from the repo root as `.venv-visuals/bin/python scripts/visual
 
 1. **Bucket**, once per AWS account: `masters.py ensure-bucket`.
 2. **Shot list**: write `scripts/visuals/shots/<scenario_id>.yaml` (schema below).
-3. **Plate**: run `generate.py plate <id> -n 3`, review with `contact_sheet.py <id>`, then `generate.py accept <id> plate <file>`. Get sign-off on the room before generating any frame: a plate change invalidates every frame, and `accept` warns when that happens.
-4. **Chain**: run `generate.py chain <id>`, review, accept, and repeat.
+3. **Plate**: run `generate.py plate <id> -n 3`, review with `contact_sheet.py <id>`, then `generate.py accept <id> plate <file>`. Get sign-off on the room before generating anything else: a plate change invalidates every layer and frame, and `accept` warns when that happens.
+4. **Action layers** (if the shot list has `layers`): run `generate.py layer <id> <name> -n 3` for each, review, then `generate.py accept <id> <name> <file>`. `chain` waits until every layer is accepted.
+5. **Chain**: run `generate.py chain <id>`, review, accept, and repeat.
    - The first run generates the anchor (`start_level`), edited into the plate.
    - Each later run advances both branches by one level (down toward 0, up toward `max_level`).
    - Each level is edited from its accepted neighbour, with the accepted anchor attached as the identity reference.
    - A level with candidates but no acceptance is reported as waiting and is not regenerated.
    - To redo one level, use `generate.py frame <id> <level> [--from <composite>]`.
-5. **Review**: run `contact_sheet.py <id>`, which writes `.visuals-work/<id>/contact_sheet.html`.
-   - Each slot shows the accepted candidate, with the stage crop (red) and the `safe_area` (dashed blue) outlined.
-   - Next to it are its extracted layer over the plate and its alpha on a checkerboard.
+6. **Review**: run `contact_sheet.py <id>`, which writes `.visuals-work/<id>/contact_sheet.html`.
+   - Sections run plate, action layers, then levels. Each shows the accepted candidate, with the stage crop (red) and the `safe_area` (dashed blue) outlined.
+   - Next to it are its extracted layer composited and its alpha on a checkerboard. A level is composited over the **start state** (the plate plus the `start_visible` layers); an action layer over the bare plate.
    - Runners-up appear alongside. Candidates flagged with `generate.py reject <id> <level> <file> --note "…"` are folded into a "rejected" row with their notes.
    - Claude pre-filters with `reject` before the user sees the sheet.
-6. **Extract**: run `extract.py <id> <level|all>`, which writes `.visuals-work/<id>/layers/patient_<n>.png` and records it in the manifest.
-7. **Export**: `export.py <id>` (see below).
-8. **Push**: `masters.py push <id>`, then commit the manifest and the exported assets.
+7. **Extract**: run `extract.py <id> <level|layer|all>`, which writes `.visuals-work/<id>/layers/patient_<n>.png` (or `<layer>.png`) and records it in the manifest. `all` covers every accepted level and layer.
+8. **Export**: `export.py <id>` (see below).
+9. **Push**: `masters.py push <id>`, then commit the manifest and the exported assets.
 
-`--dry-run` on `plate`, `frame` and `chain` prints every request (slot, reference images, prompt) and the estimated standard and batch cost. It needs no API key and does not import the SDK. `chain --dry-run` prints the whole plan in chain order.
+`--dry-run` on `plate`, `layer`, `frame` and `chain` prints every request (slot, reference images, prompt) and the estimated standard and batch cost. It needs no API key and does not import the SDK. `chain --dry-run` prints the whole plan in chain order.
 
 ## Generation
 
 - **Model**: the default is `gemini-nano-banana-2.1`, and the fallback is `gemini-3.1-flash-image`. The shot list's `model` field and the `--model` flag override it.
-- **Tier**: `--size` defaults to the model's largest tier. Every request is `aspect_ratio: "4:3"`.
+- **Tier**: `--size`, else the shot list's `size`, else the model's largest tier. Every request is `aspect_ratio: "4:3"`.
 - **API**: requests go through `generateContent`, which is the only API Gemini Batch accepts, so sync and `--batch` share one request shape.
 - **References**: reference images are sent as JPEG, downscaled to 2048 px on the long edge. The model tokenises inputs at a fixed budget, and the downscale keeps batch payloads small.
 - **One request per candidate**, because image models return one image.
 - **Batch mode**: `--batch` submits a half-price Batch job and polls it. The job record is saved under `.visuals-work/<id>/batches/`. After a Ctrl-C, run `generate.py collect <id> <job>` to resume.
+- **Action layers**: each is a single edit of the accepted, empty plate (the plate is its only reference), with no patient, no chaining and no anchor, so a layer is independent of the patient and of every other layer. Generating a layer together with the patient was rejected: two subjects in one composite can't be separated cleanly.
 - **Manifest entry**: every saved candidate records its sha256, pixel size, model, tier, prompt, references (`plate` / `source` / `anchor` keys), prompt tokens and cost.
 
 Prices hard-coded in `generate.PRICES` (USD per output image, standard / batch):
@@ -76,15 +78,24 @@ Prices hard-coded in `generate.PRICES` (USD per output image, standard / batch):
 
 Input images and text add about $0.002 per request.
 
-**Cost per scenario**, first pass at 4K with 3 candidates per slot: a plate plus 11 levels is 36 images, about $4.10 standard or $2.05 batch. Every redo round adds `n × $0.113` per level redone. `masters.py status <id>` and the contact sheet header show the recorded spend.
+**Cost per scenario**, first pass with 3 candidates per slot (a plate, 11 levels and up to two action layers: 36–42 images):
+
+| Tier | Master size | Per image (standard / batch, incl. inputs) | First pass, standard / batch |
+|---|---|---|---|
+| 2K (scenario default) | 2400×1792 | ≈ $0.051 / $0.027 | $1.85–2.15 / $0.95–1.15 |
+| 4K | the model's largest | ≈ $0.115 / $0.058 | $4.10–4.85 / $2.05–2.45 |
+
+The 2K tier is still wider than the 2048 px export, so assets are downscaled; it leaves no headroom for exports wider than the master. Every redo round adds `n ×` the per-image price per slot redone. Recorded spend for both scenarios, with every redo, was $4.22 for 102 images. `masters.py status <id>` and the contact sheet header show the recorded spend.
+
+**Batch and the chain.** A chain step depends on the accepted neighbours, so a whole frame pass can't be one batch. `chain --batch` sends each step (two levels × n) as its own job; jobs of six images came back in a few minutes.
 
 ## Extraction
 
-`extract.py` runs these steps on the full-resolution, uncropped master:
+`extract.py` runs these steps on the full-resolution, uncropped master, identically for a patient frame and an action layer (the "person" below is whatever the edit added):
 
 1. **Align**: ECC affine registration (`cv2.findTransformECC`), coarse at ≤1024 px and then refined at full resolution. It is fitted only on pixels outside a changed-region mask, found in two passes (a generous diff, then a tight one). This removes the few-pixel drift and stretch that edits introduce.
 2. **Exposure match**: a per-channel gain is fitted on unchanged pixels, so a global tone shift in the edit doesn't read as a diff or a shadow.
-3. **Diff mask** (`--threshold`, default 0.1 max per-channel): small specks are dropped and small holes filled.
+3. **Diff mask** (`--threshold`, default 0.1): the larger of the max per-channel RGB difference and 2× the Lab chroma (a\*, b\*) difference. The chroma term catches dark clothing over a dark patch of floor, which differs mostly in hue. Small specks are dropped and holes up to `--max-hole` (default 0.2% of the frame) are filled.
    - **Shade is excluded.** A pixel counts as shade when it is uniformly darker (all channels by about the same ratio) *and* the plate's texture survives. The texture test is a normalised cross-correlation of high-passed log intensity.
    - This keeps dark clothing on a textured wall in the person mask.
 4. **Trimap**: a sure-foreground core and an unknown band (`--erode` / `--dilate`, default long edge / 400 and / 200, so 10 / 20 px at 4K).
@@ -93,6 +104,25 @@ Input images and text add about $0.002 per request.
    - `--matte birefnet` is the fallback. It is not trimap-guided, so its alpha is used only inside the band.
 6. **Decontaminate**: `F = (C − (1−α)·B) / α`, which is exact because the background B is the known plate.
 7. **Shadow**: shade within a quarter of the frame of the person becomes a black layer with `α = 1 − C/B`, capped at 0.8. It is merged under the person, so the figure doesn't float. `--no-shadow` drops it.
+
+**Mask clean-up options**, all off or at their defaults unless passed. Every flag a layer was extracted with is recorded under `params` in its manifest entry, so a re-run can reproduce it.
+
+| Flag | Default | Use it when |
+|---|---|---|
+| `--max-hole F` | 0.002 | A solid prop replaces something of a similar tone (a closed door over a beige hallway) and leaves a hole. Not for people: it also fills the gap between an arm and the body. |
+| `--min-area F` | 0.0005 | Raise it to drop stray specks. Thin limbs can be islands of their own, so prefer `--near`. |
+| `--near F` | off | Keeps only islands within `F` × long edge of the largest one. Drops far-off redraws (a door leaf, floor reflections) while a separate sock or hand stays. |
+| `--close F` | off | Morphological closing of radius `F` × long edge. Bridges a gap the diff cannot see, such as dark legs over a near-black shadow under a bed. |
+| `--no-shadow` | shadow on | On a shiny floor, where re-rendered reflections read as shade and leave blotches. Floor reflections in the layer still ground the figure. |
+
+**`--relight`** (action-layer props): moving a prop both adds and *removes* shadows, and a removed shadow is a smooth brightening that the steps above cut off at the diff threshold, leaving a visible seam on a plain wall. With `--relight`:
+
+- Uniform brightening with surviving texture is left out of the subject mask, just as shade is.
+- A **tone layer** replaces the shadow step. Its difference `D = C − B` is low-passed by a normalised convolution over pixels clear of the subject, so the subject's own large change doesn't bleed in. Pixels with `|D|` under 3% (the model's general re-render drift) are ignored. Alpha ramps with `|D|` up to `--threshold`, fading out toward an eighth of the frame, and its colour is `F = B + D/α`, so over the plate it reproduces `B + D` exactly, lighter or darker.
+- Soft edges are decontaminated against the tone layer over the plate, not the bare plate, or the tone would count twice.
+- The subject region is first **blended into** that background: the mismatch on a one-pixel ring around it is spread across the interior by a pyramid push-pull (a membrane fill), so its contour carries no tone step while its detail is kept.
+
+Patient frames keep the default path. Relight shifts the subject's low-frequency colour slightly, which is invisible on a prop but not wanted on skin.
 
 Measured on an Apple M2 (16 GB) with a synthetic 4096×3072 master: `extract.py --tile 1024` takes about 28 s wall, of which matting is 17.5 s on `mps` and alignment 4.4 s, with a 2.2 GB peak RSS. Model load adds about 15 s on first use.
 
@@ -109,7 +139,7 @@ If a master is too slow or too large to matte locally, run only the extraction s
 ## Export
 
 ```bash
-export.py <id> [--aspect 1196:880] [--width 2048] [--format webp|png] [--quality 85] [--offset X,Y] [--out DIR]
+export.py <id> [--aspect 1196:880] [--width 2048] [--format webp|png] [--quality 85] [--max-kb 500] [--offset X,Y] [--out DIR]
 ```
 
 Writes `web/public/visuals/<id>/`. Every file is the same crop of the plate's frame, so the layers stay registered with the backdrop.
@@ -118,17 +148,20 @@ Writes `web/public/visuals/<id>/`. Every file is the same crop of the plate's fr
 |---|---|
 | `environment.<ext>` | The plate, opaque (lossy WebP q85 by default) |
 | `patient_<n>.<ext>` | Full-frame RGBA layer per level 0..`max_level` (lossy colour with lossless alpha) |
-| `intro.<ext>` | The plate with the `start_level` layer composited in |
+| `<layer>.<ext>` | Full-frame RGBA action layer per shot-list `layers` entry |
+| `intro.<ext>` | The start state: the plate, the `start_visible` layers, then the `start_level` patient on top |
 
 - **Size**: the defaults give 2048×1507, the stage's 1196:880 aspect.
+- **File budget**: `--max-kb` (default 500) re-encodes any WebP over it at a lower colour quality, in steps of 5 down to 60. Alpha stays lossless, and only files over budget are touched. A relit prop layer with a wide soft tone is the usual case.
 - **Crop offset**: the crop is centred unless the shot list's `crop_offset` or `--offset` says otherwise. Export warns if the crop cuts into the `safe_area`.
 - **Resampling** is premultiplied, so transparent pixels don't bleed colour into the edges.
-- **Missing layers**: export refuses if any level has no layer, unless `--allow-missing` is passed.
+- **Stacking**: action layers sit below the patient. Each is a separate file; which ones are visible at a given moment is the app's call. Where layers overlap, a prop layer that redraws a region (`door_closed`) goes below a people layer in front of it (`staff_present`).
+- **Missing layers**: export refuses if any level or action layer has no extracted layer, unless `--allow-missing` is passed.
 - **Reframing**: re-running with new flags changes the framing and costs nothing.
 
 ## Shot lists
 
-Shot lists live at `scripts/visuals/shots/<id>.yaml`. The required fields are `room_prompt`, `patient_description`, `start_level`, `max_level` and `frames` (`{level: "pose/expression prompt"}`, one entry per level). The optional fields are `safe_area`, `crop_offset` and `model`. The full field table is in [`scripts/visuals/shots/README.md`](../../scripts/visuals/shots/README.md).
+Shot lists live at `scripts/visuals/shots/<id>.yaml`. The required fields are `room_prompt`, `patient_description`, `start_level`, `max_level` and `frames` (`{level: "pose/expression prompt"}`, one entry per level). The optional fields are `safe_area`, `crop_offset`, `model`, `size`, `layers` (`{<name>: {prompt}}`) and `start_visible` (the layer names shown in the start state). The full field table is in [`scripts/visuals/shots/README.md`](../../scripts/visuals/shots/README.md).
 
 `safe_area` is the normalised box that the patient's whole movement path (seat or bed to door) must stay inside. Prompts include it, and export checks it against the crop. A 1196:880 crop of a 4:3 master keeps the full width and about 98% of the height.
 
@@ -143,16 +176,44 @@ Shot lists live at `scripts/visuals/shots/<id>.yaml`. The required fields are `r
   ```
   <id>/plate/<candidate>                 every plate candidate
   <id>/composites/level_<n>/<candidate>  every raw frame candidate
+  <id>/composites/<layer>/<candidate>    every raw action-layer candidate
   <id>/layers/patient_<n>.png            accepted full-res RGBA masters
+  <id>/layers/<layer>.png                accepted full-res RGBA action layers
   ```
 
 - **push** uploads only files whose sha256 (kept in object metadata) differs. **pull** downloads what the work dir lacks. Previews, contact sheets and batch records stay local.
 - **Manifest**: `scripts/visuals/masters/<id>.json` is committed. It holds:
-  - `accepted`: slot → key, for `plate` and `level_<n>`
+  - `accepted`: slot → key, for `plate`, each action layer (by name) and `level_<n>`
   - `objects`: key → sha256, `size`, bytes, model, tier, prompt, references, cost, and `rejected`/`note`. Layers also record their source composite, plate and matting parameters.
 
   `BRIDGE_VISUALS_MANIFESTS` redirects it for scratch runs.
 - **The work dir** `.visuals-work/` is gitignored. It is a cache. S3 is the source of truth.
+
+## Lessons from the first run
+
+What held up, and what had to change, producing `scenario_2` and `scenario_3`:
+
+- **Plates.**
+  - Say "the room's only door" and pin its position and clearance from the workstation. Otherwise the model adds a second door at the frame edge or hides the door behind the monitor.
+  - Reject plates whose exit path leaves the frame.
+- **Nothing the patient picks up belongs in the plate.** A layer can add pixels but never remove them. A coat, jacket or belongings bag has to be drawn in the frames.
+- **Colour contrast decides matte quality.**
+  - Clothing that matches the furniture it touches leaves holes: a navy coat on a navy chair, grey scrubs against a grey bin.
+  - Pick outfit colours against the plate before generating the anchor. A colour change after the anchor means redoing it.
+- **Layers must not touch each other's changed regions.** Staff standing at the open door leaf picked up a redrawn strip of it, which ghosted over `door_closed`. Place third parties clear of anything another layer changes.
+- **Pin the lighting in prop prompts.** "Close the curtain" alone relit the whole room darker. Adding "lighting and exposure stay exactly as they are" fixed it.
+- **Expression carries along the chain.** Each frame is edited from its neighbour, so a level asking for "a slight frown" came back as tense as the next one. Write the step down explicitly ("noticeably calmer than before"), and say "looking at the camera" in every seated frame.
+- **Identity** held across both chains with the anchor attached. Faces drift slightly but stay recognisable, and outfit, build and hair stayed fixed.
+- **Thresholds used:**
+  - `scenario_2` patient frames: defaults.
+  - `monitor_turned`: `--relight`.
+  - `scenario_3` patient frames: `--no-shadow --near 0.03`, plus `--close 0.02`–`0.035` where legs cross the under-bed shadow (levels 6–10), and `--threshold 0.07` at level 8.
+  - `staff_present`: `--threshold 0.05 --no-shadow`.
+  - `door_closed`: `--relight --threshold 0.05 --max-hole 0.02`.
+- **Review tooling that paid off:**
+  - A per-candidate diff heatmap against the plate, which shows stray room changes.
+  - Every layer composited over the hardest stack (all action layers on). That's where ghosts show.
+  - A recomposite-vs-edit check for dropped limbs.
 
 ## Tests
 
@@ -170,8 +231,13 @@ What the tests cover:
   - The trimap band covers the soft edge, and decontamination recovers the foreground colour.
   - The shadow gets low alpha, and a global gain is undone.
   - The full layer recomposes onto the plate.
+- Relight: the membrane blend removes a tone step but keeps detail, the tone layer carries a removed shadow, and a relit extraction has no seam where the default path does.
 - **ViTMatte tiling**, with a fake predictor.
-- **Export** sizes, alpha and crop offset.
-- **Generation**: the dry-run plan and order, anchor attachment, cost, chain gating, and a stubbed live run.
+- **Shot lists**: layer parsing and validation (reserved names, prompts, `start_visible`).
+- **Export** sizes, alpha, crop offset, action layers and the start-state intro.
+- **Generation**: the dry-run plan and order, anchor attachment, layers as plate-only edits, cost, chain gating (plate → layers → frames), and a stubbed live run.
+- **Extraction CLI**: level and layer targets, `all`, with the pipeline stubbed.
+- **Mask clean-up**: the chroma term catches a dark hue change, closing bridges a gap without growing, and `keep_near` drops only far islands.
+- **Export budget**: only files over `--max-kb` are re-encoded.
 - **Manifest** round trip and S3 calls, via `botocore.stub.Stubber`.
-- **Contact sheet** content.
+- **Contact sheet** content, including layer sections and start-state previews.

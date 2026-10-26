@@ -1,0 +1,81 @@
+# scenario_2 — family-medicine clinic, a long wait and missed labs.
+# Source: docs/scenarios/scenario_2.md. First-person: the camera is the
+# student, standing just inside the room; the clinician is never drawn.
+# Anything the patient picks up (his jacket) lives in the frames, never the
+# plate: a layer can add pixels over the plate but not remove them. The jacket
+# is rust-brown so it never matches the navy chair (a match leaves matte holes).
+room_prompt: >-
+  A small, modern family-medicine clinic exam room, seen at standing eye level
+  from a corner well inside the room, with a slightly wide lens. Against the
+  left wall, a padded patient side chair with wooden armrests. Along the back
+  wall, on the left, a padded exam table with white paper, and a small counter
+  with a sink and cabinets. The room's only door, to the corridor, is a closed
+  wooden door in the back wall just right of centre, fully visible from floor
+  to frame with its lever handle unobstructed and clear floor in front of it.
+  In the bottom-right foreground, close to the camera and against the right
+  wall, a computer workstation on a wall-mounted swivel arm: a keyboard tray
+  and a flat monitor whose screen faces the camera, showing an electronic
+  health record; the workstation sits low and to the right, well clear of the
+  door. Beside it, an empty black rolling stool. No other doors, door edges or
+  door frames anywhere in view. Beige walls with a framed anatomy poster, grey
+  vinyl floor, overhead fluorescent panel light, a window with blinds on the
+  left wall.
+patient_description: >-
+  A 45-year-old white man, medium build, short brown hair greying at the
+  temples, light stubble, wearing a red-and-grey plaid flannel shirt over a
+  grey t-shirt, khaki work pants and brown work boots. His rust-brown canvas work
+  jacket with a corduroy collar is with him (draped over the chair back, in his
+  hand or worn, as the pose says).
+start_level: 5
+max_level: 10
+# The path chair → door spans the room; keep it inside the stage crop.
+safe_area: [0.04, 0.04, 0.96, 0.97]
+crop_offset: [0.5, 0.5]
+model: gemini-nano-banana-2.1
+size: 2K
+layers:
+  monitor_turned:
+    prompt: >-
+      Swivel the computer monitor on its arm so its screen faces the patient
+      side chair against the left wall: the camera now sees the monitor's back
+      and edge, not its screen. Keep the arm's wall mount, the keyboard tray
+      and everything else exactly where they are.
+frames:
+  0: >-
+    Seated relaxed in the side chair, jacket draped over the chair back, leaning
+    back slightly, shoulders down, a small relieved smile, making eye contact
+    with the camera.
+  1: >-
+    Seated in the side chair, jacket over the chair back, hands resting loosely
+    in his lap, calm and attentive, looking at the camera.
+  2: >-
+    Seated in the side chair, jacket over the chair back, leaning slightly
+    forward and engaged, a neutral, listening expression, looking straight at
+    the camera.
+  3: >-
+    Seated in the side chair, leaning back, jacket over the chair back, arms
+    loosely crossed. Only mildly annoyed now, noticeably calmer than before:
+    brow barely furrowed, jaw and mouth relaxed, a guarded look at the camera.
+  4: >-
+    Seated in the side chair, jacket over the chair back, arms crossed tightly,
+    frowning, jaw set, visibly irritated.
+  5: >-
+    Seated in the side chair, jacket over the chair back, leaning forward with
+    his forearms on his knees, visibly irritated, glaring at the camera.
+  6: >-
+    Seated on the front edge of the side chair, jacket over the chair back,
+    leaning forward and gesturing with one open hand, brow furrowed, mouth
+    open mid-complaint.
+  7: >-
+    Standing beside the side chair, his jacket bunched in one hand, the other
+    hand gesturing sharply toward the camera, angry.
+  8: >-
+    Standing in the middle of the room, jacket in one hand, the other hand
+    raised in exasperation, raising his voice, red-faced.
+  9: >-
+    Walking toward the closed door with his jacket on, looking back over his
+    shoulder at the camera, angry.
+  10: >-
+    Standing at the closed door with his jacket on, one hand reaching for the
+    handle, half turned back toward the camera with a dismissive, angry
+    expression.

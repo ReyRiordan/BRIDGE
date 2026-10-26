@@ -1,3 +1,4 @@
+import cv2
 import matting
 import numpy as np
 import pytest
@@ -129,3 +130,102 @@ def test_crop_box(shape, aspect, offset, box):
     img = np.zeros((*shape, 3), np.uint8)
     out = matting.crop_to_aspect(img, aspect, offset)
     assert out.shape[:2] == (box[3] - box[1], box[2] - box[0])
+
+
+def test_seamless_spreads_a_tone_step_and_keeps_detail(scene):
+    plate = scene.plate
+    h, w = plate.shape[:2]
+    mask = np.zeros((h, w), bool)
+    mask[100:300, 150:450] = True
+    src = plate.astype(np.int16) + 25  # the edit: brighter, same texture...
+    src[180:220, 280:320] -= 80  # ...plus a dark detail of its own
+    src = np.clip(src, 0, 255).astype(np.uint8)
+    out = matting.seamless(src, plate, mask)
+    np.testing.assert_array_equal(out[~mask], plate[~mask])
+    # No step at the edge: just inside, the +25 offset is already gone.
+    edge = out[101, 150:450].astype(int) - plate[101, 150:450].astype(int)
+    assert np.abs(edge).mean() < 3
+    # The offset is gone, the detail stays.
+    calm = mask.copy()
+    calm[170:230, 270:330] = False
+    assert np.abs(out[calm].astype(int) - plate[calm].astype(int)).mean() < 6
+    detail = out[190:210, 290:310].astype(int) - plate[190:210, 290:310].astype(int)
+    assert detail.mean() < -50
+
+
+def _removed_shadow(scene):
+    """A plate with a soft shadow beside the person that the edit removed."""
+    h, w = scene.plate.shape[:2]
+    blob = np.zeros((h, w), np.float32)
+    # Within tone_layer's reach of the person, as a prop's own shadow is.
+    cv2.circle(blob, (int(w * 0.62), int(h * 0.38)), 30, 0.35, -1)
+    blob = cv2.GaussianBlur(blob, (0, 0), 8)
+    plate = scene.plate.astype(np.float32) * (1 - blob[..., None])
+    return np.clip(plate + 0.5, 0, 255).astype(np.uint8), blob
+
+
+def test_tone_layer_carries_a_removed_shadow(scene):
+    plate, blob = _removed_shadow(scene)
+    person = scene.alpha > 0.5
+    fg, a = matting.tone_layer(plate, scene.truth, person, 0.1, reach=0.4)
+    out = matting.composite_over(matting.to_rgba(fg, a), plate)
+    lit = (blob > 0.1) & ~matting.grow(person, 8)
+    err = np.abs(out.astype(int) - scene.truth.astype(int)).max(-1)
+    assert np.median(err[lit]) <= 4
+    assert a[(blob > 0.25) & ~matting.grow(person, 8)].min() > 0.5  # carried
+    far = ~matting.grow(person, 0.4 * max(plate.shape[:2]))
+    assert a[far].max() == 0
+
+
+def test_relight_extraction_leaves_no_seam(scene):
+    import extract
+
+    plate, blob = _removed_shadow(scene)
+    composite = drifted(scene.truth)
+    rgba, _ = extract.extract_layer(
+        plate, composite, tile=None, relight=True, predictor=lambda i, t: scene.alpha
+    )
+    out = matting.composite_over(rgba, plate)
+    err = np.abs(out.astype(int) - scene.truth.astype(int)).max(-1)
+    lit = (blob > 0.02) & _interior(plate.shape) & (scene.alpha < 0.01)
+    assert np.percentile(err[lit], 95) <= 8
+    # Without relight, the brightening is cut off at the diff threshold.
+    rgba0, _ = extract.extract_layer(
+        plate, composite, tile=None, predictor=lambda i, t: scene.alpha
+    )
+    err0 = np.abs(matting.composite_over(rgba0, plate).astype(int) - scene.truth)
+    assert np.percentile(err0.max(-1)[lit], 95) > 2 * np.percentile(err[lit], 95)
+
+
+def test_diff_mask_catches_a_dark_hue_change_rgb_distance_misses():
+    plate = np.full((300, 400, 3), (52, 48, 50), np.uint8)  # dark grey floor
+    comp = plate.copy()
+    comp[100:200, 150:250] = (68, 30, 38)  # dark burgundy cloth
+    rgb = matting.diff_mask(plate, comp, 0.1, chroma_weight=0)
+    hue = matting.diff_mask(plate, comp, 0.1)
+    assert not rgb.any()
+    assert hue[110:190, 160:240].all() and not hue[:90].any()
+    # A shadow (same chroma, darker) still doesn't enter.
+    shade = plate.copy()
+    shade[100:200, 150:250] = (plate[100:200, 150:250] * 0.6).astype(np.uint8)
+    assert not matting.diff_mask(plate, shade, 0.1, chroma_weight=2.0).any()
+
+
+def test_close_mask_bridges_a_gap_without_growing():
+    m = np.zeros((200, 200), bool)
+    m[20:90, 80:120] = True  # gown
+    m[110:180, 80:120] = True  # sock — a 20 px shin gap between them
+    closed = matting.close_mask(m, 15)
+    assert closed[90:110, 85:115].all()
+    assert not closed[:15].any() and not closed[:, :70].any()
+    assert closed.sum() < m.sum() + 40 * 25
+
+
+def test_keep_near_drops_far_islands_only():
+    m = np.zeros((200, 300), bool)
+    m[40:160, 100:150] = True  # the subject
+    m[165:180, 120:140] = True  # a sock just below it
+    m[50:120, 260:290] = True  # a redrawn door leaf far away
+    kept = matting.keep_near(m, 20)
+    assert kept[100, 120] and kept[170, 130]
+    assert not kept[80, 270]

@@ -4,9 +4,10 @@
 Usage:
     generate.py plate  <scenario_id> [-n 3]
     generate.py frame  <scenario_id> <level> [-n 3] [--from <composite>]
+    generate.py layer  <scenario_id> <name> [-n 3]
     generate.py chain  <scenario_id> [-n 3]
-    generate.py accept <scenario_id> <level|plate> <candidate>
-    generate.py reject <scenario_id> <level|plate> <candidate> [--note "why"]
+    generate.py accept <scenario_id> <level|plate|layer> <candidate>
+    generate.py reject <scenario_id> <level|plate|layer> <candidate> [--note "why"]
     generate.py collect <scenario_id> <batch-job-name>
 
 Common flags: --model, --size, --batch, --dry-run (print the requests and the
@@ -18,6 +19,11 @@ neighbour toward the anchor (start→0, start→max), with the accepted anchor
 always attached as the identity reference. ``chain`` advances each branch by
 one level and then stops for review — nothing proceeds past an unaccepted
 candidate.
+
+Action layers (the shot list's ``layers``) are single edits of the accepted,
+empty plate — no patient, no chaining, no anchor — so each is independent of
+the patient and of the other layers. Order: plate → layers → frames; ``chain``
+waits until every layer is accepted.
 
 Reads ``GEMINI_API_KEY``. Every candidate is recorded in the manifest with its
 model, prompt, references, resolution tier and cost.
@@ -38,10 +44,9 @@ from pathlib import Path
 import masters
 from common import (
     ShotList,
-    composite_key,
+    candidate_key,
     load_shot_list,
     local_path,
-    plate_key,
     work_root,
 )
 
@@ -97,6 +102,15 @@ shadow they cast. Keep the whole patient inside the box from {x0:.0%} to \
 {x1:.0%} of the width and {y0:.0%} to {y1:.0%} of the height. Photorealistic, \
 consistent with the room's lighting."""
 
+LAYER_PROMPT = """\
+The image is an empty room. Edit it: {change}
+
+Keep the camera, framing, perspective, lighting and every other object in the \
+room exactly as they are; change only the pixels this edit needs and the soft \
+shadows it casts. Add no one who is not described above: no patient, no \
+hands, no reflections of people. Photorealistic, consistent with the room's \
+lighting."""
+
 FRAME_PROMPT = """\
 Image 1 is the current scene. Image 2 is the identity reference: the same \
 patient — keep their face, hair, skin, build and clothing identical to it.
@@ -123,7 +137,7 @@ class Ref:
 
 @dataclass
 class Request:
-    slot: str  # "plate" | "level_<n>"
+    slot: str  # "plate" | "level_<n>" | an action-layer name
     prompt: str
     refs: list[Ref] = field(default_factory=list)
     n: int = 3
@@ -148,6 +162,15 @@ def _accepted_or_placeholder(manifest: dict, slot: str) -> str:
 def plan_plate(shot: ShotList, n: int) -> Request:
     prompt = PLATE_PROMPT.format(room=shot.room_prompt, aspect=ASPECT)
     return Request(slot="plate", prompt=prompt, n=n)
+
+
+def plan_layer(shot: ShotList, name: str, n: int, manifest: dict) -> Request:
+    if name not in shot.layers:
+        known = ", ".join(shot.layers) or "none"
+        raise SystemExit(f"layer {name!r} is not in the shot list (layers: {known})")
+    prompt = LAYER_PROMPT.format(change=shot.layers[name])
+    plate = _accepted_or_placeholder(manifest, "plate")
+    return Request(name, prompt, [Ref("plate", plate)], n)
 
 
 def plan_frame(
@@ -196,6 +219,9 @@ def next_chain_steps(
     accepted = manifest["accepted"]
     if "plate" not in accepted:
         return [], ["plate (generate.py plate, then accept)"]
+    layers = [name for name in shot.layers if name not in accepted]
+    if layers:
+        return [], [f"layer {name} (generate.py layer, then accept)" for name in layers]
     start = shot.start_level
     branches = [[start]]
     if start in shot.frames and _slot(start) in accepted:
@@ -320,10 +346,7 @@ def _candidate_key(
     scenario_id: str, req: Request, stamp: str, i: int, mime: str
 ) -> str:
     ext = {"image/jpeg": "jpg", "image/webp": "webp"}.get(mime, "png")
-    name = f"{req.slot}_{stamp}_{i}.{ext}"
-    if req.slot == "plate":
-        return plate_key(scenario_id, name)
-    return composite_key(scenario_id, req.level, name)
+    return candidate_key(scenario_id, req.slot, f"{req.slot}_{stamp}_{i}.{ext}")
 
 
 def _save(
@@ -496,11 +519,21 @@ def collect(scenario_id: str, job_name: str, client=None) -> list[str]:
 
 
 def _slot_prefix(scenario_id: str, slot: str) -> str:
-    return (
-        f"{scenario_id}/plate/"
-        if slot == "plate"
-        else f"{scenario_id}/composites/{slot}/"
-    )
+    return candidate_key(scenario_id, slot, "")
+
+
+def target_slot(scenario_id: str, target: str) -> str:
+    """A CLI target (``plate``, a level number or a layer name) → its slot."""
+    if target == "plate":
+        return "plate"
+    if target.isdigit():
+        return _slot(int(target))
+    shot = load_shot_list(scenario_id)
+    if target not in shot.layers:
+        raise SystemExit(
+            f"{target!r} is not 'plate', a level or a layer of {scenario_id}"
+        )
+    return target
 
 
 def find_key(scenario_id: str, candidate: str, manifest: dict, prefix: str = "") -> str:
@@ -525,7 +558,7 @@ def find_key(scenario_id: str, candidate: str, manifest: dict, prefix: str = "")
 
 
 def accept(scenario_id: str, target: str, candidate: str) -> str:
-    slot = "plate" if target == "plate" else _slot(int(target))
+    slot = target_slot(scenario_id, target)
     manifest = masters.load_manifest(scenario_id)
     key = find_key(scenario_id, candidate, manifest, _slot_prefix(scenario_id, slot))
     previous = manifest["accepted"].get(slot)
@@ -536,7 +569,7 @@ def accept(scenario_id: str, target: str, candidate: str) -> str:
         frames = [s for s in manifest["accepted"] if s != "plate"]
         if frames:
             print(
-                f"warning: the plate changed — every accepted frame ({', '.join(frames)}) was"
+                f"warning: the plate changed — every accepted frame and layer ({', '.join(frames)}) was"
             )
             print("edited into the old plate and must be regenerated.")
     return key
@@ -547,7 +580,7 @@ def accept(scenario_id: str, target: str, candidate: str) -> str:
 
 def reject(scenario_id: str, target: str, candidate: str, note: str | None) -> str:
     """Flag a candidate as rejected (the contact sheet folds it away, with the note)."""
-    slot = "plate" if target == "plate" else _slot(int(target))
+    slot = target_slot(scenario_id, target)
     manifest = masters.load_manifest(scenario_id)
     key = find_key(scenario_id, candidate, manifest, _slot_prefix(scenario_id, slot))
     if manifest["accepted"].get(slot) == key:
@@ -563,7 +596,9 @@ def main(argv: list[str] | None = None) -> int:
     common.add_argument(
         "--model", help=f"image model (default: shot list, else {DEFAULT_MODEL})"
     )
-    common.add_argument("--size", help="resolution tier (default: the model's largest)")
+    common.add_argument(
+        "--size", help="resolution tier (default: shot list, else the model's largest)"
+    )
     common.add_argument(
         "--batch", action="store_true", help="Gemini Batch API (half price, slow)"
     )
@@ -584,17 +619,20 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--from", dest="from_key", help="edit from this composite, not the neighbour"
     )
+    p = sub.add_parser("layer", parents=[common], help="candidates for an action layer")
+    p.add_argument("scenario_id")
+    p.add_argument("name")
     p = sub.add_parser(
         "chain", parents=[common], help="advance the chain one step per branch"
     )
     p.add_argument("scenario_id")
     p = sub.add_parser("accept", help="accept a candidate for a level or the plate")
     p.add_argument("scenario_id")
-    p.add_argument("target", help="a level number, or 'plate'")
+    p.add_argument("target", help="a level number, 'plate', or a layer name")
     p.add_argument("candidate", help="file name, work-dir path, or S3 key")
     p = sub.add_parser("reject", help="flag a candidate as rejected, with a note")
     p.add_argument("scenario_id")
-    p.add_argument("target", help="a level number, or 'plate'")
+    p.add_argument("target", help="a level number, 'plate', or a layer name")
     p.add_argument("candidate", help="file name, work-dir path, or S3 key")
     p.add_argument("--note", help="why (shown on the contact sheet)")
     p = sub.add_parser("collect", help="wait for and save a submitted batch job")
@@ -616,12 +654,14 @@ def main(argv: list[str] | None = None) -> int:
 
     shot = load_shot_list(args.scenario_id)
     model = args.model or shot.model or DEFAULT_MODEL
-    tier = args.size or largest_tier(model)
+    tier = args.size or shot.size or largest_tier(model)
     price(model, tier, args.batch)  # validates model/tier early
     manifest = masters.load_manifest(args.scenario_id)
 
     if args.cmd == "plate":
         requests = [plan_plate(shot, args.n)]
+    elif args.cmd == "layer":
+        requests = [plan_layer(shot, args.name, args.n, manifest)]
     elif args.cmd == "frame":
         from_key = args.from_key and find_key(args.scenario_id, args.from_key, manifest)
         requests = [plan_frame(shot, args.level, args.n, manifest, from_key)]

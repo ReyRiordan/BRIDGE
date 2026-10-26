@@ -1,0 +1,96 @@
+# scenario_3 — inpatient GI bleed who wants to leave for work.
+# Source: docs/scenarios/scenario_3.md. First-person: the camera is the
+# student, standing near the foot of the bed; the clinician is never drawn.
+# Lead state: 0–7 share the intro's (a few electrode stickers on, one or two
+# wires loose); 8–10 all leads off. Belongings live in the frames, never the
+# plate: a layer can add pixels over the plate but not remove them.
+room_prompt: >-
+  A single-patient inpatient hospital room, seen at standing eye level from
+  near the foot of the bed, with a slightly wide lens. A hospital bed with
+  white sheets and a pale blue blanket stands in the centre-left, its head
+  against the back wall and the head of the bed raised. A bedside cardiac
+  monitor on a wall-mounted arm beside the head of the bed, its screen showing
+  flat lines, its lead cable hanging loosely from it. A privacy curtain on a
+  ceiling track along the far left side of the bed, pushed back and bunched
+  against the back wall. A rolling overbed table and a vinyl visitor chair by
+  the bed. The door to the corridor is in the back right wall, standing open,
+  with the lit hallway visible beyond it. Pale green walls, a whiteboard, grey
+  vinyl floor, soft overhead light and a window with daylight on the left.
+patient_description: >-
+  A 47-year-old Black man, stocky build, very short black hair, a trimmed
+  beard, tired eyes, wearing a pale blue patterned hospital gown, a white
+  hospital ID wristband and grip socks.
+start_level: 6
+max_level: 10
+# The path bed → door spans the room; keep it inside the stage crop.
+safe_area: [0.04, 0.04, 0.96, 0.97]
+crop_offset: [0.5, 0.5]
+model: gemini-nano-banana-2.1
+size: 2K
+layers:
+  staff_present:
+    prompt: >-
+      Add two hospital staff standing side by side against the back wall,
+      between the foot of the bed and the doorway, watching the bed with
+      concerned, patient expressions, hands at their sides: a patient-care tech
+      in burgundy scrubs holding a small packet of ECG electrode stickers, and a
+      nurse in navy scrubs with a stethoscope around her neck. They stand left
+      of the doorway, clear of the door, its frame and the open door leaf, and
+      do not block the doorway.
+  door_closed:
+    prompt: >-
+      Close the door to the corridor (the hallway is no longer visible), and
+      draw the privacy curtain out along its ceiling track so it hangs closed
+      along the far left side of the bed, from the back wall to the foot of the
+      bed. Leave the right side of the room and the path from the bed to the
+      door open. The room's lighting and exposure stay exactly as they are:
+      the same brightness on every wall, the floor and the bed; only the door
+      and the curtain themselves change.
+start_visible: [staff_present]
+frames:
+  0: >-
+    Lying reclined in the bed with the head raised, blanket over his legs,
+    calm, hands resting on the blanket, a slight tired smile at the camera. A
+    few ECG electrode stickers on his chest at the gown's neckline, with one
+    or two lead wires loose and dangling.
+  1: >-
+    Reclined in the bed, blanket over his legs, calm and attentive, looking at
+    the camera. A few electrode stickers on his chest, one or two lead wires
+    loose and dangling.
+  2: >-
+    Reclined in the bed but slightly more upright, blanket over his legs, a
+    neutral listening expression. A few electrode stickers on his chest, one
+    or two lead wires loose and dangling.
+  3: >-
+    Sitting up in the bed, blanket over his legs, brow furrowed, looking at the
+    camera. A few electrode stickers on his chest, one or two lead wires loose
+    and dangling.
+  4: >-
+    Sitting up straight in the bed, tense, hands still on the blanket, jaw set,
+    frowning. A few electrode stickers on his chest, one or two lead wires
+    loose and dangling.
+  5: >-
+    Sitting up in the bed, tense, hands still, blanket pushed down, glancing
+    toward the open door with an anxious, frustrated expression. A few
+    electrode stickers on his chest, one or two lead wires loose and dangling.
+  6: >-
+    Sitting on the edge of the bed facing the camera, feet on the floor,
+    tugging at a lead wire on his chest with one hand, frustrated and agitated.
+    A few electrode stickers still on his chest, one or two lead wires loose
+    and dangling.
+  7: >-
+    Sitting on the edge of the bed, feet on the floor, holding up the last
+    lead wire he has just pulled off, angry, mouth open mid-sentence. A few
+    electrode stickers still on his chest; the wires dangle loose.
+  8: >-
+    Standing beside the bed, all leads off, the lead wires hanging loose from
+    the monitor, stuffing his folded clothes into a clear plastic patient
+    belongings bag, angry and hurried.
+  9: >-
+    Standing near the open door holding his belongings bag, all leads off,
+    turned back toward the camera, angry. He is near the door but not touching
+    it or its handle.
+  10: >-
+    Standing right beside the open door, about to walk out, belongings bag in
+    hand, all leads off, looking back at the camera defiantly. He is not
+    touching the door or its handle.

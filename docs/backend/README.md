@@ -11,6 +11,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `runtime/bridge/` | BRIDGE's own runtime code: the game engine and the wire contract. Container-only. | AgentCore container |
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
 | `resources/` | Scenario config + prompts. COPYed to `/app/resources` in **both** images. | Both |
+| `docs/scenarios/` | Authored source content for each scenario (intro, point bar, action table with scene changes): the source of truth that `resources/` configs, patient personas and the visual shot lists are transcribed from. Not shipped. | — |
 | `runtime/evals/` | Manual, network-hitting prompt evals (referee eval + patient probe). Never run by CI; still linted. See `prompts.md`. | Local |
 | `scripts/` | `gen_event_types.py` (event-contract codegen), `local_voice_smoke.py` (local-mode WebRTC smoke), `cloud_voice_probe.py` (the deployed-stack counterpart, and the post-deploy gate). `visuals/`: the scene-art pipeline — Nano Banana generation, clean-plate layer extraction, masters in S3, web-asset export (see `visual-pipeline.md`). | Local / CI |
 

@@ -3,13 +3,15 @@
 
 Usage:
     export.py <scenario_id> [--aspect 1196:880] [--width 2048] [--format webp]
-              [--quality 85] [--offset X,Y] [--out DIR]
+              [--quality 85] [--max-kb 500] [--offset X,Y] [--out DIR]
 
 Writes ``web/public/visuals/<scenario_id>/``:
 
     environment.<ext>   the plate (opaque)
     patient_<n>.<ext>   full-frame RGBA patient layer per level 0..max_level
-    intro.<ext>         plate + the start-level layer, composited
+    <layer>.<ext>       full-frame RGBA action layer per shot-list ``layers``
+    intro.<ext>         the start state: plate + ``start_visible`` layers +
+                        the start-level patient, composited
 
 Every output is the same crop of the plate's frame, so the layers stay
 pixel-registered with the backdrop. Changing the stage framing later is a
@@ -26,6 +28,7 @@ import matting
 import numpy as np
 from common import (
     REPO_ROOT,
+    action_layer_key,
     layer_key,
     load_rgb,
     load_rgba,
@@ -36,6 +39,8 @@ from common import (
 from PIL import Image
 
 FORMATS = ("webp", "png")
+# Lossy quality never drops below this to meet --max-kb.
+MIN_QUALITY = 60
 
 
 def _resize(img: np.ndarray, size: tuple[int, int]) -> Image.Image:
@@ -48,12 +53,25 @@ def _resize(img: np.ndarray, size: tuple[int, int]) -> Image.Image:
     return pil.resize(size, Image.Resampling.LANCZOS)
 
 
-def _save(img: Image.Image, path: Path, fmt: str, quality: int) -> None:
+def _save(
+    img: Image.Image, path: Path, fmt: str, quality: int, max_kb: int | None = None
+) -> None:
+    """Save; a WebP over ``max_kb`` is re-encoded at lower colour quality (in
+    steps of 5, down to ``MIN_QUALITY``) — alpha stays lossless."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    if fmt == "webp":
-        img.save(path, "WEBP", quality=quality, method=6, alpha_quality=100)
-    else:
+    if fmt != "webp":
         img.save(path, "PNG", optimize=True)
+        return
+    q = quality
+    while True:
+        img.save(path, "WEBP", quality=q, method=6, alpha_quality=100)
+        if not max_kb or path.stat().st_size <= max_kb * 1000 or q <= MIN_QUALITY:
+            break
+        q -= 5
+    if max_kb and path.stat().st_size > max_kb * 1000:
+        print(f"warning: {path.name} is over {max_kb} KB even at quality {q}")
+    elif q != quality:
+        print(f"{path.name}: quality {q} to fit {max_kb} KB")
 
 
 def safe_area_kept(
@@ -79,7 +97,12 @@ def export_assets(
     fmt: str = "webp",
     quality: int = 85,
     offset: tuple[float, float] = (0.5, 0.5),
+    action_layers: dict[str, np.ndarray] | None = None,
+    start_visible: tuple[str, ...] = (),
+    max_kb: int | None = None,
 ) -> list[Path]:
+    """Write every asset; action layers sit below the patient, in dict order."""
+    action_layers = action_layers or {}
     if fmt not in FORMATS:
         raise SystemExit(f"--format must be one of {FORMATS}")
     size = (width, round(width / aspect))
@@ -96,14 +119,21 @@ def export_assets(
             path,
             fmt,
             quality,
+            max_kb,
         )
         written.append(path)
 
     emit("environment", plate)
     for level in sorted(layers):
         emit(f"patient_{level}", layers[level])
+    for name, layer in action_layers.items():
+        emit(name, layer)
     if start_level in layers:
-        emit("intro", matting.composite_over(layers[start_level], plate))
+        intro = plate
+        for name in start_visible:
+            if name in action_layers:
+                intro = matting.composite_over(action_layers[name], intro)
+        emit("intro", matting.composite_over(layers[start_level], intro))
     return written
 
 
@@ -123,6 +153,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--format", choices=FORMATS, default="webp")
     parser.add_argument("--quality", type=int, default=85, help="lossy quality (webp)")
+    parser.add_argument(
+        "--max-kb",
+        type=int,
+        default=500,
+        help="per-file WebP budget: lower the quality of any file over it (0 = off)",
+    )
     parser.add_argument("--offset", type=_parse_offset, help="crop offset X,Y in [0,1]")
     parser.add_argument(
         "--out", type=Path, help="default web/public/visuals/<scenario_id>/"
@@ -140,17 +176,21 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"{sid}: no accepted plate")
     plate = load_rgb(local_path(plate_key))
 
-    layers, missing = {}, []
+    layers, action_layers, missing = {}, {}, []
     for level in range(shot.max_level + 1):
         path = local_path(layer_key(sid, level))
         if path.exists():
             layers[level] = load_rgba(path)
         else:
-            missing.append(level)
+            missing.append(f"level {level}")
+    for name in shot.layers:
+        path = local_path(action_layer_key(sid, name))
+        if path.exists():
+            action_layers[name] = load_rgba(path)
+        else:
+            missing.append(name)
     if missing and not args.allow_missing:
-        raise SystemExit(
-            f"{sid}: no extracted layer for level(s) {missing} — run extract.py"
-        )
+        raise SystemExit(f"{sid}: no extracted layer for {missing} — run extract.py")
 
     aspect = parse_aspect(args.aspect)
     offset = args.offset or shot.crop_offset
@@ -169,6 +209,9 @@ def main(argv: list[str] | None = None) -> int:
         fmt=args.format,
         quality=args.quality,
         offset=offset,
+        action_layers=action_layers,
+        start_visible=shot.start_visible,
+        max_kb=args.max_kb or None,
     )
     total = sum(p.stat().st_size for p in written)
     print(f"wrote {len(written)} file(s) to {out} ({total / 1e6:.1f} MB)")

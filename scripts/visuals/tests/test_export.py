@@ -81,6 +81,56 @@ def test_crop_offset_is_honoured(tmp_path, masters_):
         assert img.convert("RGB").getpixel((256, 286))[2] > 200
 
 
+def test_action_layers_and_the_start_state_intro(tmp_path, masters_):
+    plate, layers = masters_
+    h, w = plate.shape[:2]
+    staff = np.zeros((h, w, 4), np.uint8)
+    staff[: h // 4, : w // 4] = (200, 40, 40, 255)  # top-left: red staff
+    door = np.zeros((h, w, 4), np.uint8)
+    door[-h // 4 :, -w // 4 :] = (40, 40, 200, 255)  # bottom-right: blue door
+    written = export.export_assets(
+        plate,
+        layers,
+        1,
+        tmp_path,
+        width=512,
+        action_layers={"staff_present": staff, "door_closed": door},
+        start_visible=("staff_present",),
+    )
+    names = sorted(p.name for p in written)
+    assert "staff_present.webp" in names and "door_closed.webp" in names
+    with Image.open(tmp_path / "door_closed.webp") as img:
+        assert img.mode == "RGBA" and img.size == (512, 377)
+        assert img.getpixel((5, 5))[3] == 0 and img.getpixel((500, 360))[3] == 255
+    with Image.open(tmp_path / "intro.webp") as img:
+        rgb = img.convert("RGB")
+        r, g, b = rgb.getpixel((20, 20))
+        assert r > 150 and b < 100  # staff_present is in the start state
+        r, g, b = rgb.getpixel((500, 360))
+        assert abs(r - b) < 20  # door_closed is not: the grey plate shows
+        r, g, b = rgb.getpixel((256, 188))
+        assert g > 150 and r < 100  # the start-level patient on top
+
+
+def test_patient_sits_above_action_layers_in_the_intro(tmp_path, masters_):
+    plate, layers = masters_
+    h, w = plate.shape[:2]
+    under = np.zeros((h, w, 4), np.uint8)
+    under[h // 3 : 2 * h // 3, w // 3 : 2 * w // 3] = (200, 40, 40, 255)
+    export.export_assets(
+        plate,
+        layers,
+        1,
+        tmp_path,
+        width=512,
+        action_layers={"under": under},
+        start_visible=("under",),
+    )
+    with Image.open(tmp_path / "intro.webp") as img:
+        r, g, b = img.convert("RGB").getpixel((256, 188))
+        assert g > 150 and r < 100
+
+
 def test_layers_must_match_the_plate_frame(tmp_path, masters_):
     plate, _ = masters_
     with pytest.raises(SystemExit):
@@ -96,3 +146,30 @@ def test_safe_area_check():
         shape, 1196 / 880, (0.5, 0.5), (0.0, 0.0, 1.0, 1.0)
     )
     assert not export.safe_area_kept(shape, 16 / 9, (0.5, 0.5), (0.1, 0.05, 0.9, 0.95))
+
+
+def test_max_kb_lowers_quality_only_for_files_over_budget(tmp_path, capsys):
+    rng = np.random.default_rng(0)
+    plate = np.full((384, 512, 3), 128, np.uint8)
+    layer = np.zeros((384, 512, 4), np.uint8)
+    layer[100:200, 200:300] = (40, 200, 40, 255)
+    noisy = np.dstack(  # incompressible at full size: no downscale averages it out
+        [
+            rng.integers(0, 255, (384, 512, 3), dtype=np.uint8),
+            np.full((384, 512), 255, np.uint8),
+        ]
+    )
+    written = export.export_assets(
+        plate,
+        {0: layer},
+        0,
+        tmp_path,
+        width=512,
+        action_layers={"busy": noisy},
+        max_kb=60,
+    )
+    out = capsys.readouterr().out
+    # Only the file over budget is touched: stepped down, or warned at the floor.
+    assert "busy.webp" in out and "patient_0.webp" not in out
+    sizes = {p.name: p.stat().st_size for p in written}
+    assert sizes["busy.webp"] <= 60_000 or "warning: busy.webp" in out
