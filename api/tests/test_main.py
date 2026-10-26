@@ -1,7 +1,7 @@
 """
 Control-plane app tests: the deploy contract infra depends on (the ASGI `app`
 the image serves under LWA plus the Mangum `handler` zip fallback, /health,
-in-app CORS), the /scenario whitelist, and the mounted voice router — including the 502-with-CORS acceptance path (kit gotcha #22).
+in-app CORS), the /scenarios list and /scenario/{id} whitelist, and the mounted voice router — including the 502-with-CORS acceptance path (kit gotcha #22).
 """
 
 import json
@@ -77,16 +77,87 @@ def test_cors_is_not_wide_open(client):
     assert resp.headers.get("access-control-allow-origin") != "*"
 
 
-# --- /scenario ---------------------------------------------------------------
+# --- /scenarios + /scenario/{id} --------------------------------------------
+
+SCENARIO_IDS = ["scenario_1", "scenario_2", "scenario_3"]
+WHITELIST = {
+    "id",
+    "title",
+    "intro",
+    "goal",
+    "intro_image",
+    "environment",
+    "patient_frame_ext",
+    "inactivity",
+    "actions",
+    "point_bar",
+    "time_limit",
+}
 
 
-def test_scenario_serves_the_5_key_whitelist(client):
-    source = json.loads(scenario.DEFAULT_SCENARIO_PATH.read_text())
-    body = client.get("/scenario").json()
+def _source(scenario_id):
+    path = scenario.DEFAULT_SCENARIOS_DIR / scenario_id / "scenario.json"
+    return json.loads(path.read_text(encoding="utf-8"))
 
-    assert set(body) == {"intro", "goal", "actions", "point_bar", "time_limit"}
-    for key in ("intro", "goal", "actions", "point_bar", "time_limit"):
+
+def test_scenarios_lists_every_scenario_for_the_picker(client):
+    body = client.get("/scenarios").json()
+    assert [s["id"] for s in body] == SCENARIO_IDS
+    for card in body:
+        source = _source(card["id"])
+        assert card == {
+            "id": source["id"],
+            "title": source["title"],
+            "intro_image": source["intro_image"],
+        }
+
+
+@pytest.mark.parametrize("scenario_id", SCENARIO_IDS)
+def test_scenario_serves_the_whitelist(client, scenario_id):
+    source = _source(scenario_id)
+    body = client.get(f"/scenario/{scenario_id}").json()
+
+    assert set(body) == WHITELIST
+    for key in ("id", "title", "intro", "goal", "intro_image", "actions"):
         assert body[key] == source[key]
+    assert body["point_bar"] == source["point_bar"]
+    assert body["time_limit"] == source["time_limit"]
+    # Server-only keys never leave: `speech` is the runtime's business.
+    assert "speech" not in body
+
+
+def test_optional_keys_default_for_scenario_1(client):
+    body = client.get("/scenario/scenario_1").json()
+    assert body["environment"] is None
+    assert body["inactivity"] is None
+    assert body["patient_frame_ext"] == "png"
+
+
+def test_optional_keys_come_through_for_scenario_3(client):
+    body = client.get("/scenario/scenario_3").json()
+    assert body["environment"] == "environment.webp"
+    assert body["inactivity"] == {"seconds": 120, "point_change": 1}
+    assert body["patient_frame_ext"] == "webp"
+    end = next(a for a in body["actions"] if a.get("ends_simulation"))
+    assert end["debrief"]
+
+
+def test_unknown_scenario_is_a_404(client):
+    assert client.get("/scenario/scenario_9").status_code == 404
+    # The old single-scenario route is gone.
+    assert client.get("/scenario").status_code == 404
+
+
+def test_load_all_rejects_an_id_that_does_not_match_its_folder(tmp_path):
+    (tmp_path / "scenario_x").mkdir()
+    (tmp_path / "scenario_x" / "scenario.json").write_text('{"id": "other"}')
+    with pytest.raises(ValueError, match="folder"):
+        scenario._load_all(tmp_path)
+
+
+def test_load_all_fails_loudly_on_an_empty_bundle(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        scenario._load_all(tmp_path)
 
 
 # --- voice router ------------------------------------------------------------

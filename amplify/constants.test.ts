@@ -101,10 +101,16 @@ describe('VOICE_CONFIG', () => {
     expect(VOICE_CONFIG.REFEREE_MODEL).toBeTruthy()
     expect(VOICE_CONFIG.REFEREE_REASONING).toBeTruthy()
     // Must match the image layout: Dockerfile.voice COPYs resources/ to /app.
-    expect(VOICE_CONFIG.SCENARIO_PATH).toBe('/app/resources/scenario_1.json')
+    expect(VOICE_CONFIG.SCENARIOS_DIR).toBe('/app/resources/scenarios')
     expect(VOICE_CONFIG.REFEREE_PROMPT_PATH).toBe('/app/resources/referee.txt')
-    expect(VOICE_CONFIG.PATIENT_PROMPT_PATH).toBe('/app/resources/patient.txt')
-    expect(VOICE_CONFIG.PATIENT_CASE_PATH).toBe('/app/resources/patient.json')
+    // The per-file paths are replaced by the one scenarios dir.
+    for (const retired of [
+      'SCENARIO_PATH',
+      'PATIENT_PROMPT_PATH',
+      'PATIENT_CASE_PATH',
+    ]) {
+      expect(Object.keys(VOICE_CONFIG)).not.toContain(retired)
+    }
     // Legacy SYSTEM_AGENT_* naming is retired.
     expect(Object.keys(VOICE_CONFIG)).not.toContain('SYSTEM_AGENT_MODEL')
   })

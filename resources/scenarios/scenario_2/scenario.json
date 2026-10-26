@@ -1,0 +1,161 @@
+{
+    "id": "scenario_2",
+    "title": "Family Medicine Clinic: Frustrated Patient After a Long Wait",
+    "intro_image": "intro.webp",
+    "environment": "environment.webp",
+    "patient_frame_ext": "webp",
+    "speech": {
+        "provider": "inworld",
+        "voice": "Dennis",
+        "model": "inworld-tts-1.5-mini",
+        "speed": 1.2
+    },
+    "intro": "The family medicine clinic is running behind schedule. You are told that your next patient is a 45-year-old man who has been waiting for over an hour. When you enter the room, he immediately says, “I waited all this time for a useless appointment.” He explains that he was told today’s appointment was for laboratory testing, but clinic staff have now told him that the labs were supposed to be completed beforehand. He becomes increasingly frustrated, raises his voice, and states that the clinic has wasted his time.",
+    "goal": "Your goal is to reduce the patient’s frustration using appropriate de-escalation strategies, clarify the misunderstanding, and determine how the visit can still be useful.",
+    "time_limit": 300,
+    "point_bar": {
+        "max": 10,
+        "start": 5,
+        "goal": 0
+    },
+    "inactivity": {
+        "seconds": 120,
+        "point_change": 1
+    },
+    "actions": [
+        {
+            "type": "Acknowledge frustration and apologize",
+            "desc": "Validate that the long wait and conflicting instructions were frustrating and offer a sincere apology",
+            "point_change": -3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Clarify the misunderstanding",
+            "desc": "Ask what the patient was told and explain what appears to have happened without assigning blame to patient or staff",
+            "point_change": -2,
+            "requires": "Acknowledge frustration and apologize",
+            "point_change_without": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Collaborative problem-solving",
+            "desc": "Discuss concrete options for what can still be accomplished today, including obtaining/ordering labs and arranging appropriate follow-up",
+            "point_change": -2,
+            "requires": "Acknowledge frustration and apologize",
+            "point_change_without": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Reset expectations",
+            "desc": "Clearly explain the purpose of today’s visit, what can and cannot be accomplished, and what the next steps will be",
+            "point_change": -2,
+            "requires": "Acknowledge frustration and apologize",
+            "point_change_without": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Offer control",
+            "desc": "Give reasonable choices about how to proceed, such as addressing other concerns today, arranging labs, or rescheduling if appropriate",
+            "point_change": -1,
+            "inactive": null,
+            "active": "monitor_turned.webp",
+            "persist": true,
+            "layer": -1
+        },
+        {
+            "type": "Calm verbal communication",
+            "desc": "Maintain a calm, respectful tone and allow the patient to speak without interruption",
+            "point_change": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Generic reassurance",
+            "desc": "Offer reassurance such as “We’ll figure it out” without acknowledging the specific problem or providing a concrete plan",
+            "point_change": 0,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Redirect to medical history",
+            "desc": "Begin routine medical questioning without first addressing the patient’s frustration about the wait and miscommunication",
+            "point_change": 0,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Defensive response",
+            "desc": "Defend the clinic or justify the delay, such as “We’re very busy today” or “Everyone has been waiting”",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Blame the patient",
+            "desc": "Tell the patient that he should have known or should have completed the labs before the appointment",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Blame other staff",
+            "desc": "Criticize or blame the scheduler, front desk, or another staff member for the misunderstanding",
+            "point_change": 2,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Dismiss/minimize concern",
+            "desc": "Minimize the wait or frustration with statements such as “It’s only been an hour” or “There’s no reason to be this upset”",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Authoritative/confrontational tone",
+            "desc": "Tell the patient to “calm down” or respond in a demanding or confrontational manner",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Security/forced removal",
+            "desc": "Call security or attempt to remove the patient solely for verbal frustration without threatening or dangerous behavior",
+            "point_change": 0,
+            "ends_simulation": true,
+            "debrief": "You called security on a patient whose only behavior was verbal frustration. Frustration and a raised voice alone, without threats or dangerous behavior, do not warrant a coercive response while appropriate verbal de-escalation strategies remain available: acknowledging the long wait, clarifying the misunderstanding, and working out what the visit can still accomplish. A coercive response escalates the encounter and costs the patient’s trust in the clinic.",
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        }
+    ]
+}

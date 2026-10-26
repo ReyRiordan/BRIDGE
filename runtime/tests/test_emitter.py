@@ -10,7 +10,7 @@ from bridge.emitter import GameEvents, transcript_event
 from bridge.session import GameSession
 from voice_kit.types import TranscriptMessage
 
-SCENARIO = load_scenario()
+SCENARIO = load_scenario("scenario_1")
 
 
 class Recorder:

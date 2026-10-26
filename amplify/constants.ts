@@ -35,7 +35,7 @@ export const SECRET_NAMES = [
  * defensively and fails open, and `runtime/evals/referee_eval.py --provider
  * bedrock` measures the parse rate rather than assuming it.
  *
- * The REFEREE_* / SCENARIO_PATH / GAME_* vars are the game engine's contract
+ * The REFEREE_* / SCENARIOS_DIR / GAME_* vars are the game engine's contract
  * (`runtime/bridge/config.py`); everything else about the game (time limit,
  * point values, actions) comes from the scenario JSON itself.
  */
@@ -97,10 +97,10 @@ export const VOICE_CONFIG: Record<string, string> = {
   // The referee is on the serial critical path of every turn, so it fails open
   // rather than making the student wait.
   REFEREE_TIMEOUT_SECONDS: '7',
-  SCENARIO_PATH: '/app/resources/scenario_1.json',
+  // One folder per scenario (scenario.json + patient.txt + patient.json); the
+  // folder names are the allow-list the session-id prefix is checked against.
+  SCENARIOS_DIR: '/app/resources/scenarios',
   REFEREE_PROMPT_PATH: '/app/resources/referee.txt',
-  PATIENT_PROMPT_PATH: '/app/resources/patient.txt',
-  PATIENT_CASE_PATH: '/app/resources/patient.json',
   // Grace window between `game_over` and tearing the pipeline down, so the
   // client can render the debrief.
   GAME_GRACE_SECONDS: '45',

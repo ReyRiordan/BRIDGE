@@ -47,6 +47,7 @@ from .config import (
     idle_timeout_for,
     load_referee_prompt,
     load_scenario,
+    parse_session_id,
 )
 from .emitter import GameEvents, transcript_event
 from .patient import build_patient_prompt, build_voice_config, turn_context
@@ -71,8 +72,11 @@ async def provide_context(session_id: str) -> SessionContext:
     escalation, action states, clock origin and transcript all survive the
     pipeline rebuild. A reconnect that lands on a different container starts
     fresh — accepted, since there is no database (see 05-gotchas.md).
+
+    The scenario is the session id's ``<scenario_id>--`` prefix; a missing or
+    unknown one raises rather than falling back to some default scenario.
     """
-    scenario = load_scenario()
+    scenario = load_scenario(parse_session_id(session_id))
     session = get_or_create_session(session_id, scenario)
     return SessionContext(
         system_prompt=build_patient_prompt(scenario),

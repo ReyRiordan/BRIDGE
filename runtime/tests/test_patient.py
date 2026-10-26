@@ -6,10 +6,11 @@ file's ``locked_information`` must never reach the model, because history-taking
 is out of scope for the current sim.
 """
 
+import pytest
 from bridge.config import (
     load_patient_case,
-    load_patient_prompt_template,
     load_scenario,
+    scenario_ids,
 )
 from bridge.patient import (
     build_patient_prompt,
@@ -18,7 +19,7 @@ from bridge.patient import (
 )
 from bridge.session import GameSession
 
-SCENARIO = load_scenario()
+SCENARIO = load_scenario("scenario_1")
 
 
 def test_voice_config_comes_from_the_scenario_speech_block():
@@ -36,17 +37,30 @@ def test_voice_config_defaults_speed_to_one():
     assert voice.speed == 1.0
 
 
-CASE = load_patient_case()
+CASE = load_patient_case("scenario_1")
 PROMPT = build_patient_prompt(SCENARIO)
 
 
-def test_loaders_read_the_configured_paths(tmp_path, monkeypatch):
-    template = tmp_path / "p.txt"
-    template.write_text("hello {patient_name}", encoding="utf-8")
-    case = tmp_path / "p.json"
-    case.write_text('{"demographics": {"name": "Sam"}}', encoding="utf-8")
-    assert load_patient_prompt_template(str(template)) == "hello {patient_name}"
-    assert load_patient_case(str(case))["demographics"]["name"] == "Sam"
+def test_each_scenario_builds_its_own_persona():
+    # The template is per scenario: scenario_1's hardcodes the emergency
+    # department, which would be wrong for the clinic and the ward.
+    prompts = {sid: build_patient_prompt(load_scenario(sid)) for sid in scenario_ids()}
+    assert "emergency department" in prompts["scenario_1"]
+    assert "family medicine clinic" in prompts["scenario_2"]
+    assert "internal medicine service" in prompts["scenario_3"]
+    assert len(set(prompts.values())) == len(prompts)
+
+
+@pytest.mark.parametrize("scenario_id", ["scenario_1", "scenario_2", "scenario_3"])
+def test_every_persona_keeps_the_standing_rules(scenario_id):
+    case = load_patient_case(scenario_id)
+    prompt = build_patient_prompt(load_scenario(scenario_id))
+    assert "{patient_name}" not in prompt
+    assert case["demographics"]["name"] in prompt
+    assert "[CURRENT ESCALATION:" in prompt
+    assert "NEVER give clinical history" in prompt
+    for item in case["locked_information"]:
+        assert item not in prompt
 
 
 def test_prompt_substitutes_the_patient_name():

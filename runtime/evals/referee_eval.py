@@ -76,7 +76,7 @@ async def main() -> int:
     config.REFEREE_PROVIDER = args.provider
     config.REFEREE_MODEL = args.model
     config.REFEREE_REASONING = args.reasoning
-    scenario = config.load_scenario()
+    scenario = config.load_scenario("scenario_1")
     system_prompt = config.load_referee_prompt()
     response_format = build_response_format(scenario)
     llm = build_referee_llm(args.timeout)

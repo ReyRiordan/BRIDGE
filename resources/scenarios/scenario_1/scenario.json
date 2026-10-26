@@ -1,4 +1,7 @@
 {
+    "id": "scenario_1",
+    "title": "Emergency Department: Agitated Patient with Autism",
+    "intro_image": "intro.jpg",
     "speech": {
         "provider": "inworld",
         "voice": "Mark",

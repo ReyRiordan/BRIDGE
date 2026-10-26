@@ -1,6 +1,7 @@
 """
-Control-plane Lambda entry point: `/health`, `/scenario`, and the voice_kit
-signaling router — the thin, pipecat-free half of the BRIDGE backend.
+Control-plane Lambda entry point: `/health`, `/scenarios` + `/scenario/{id}`,
+and the voice_kit signaling router — the thin, pipecat-free half of the BRIDGE
+backend.
 
 Production serves this app with uvicorn under the AWS Lambda Web Adapter
 (api/Dockerfile.api), so `handler` below is not what the Function URL invokes:

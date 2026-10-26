@@ -1,0 +1,23 @@
+{
+    "demographics": {
+        "name": "Daniel",
+        "date_of_birth": "1981-03-22",
+        "sex": "male",
+        "gender": "male",
+        "background": "45yo man, works full time, took time off work for this appointment"
+    },
+    "behavior": "Frustrated after waiting over an hour; raises his voice when he feels dismissed or blamed, settles when his frustration is acknowledged and a concrete plan is offered.",
+    "chief_concern": "Came in for lab testing; was just told the labs should have been done before the visit",
+    "free_information": [
+        "Has been waiting for over an hour",
+        "Was told today's appointment was for laboratory testing",
+        "Clinic staff just told him the labs were supposed to be done beforehand",
+        "Took time off work to be here",
+        "Feels the clinic has wasted his time"
+    ],
+    "locked_information": [
+        "Labs were ordered to follow up on borderline high blood sugar at his last visit",
+        "Takes no regular medications",
+        "Mild seasonal allergies"
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "demographics": {
+        "name": "Marcus",
+        "date_of_birth": "1979-06-08",
+        "sex": "male",
+        "gender": "male",
+        "background": "47yo man, works shifts at a warehouse, worried about losing his job"
+    },
+    "behavior": "Frustrated with the hospitalization and pressed for time; has been pulling off his monitoring leads. Has decision-making capacity. Settles when his autonomy and outside pressures are acknowledged and he is given a concrete plan and timeline.",
+    "chief_concern": "Admitted overnight for a suspected gastrointestinal bleed (melena, symptomatic anemia); awaiting repeat labs and a possible endoscopy",
+    "free_information": [
+        "Was admitted overnight for a possible bleed",
+        "Is waiting on more blood tests and maybe a scope later today",
+        "Needs to get to work and is afraid of losing his job",
+        "Has been pulling off the monitor leads",
+        "Feels like everyone keeps telling him he cannot leave"
+    ],
+    "locked_information": [
+        "Black, tarry stools for two days",
+        "Lightheaded when standing, nearly fainted at home",
+        "Takes ibuprofen most days for back pain",
+        "Drinks a few beers most nights",
+        "No previous bleeding episodes"
+    ]
+}

@@ -18,7 +18,7 @@ from bridge.session import (
     get_session,
 )
 
-SCENARIO = load_scenario()
+SCENARIO = load_scenario("scenario_1")
 ACTIONS = {a["type"]: a for a in SCENARIO["actions"]}
 
 
@@ -187,3 +187,104 @@ def test_sweep_keeps_a_session_inside_its_grace_window():
     session.check_terminal()
     get_or_create_session("other", SCENARIO)
     assert get_session("s1") is session
+
+
+# --- conditional points, END SIMULATION, inactivity ---------------------------
+# Against the real scenario_2 / scenario_3 configs, for the same reason as above.
+
+CLINIC = load_scenario("scenario_2")
+WARD = load_scenario("scenario_3")
+WARD_KEY = "Acknowledge autonomy and outside pressures"
+WARD_END = next(a for a in WARD["actions"] if a.get("ends_simulation"))
+
+
+def a_ward(**kwargs) -> GameSession:
+    return GameSession(session_id="w1", scenario=WARD, **kwargs)
+
+
+def test_a_conditional_action_without_its_key_uses_point_change_without():
+    session = a_ward()  # start 6
+    action = session.apply_action("Explain risks in plain language")
+    assert action["point_change"] == -1
+    assert session.escalation == 5
+
+
+def test_a_conditional_action_after_its_key_uses_point_change():
+    session = a_ward()
+    session.apply_action(WARD_KEY)  # -3 -> 3
+    action = session.apply_action("Explain risks in plain language")
+    assert action["point_change"] == -2
+    assert session.escalation == 1
+
+
+def test_the_key_counts_once_taken_even_after_it_is_cleared():
+    session = GameSession(session_id="c1", scenario=CLINIC)  # start 5
+    session.apply_action("Acknowledge frustration and apologize")  # -3 -> 2
+    session.clear_transient_actions()  # the KEY is transient in scenario_2
+    assert session.apply_action("Reset expectations")["point_change"] == -2
+    assert session.escalation == 0
+
+
+def test_apply_action_never_mutates_the_scenario():
+    session = a_ward()
+    session.apply_action("Explain risks in plain language")
+    action = next(
+        a for a in WARD["actions"] if a["type"] == "Explain risks in plain language"
+    )
+    assert action["point_change"] == -2
+
+
+def test_an_end_simulation_action_fails_the_game_with_its_debrief():
+    session = a_ward()
+    action = session.apply_action(WARD_END["type"])
+    assert action["point_change"] == 0
+    assert session.escalation == 6
+    assert session.status == "active"  # ends on check_terminal, like any other
+    assert session.check_terminal() == ("fail", WARD_END["debrief"])
+    assert session.status == "fail"
+    assert session.check_terminal() is None
+
+
+def test_end_simulation_wins_over_reaching_the_goal_in_the_same_turn():
+    session = a_ward(escalation=1)
+    session.apply_action(WARD_END["type"])
+    session.apply_action("Offer control")  # -1 -> 0, the goal
+    assert session.check_terminal() == ("fail", WARD_END["debrief"])
+
+
+def test_inactivity_is_due_after_its_window():
+    session = a_ward()
+    assert session.apply_inactivity() is False
+    session.last_helpful_at -= WARD["inactivity"]["seconds"]
+    assert session.apply_inactivity() is True
+    assert session.escalation == 7
+    # The window restarts from the charge.
+    assert session.apply_inactivity() is False
+
+
+def test_a_helpful_action_restarts_the_inactivity_window():
+    session = a_ward()
+    session.last_helpful_at -= WARD["inactivity"]["seconds"] - 1
+    session.apply_action("Offer control")  # helpful
+    session.last_helpful_at -= 1
+    assert session.apply_inactivity() is False
+
+
+def test_a_neutral_or_harmful_action_does_not_restart_the_window():
+    session = a_ward()
+    session.last_helpful_at -= WARD["inactivity"]["seconds"]
+    session.apply_action("Generic reassurance")  # 0
+    session.apply_action("Fear-based coercion")  # +2 -> 8
+    assert session.apply_inactivity() is True
+    assert session.escalation == 9
+
+
+def test_inactivity_is_a_no_op_without_the_block_or_after_the_end():
+    plain = a_session()
+    plain.last_helpful_at -= 10_000
+    assert plain.apply_inactivity() is False
+
+    ended = a_ward()
+    ended.expire()
+    ended.last_helpful_at -= 10_000
+    assert ended.apply_inactivity() is False

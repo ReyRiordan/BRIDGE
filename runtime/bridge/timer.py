@@ -7,7 +7,9 @@ idempotent**, so a double teardown is a no-op rather than an error:
 
 - **timer** — a 1 Hz emitter. Elapsed time is derived from the session's
   monotonic ``started_at``, never accumulated in the loop, so a warm-container
-  reconnect resumes a continuous clock even though the task is new.
+  reconnect resumes a continuous clock even though the task is new. It also
+  drives the scenario's inactivity penalty (``GameSession.apply_inactivity``),
+  publishing the new state and ending the game when the charge is terminal.
 - **reaper** — started when the game ends, it gives the client a grace window to
   render the debrief and then cancels the pipeline through the registered
   canceller (``voice_kit.runtime.end_session``, wired in ``app.py``).
@@ -18,6 +20,7 @@ Teardown interplay:
 |---|---|
 | Referee terminal | ``game_over`` -> reaper armed; the timer stops on its next tick |
 | Timer expiry | ``game_over{fail}`` -> ``on_expire`` -> reaper armed; the timer returns |
+| Inactivity charge hits max | ``state_update`` + ``game_over{fail}`` -> ``on_expire`` -> reaper armed; the timer returns |
 | Reaper fires | ``end_session`` -> pipeline cancelled -> end hook -> timer + reaper + session dropped |
 | ``"end"`` action | the same ``end_session`` path, immediately |
 """
@@ -64,7 +67,9 @@ async def _maybe_await(result) -> None:
 async def run_timer(session, events, on_expire=None, *, sleep=asyncio.sleep) -> None:
     """Emit a ``timer`` event once a second until the session ends or expires.
 
-    ``sleep`` is injectable so tests run instantly.
+    Each tick also charges any due inactivity penalty. ``on_expire`` runs on
+    every ending the timer itself causes (time limit or an inactivity charge
+    reaching the maximum). ``sleep`` is injectable so tests run instantly.
     """
     limit = session.time_limit
     while True:
@@ -78,6 +83,14 @@ async def run_timer(session, events, on_expire=None, *, sleep=asyncio.sleep) -> 
             if on_expire is not None:
                 await _maybe_await(on_expire())
             return
+        if session.apply_inactivity():
+            events.state(session)
+            terminal = session.check_terminal()
+            if terminal is not None:
+                events.game_over(*terminal)
+                if on_expire is not None:
+                    await _maybe_await(on_expire())
+                return
         await sleep(1)
 
 

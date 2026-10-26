@@ -85,7 +85,9 @@ def build_referee_payload(scenario: dict, utterance: str, escalation: int) -> st
     the numbers cannot tempt us into trusting the ones it echoes. Only its SIGN
     is exposed, as ``escalates``, which is what lets the prompt say "be strict
     with escalating actions" without naming any of them: adding an action to the
-    scenario never requires a prompt edit.
+    scenario never requires a prompt edit. An END SIMULATION action carries
+    ``point_change: 0`` but is the most consequential call the referee makes, so
+    it counts as escalating too.
     """
     return json.dumps(
         {
@@ -95,12 +97,27 @@ def build_referee_payload(scenario: dict, utterance: str, escalation: int) -> st
                 {
                     "type": a["type"],
                     "desc": a["desc"],
-                    "escalates": a["point_change"] > 0,
+                    "escalates": a["point_change"] > 0
+                    or bool(a.get("ends_simulation")),
                 }
                 for a in scenario["actions"]
             ],
         }
     )
+
+
+def apply_order(scenario: dict, detected: List[str]) -> List[str]:
+    """Detected types with every ``requires``-free action first (stable).
+
+    A KEY action said in the same utterance as an action that requires it must
+    count, so the KEY has to be applied before its dependants are priced.
+    """
+    action_map = {a["type"]: a for a in scenario["actions"]}
+
+    def has_requires(action_type: str) -> bool:
+        return bool(action_map.get(action_type, {}).get("requires"))
+
+    return sorted(detected, key=has_requires)
 
 
 def build_response_format(scenario: dict) -> dict:
@@ -210,7 +227,7 @@ class RefereeProcessor(FrameProcessor):
 
         detected = await self._detect(message.content)
 
-        for action_type in detected:
+        for action_type in apply_order(session.scenario, detected):
             action = session.apply_action(action_type)
             if action is None:
                 continue
