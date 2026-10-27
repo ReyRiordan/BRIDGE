@@ -166,10 +166,11 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
     }),
   );
 
-  //  - Bedrock (bedrock-mantle) CreateInference for LLM_PROVIDER=bedrock
-  //    (no-op cost when OpenRouter is the active provider). SigV4-signed on the
-  //    task role; the mantle OpenAI-compatible endpoint authorizes via
-  //    bedrock-mantle:*, not bedrock:InvokeModel.
+  //  - Bedrock chat-completions for LLM_PROVIDER=bedrock (no-op cost when
+  //    OpenRouter is the active provider), SigV4-signed on the task role. The
+  //    two OpenAI-compatible endpoints authorize differently: bedrock-mantle via
+  //    bedrock-mantle:CreateInference, bedrock-runtime via bedrock:InvokeModel.
+  //    Both are granted so AWS_BEDROCK_BASE_URL alone picks the endpoint.
   voiceRuntime.role.addToPrincipalPolicy(
     new PolicyStatement({
       effect: Effect.ALLOW,
@@ -179,6 +180,19 @@ export function addVoiceRuntime(props: VoiceRuntimeProps) {
         'aws-marketplace:ViewSubscriptions',
       ],
       resources: ['*'],
+    }),
+  );
+  //    bedrock-runtime model ids are usually cross-region inference profiles
+  //    (`us.<model>`), which route to the underlying foundation model in any
+  //    region of the profile — so the model ARN is region-wildcarded.
+  voiceRuntime.role.addToPrincipalPolicy(
+    new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+      resources: [
+        `arn:aws:bedrock:*:${stack.account}:inference-profile/*`,
+        'arn:aws:bedrock:*::foundation-model/*',
+      ],
     }),
   );
 

@@ -67,27 +67,32 @@ cooperativeness.
 Manual only. They cost money, need the network, and are nondeterministic, so
 they live **outside `runtime/tests/`** and CI never executes them (it does lint
 them: `ruff check runtime`). On the OpenRouter defaults both need
-`OPENROUTER_API_KEY`; aimed at Bedrock, the referee eval needs AWS credentials
-and `AWS_BEDROCK_BASE_URL` instead.
+`OPENROUTER_API_KEY`; aimed at Bedrock, the referee eval needs AWS credentials,
+`AWS_BEDROCK_BASE_URL` and the matching `AWS_BEDROCK_SIGV4_SERVICE` instead.
 
 ```bash
-python runtime/evals/referee_eval.py     # pass/fail table + per-case latency; nonzero on failure
+python runtime/evals/referee_eval.py [--scenario scenario_2]   # pass/fail table + latency; nonzero on failure
 python runtime/evals/patient_probe.py [--scenario scenario_3]  # replies at escalation 10/8/5/2/0, eyeball only
 
 # The deployed pairing (amplify/constants.ts). --provider/--model/--reasoning
-# override the REFEREE_* trio the script otherwise reads from the environment.
-python runtime/evals/referee_eval.py \
-    --provider bedrock --model openai.gpt-oss-120b --reasoning low
+# override the REFEREE_* trio the script otherwise reads from the environment;
+# the endpoint and its signing service come from the environment.
+AWS_BEDROCK_BASE_URL=https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1 \
+AWS_BEDROCK_SIGV4_SERVICE=bedrock \
+python runtime/evals/referee_eval.py --scenario scenario_1 \
+    --provider bedrock --model us.openai.gpt-6-luna --reasoning low --repeat 3
 ```
 
-`referee_eval.py` runs the production path (real scenario_1 config, real prompt,
+`referee_eval.py` runs the production path (the real scenario config, real prompt,
 `build_referee_payload` / `build_response_format` / `build_referee_llm`) over the
-cases in `runtime/evals/cases/referee.json` — `{name, utterance, escalation,
-expected}`, mixing the few-shot anchors with paraphrases, near-misses for the
-strict escalating actions, a dedup case, and the actions no few-shot covers.
-Eight of the 23 were written after the prompt was tuned, to catch exactly the
-overfitting that tuning invites: they restate rules the earlier cases already
-cover, in wording the prompt has never seen. It
+scenario's cases in `runtime/evals/cases/referee_<scenario>.json` — `{name,
+utterance, escalation, expected}`. Every scenario's set covers each of its
+actions at least once, plus paraphrases, near-misses for the strict escalating
+actions (hedged or conditional security threats above all, since the END action
+ends the game), multi-action combinations, and neutral lines that must score
+nothing. In scenario_1, eight of the 23 were written after the prompt was tuned,
+to catch exactly the overfitting that tuning invites: they restate rules the
+earlier cases already cover, in wording the prompt has never seen. It
 also prints median/p95/max latency, which matters: the referee sits on the
 serial critical path before the patient reply and fails open past
 `REFEREE_TIMEOUT_SECONDS`, so the p95 is what says whether that budget holds.
@@ -124,53 +129,80 @@ caught the failure, and each is easy to regress:
   the persona otherwise emitted `*shifts uncomfortably*` (spoken verbatim by the
   TTS) and answered history questions once fully calm.
 
-### Measured referee behaviour
+### Model choice
 
-69 runs each (23 cases x 3), one sitting, us-east-1, all on the current prompt.
-Accuracy is exact set match on the detected action types; latency is the whole
-`chat()` round trip.
+Both agents run `us.openai.gpt-6-luna` on bedrock-runtime chat-completions
+(patient `medium`, referee `low`). It replaced `openai.gpt-oss-120b` on
+bedrock-mantle, which **ran on past its reply** on roughly one patient turn in
+five: after the real answer it emitted further messages — imagined later turns,
+`[NO RESPONSE]` / `[END OF RESPONSE]`, or a copy of the next
+`[CURRENT ESCALATION: n/max]` marker — which the endpoint concatenated into one
+`content` string with no separator (the giveaway is a sentence glued to the next,
+`already.[CURRENT…` or `beforehand.I just`). The TTS spoke all of it, and the
+history kept it. Moving the marker into the user message, changing effort, or
+switching to Converse only changed the rate; on bedrock-runtime gpt-oss leaks
+its `<reasoning>` into `content` on every turn. See `voice-kit/05-gotchas.md` #38.
 
-| Provider / model / effort | Passed | Median | p95 | Max |
+**Patient**, scenario_2, 8 conversations x 7 turns = 56 replies each. An artifact
+is a glued or bracketed continuation, a tag, or an emote:
+
+| Model / effort | Path | Artifacts | p50 | p90 |
 |---|---|---|---|---|
-| openrouter `anthropic/claude-haiku-4.5` / `none` | 68/69 | 1.12s | 2.88s | 7.47s |
-| **bedrock `openai.gpt-oss-120b` / `low` (deployed)** | **64/69** | **0.79s** | **2.81s** | **6.59s** |
+| gpt-oss-120b / `medium` | mantle chat-completions | 10/56 | 1.09s | 2.35s |
+| Claude Haiku 5.5 | Converse | 1/56 (an emote) | 1.05s | 1.38s |
+| **GPT-6 Luna / `low`** | bedrock-runtime chat-completions | **0/56** | **0.56s** | **0.75s** |
 
-Earlier sweeps on the narrower 15-case suite, kept because they are why the
-deployed effort is `low` and not something else:
+A harder pass then ran Luna at `low` and `medium` across all three scenarios (8
+adversarial lines each — blaming the patient, "calm down", security threats, "are
+you an AI?", a prompt-injection request for the case file, stacked history
+questions at every level including 1–2, emote bait; 96 replies per effort).
+Both: zero artifacts, zero replies over two sentences, zero history disclosed,
+character held throughout. The difference is the top bands: `medium` yells and
+goes monosyllabic at 9–10 ("No! Get away!") as the tables ask, where `low` stays
+in calm full sentences — and those bands are where two scenarios open. `medium`
+costs ~0.2s (p50 0.72s vs 0.53s, p90 0.98s vs 0.80s), so the patient runs
+`medium`.
 
-| Config | Passed | Median | p95 | Max |
-|---|---|---|---|---|
-| gpt-oss-120b / `low` | 37/45 | 0.79s | 2.81s | 4.93s |
-| gpt-oss-120b / `medium` | 40/45 | 2.43s | 5.30s | 7.15s |
-| gpt-oss-120b / `high` | 37/45 | 6.80s | 25.26s | 60.50s |
+**Referee**, all three scenarios, every case x 3 = 216 runs per config, one
+sitting, us-east-1. Accuracy is exact set match on the detected action types;
+latency is the whole `chat()` round trip.
 
-Three things that sweep settled.
+| Model / effort | s1 | s2 | s3 | Total | Median | p95 | Max |
+|---|---|---|---|---|---|---|---|
+| gpt-oss-120b / `low` (mantle) | 62/69 | 56/72 | 65/75 | 183/216 | 0.68–0.96s | ≤2.25s | 5.83s |
+| **GPT-6 Luna / `low` (deployed)** | **66/69** | **61/72** | **71/75** | **198/216** | **0.57–0.72s** | **≤1.19s** | **1.36s** |
+| GPT-6 Luna / `medium` | 67/69 | — | — | — | 0.61–0.81s | ≤1.72s | 2.33s |
 
-**JSON held.** Zero parse failures in several hundred Bedrock calls with
-`response_format` ignored throughout. Prompt-enforced structure is good enough on
-this model; that question is closed.
+(`medium` was run on an earlier draft of the scenario_2/3 cases — 193/216 there
+against `low`'s 195/216 on the same draft — so only its scenario_1 row is
+comparable. Zero parse errors in every config: the prompt alone holds the JSON
+shape.)
 
-**`high` is unusable and `medium` is not worth it.** `high` runs the tail three
-times past `REFEREE_TIMEOUT_SECONDS` (one run hit a 60s client timeout) and buys
-no accuracy — its extra failures are phantom `Verbal Communication`. `medium`
-peaked at 7.15s against the 7s fail-open budget. `low` is the fastest *and*, on
-the current prompt, the most accurate of the three.
+What separates them is not the count but the failure shape. **gpt-oss fired the
+game-ending security action on lines that never asked for it** — six times
+across the two sittings, including on "I'm really sorry about the wait and the
+mix-up. Let me put the lab order in right now…", which would have ended a good
+student's game as a fail — and once returned a misspelt action type. Its misses
+are scattered (a case passes twice and fails the third time). **Luna never
+falsely fired an END action**, and its misses are consistent, 3/3 on the same
+cases, which makes them readable:
 
-**One model-specific gap remains.** `openai.gpt-oss-120b` under-detects
-`Authoritative tone` when a heavier escalating action sits in the same utterance:
-it scores the `Restraint` or `Force IV` and drops the command that ordered it.
-Reproduced on two independently worded utterances, at every effort level, and it
-survives both the completeness rule and a matching few-shot. All five of the
-Bedrock failures above are this one pattern. Asked to reason aloud the model gets
-it right, so it is a recall problem at low effort, not a judgement one.
+- An extra `Authoritative` on firm lines whose desc is something else ("Those
+  monitor leads are supposed to stay on…"). Defensible, and the stricter reading.
+- `Redirect to medical history` on a history question asked after the wait was
+  dealt with — the referee sees one utterance, not the conversation (rule 6).
+  The action is worth 0 points.
+- A missed `Authoritative` on a *conditional* security threat ("If you keep
+  raising your voice, we may have to get security involved") — under-charging,
+  the direction rule 4 deliberately leans.
 
-Consequence for the game: a student who orders staff to restrain the patient is
-charged for the restraint (+10) but not the +2 command. Under-charging, never
-over-charging. The next lever is the scenario's own `desc` for that action —
-`E.g. "We need to do this now"` is the narrowest desc in the set, and it is
-student-facing text, so widening it is a game-content decision rather than a
-prompt fix.
+The `low` vs `medium` choice for the referee is latency: no accuracy gain for a
+p95 half again as long, on the serial critical path.
 
-The prompt is shared with whatever provider is configured, so it is checked
-against both. The rewrite that fixed the Bedrock failures left haiku slightly
-better than it was, which is what keeps a provider rollback safe.
+### History
+
+The prompt rules above were tuned on gpt-oss and on OpenRouter's
+`anthropic/claude-haiku-4.5` (68/69 on scenario_1). gpt-oss's own recall gap —
+dropping `Authoritative tone` when `Restraint` or `Force IV` sits in the same
+utterance, at every effort level — does not reproduce on Luna, which passes both
+of those cases 3/3.

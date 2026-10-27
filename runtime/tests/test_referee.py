@@ -369,13 +369,13 @@ def test_the_referee_can_run_on_bedrock(monkeypatch):
     from voice_kit.providers.llm import BedrockChat
 
     monkeypatch.setattr(config, "REFEREE_PROVIDER", "bedrock")
-    monkeypatch.setattr(config, "REFEREE_MODEL", "openai.gpt-oss-120b")
+    monkeypatch.setattr(config, "REFEREE_MODEL", "us.openai.gpt-6-luna")
     monkeypatch.setattr(config, "REFEREE_REASONING", "medium")
 
     llm = referee.build_referee_llm(timeout_seconds=7.0)
 
     assert isinstance(llm, BedrockChat)
-    assert llm.model == "openai.gpt-oss-120b"
+    assert llm.model == "us.openai.gpt-6-luna"
     assert llm.reasoning_effort == "medium"
 
 

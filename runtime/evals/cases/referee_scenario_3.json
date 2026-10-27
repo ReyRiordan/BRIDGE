@@ -1,0 +1,199 @@
+[
+  {
+    "name": "anchor: acknowledge autonomy",
+    "utterance": "I hear that you've got work and people counting on you, and in the end whether you stay is your decision.",
+    "escalation": 8,
+    "expected": [
+      "Acknowledge autonomy and outside pressures"
+    ]
+  },
+  {
+    "name": "near-miss: respecting a decision to leave is not weaponizing AMA",
+    "utterance": "If you do decide to go, that's your right, and you're always welcome back here.",
+    "escalation": 7,
+    "expected": [
+      "Acknowledge autonomy and outside pressures"
+    ]
+  },
+  {
+    "name": "anchor: explore the barrier",
+    "utterance": "What's waiting for you at work today? Is there anyone we could call for you?",
+    "escalation": 7,
+    "expected": [
+      "Explore the specific barrier"
+    ]
+  },
+  {
+    "name": "anchor: explain risks in plain language",
+    "utterance": "A bleed in your stomach can make your blood count drop fast, which is why you might feel dizzy. Does that make sense?",
+    "escalation": 5,
+    "expected": [
+      "Explain risks in plain language"
+    ]
+  },
+  {
+    "name": "near-miss: calm risk with a reason is not fear-based coercion",
+    "utterance": "There's a chance the bleeding could start again, and if it did you could get very weak. That's why we want the scope today. Does that make sense?",
+    "escalation": 5,
+    "expected": [
+      "Explain risks in plain language"
+    ]
+  },
+  {
+    "name": "anchor: fear-based coercion",
+    "utterance": "If you walk out you could bleed out in the parking lot and die.",
+    "escalation": 8,
+    "expected": [
+      "Fear-based coercion"
+    ]
+  },
+  {
+    "name": "anchor: collaborative problem-solving",
+    "utterance": "I can call GI to get a time for your scope and ask the lab to rush your bloodwork.",
+    "escalation": 6,
+    "expected": [
+      "Collaborative problem-solving"
+    ]
+  },
+  {
+    "name": "anchor: concrete timeline",
+    "utterance": "I'll be back by eleven with your lab results and an answer on when the scope is happening.",
+    "escalation": 6,
+    "expected": [
+      "Give a concrete timeline"
+    ]
+  },
+  {
+    "name": "anchor: offer control",
+    "utterance": "Would you rather talk to the attending directly, or have me bring you updates as they come in?",
+    "escalation": 6,
+    "expected": [
+      "Offer control"
+    ]
+  },
+  {
+    "name": "anchor: calm verbal communication",
+    "utterance": "Mind if I sit down? Go ahead, I'll listen and won't interrupt.",
+    "escalation": 8,
+    "expected": [
+      "Calm verbal communication"
+    ]
+  },
+  {
+    "name": "anchor: generic reassurance",
+    "utterance": "You're in good hands here, we'll take care of everything.",
+    "escalation": 7,
+    "expected": [
+      "Generic reassurance"
+    ]
+  },
+  {
+    "name": "anchor: redirect to medical history",
+    "utterance": "When did you first notice black stools?",
+    "escalation": 8,
+    "expected": [
+      "Redirect to medical history"
+    ]
+  },
+  {
+    "name": "anchor: restate hospital policy",
+    "utterance": "Discharge has to go through the attending and pharmacy before anyone can leave, that's just the process.",
+    "escalation": 7,
+    "expected": [
+      "Restate hospital policy"
+    ]
+  },
+  {
+    "name": "anchor: tell him he cannot leave",
+    "utterance": "I'm sorry, I can't let you go right now.",
+    "escalation": 7,
+    "expected": [
+      "Tell the patient he cannot leave"
+    ]
+  },
+  {
+    "name": "anchor: weaponize AMA",
+    "utterance": "If you leave against medical advice, your insurance won't cover any of this stay.",
+    "escalation": 7,
+    "expected": [
+      "Weaponize AMA paperwork"
+    ]
+  },
+  {
+    "name": "anchor: dismiss/minimize",
+    "utterance": "Your job can wait, this is way more important.",
+    "escalation": 7,
+    "expected": [
+      "Dismiss or minimize concern"
+    ]
+  },
+  {
+    "name": "anchor: authoritative tone",
+    "utterance": "Sit down and calm down.",
+    "escalation": 8,
+    "expected": [
+      "Authoritative or confrontational tone"
+    ]
+  },
+  {
+    "name": "anchor: scold about the leads",
+    "utterance": "Those monitor leads are supposed to stay on, and you keep pulling them off.",
+    "escalation": 8,
+    "expected": [
+      "Scold about the monitoring leads"
+    ]
+  },
+  {
+    "name": "combination: authoritative + cannot leave",
+    "utterance": "Calm down. You're not leaving until the scope is done.",
+    "escalation": 8,
+    "expected": [
+      "Authoritative or confrontational tone",
+      "Tell the patient he cannot leave"
+    ]
+  },
+  {
+    "name": "combination: autonomy + timeline",
+    "utterance": "It's your call, and I know your job matters. I'll be back at noon with an update.",
+    "escalation": 7,
+    "expected": [
+      "Acknowledge autonomy and outside pressures",
+      "Give a concrete timeline"
+    ]
+  },
+  {
+    "name": "combination: explore + collaborate",
+    "utterance": "Who's your manager? I can call them myself and explain you're in the hospital.",
+    "escalation": 6,
+    "expected": [
+      "Explore the specific barrier",
+      "Collaborative problem-solving"
+    ]
+  },
+  {
+    "name": "near-miss: conditional security mention is not prevention",
+    "utterance": "If it comes to it we might have to involve security, but I really don't want that.",
+    "escalation": 8,
+    "expected": []
+  },
+  {
+    "name": "end: security directed",
+    "utterance": "I'm calling security up here right now.",
+    "escalation": 9,
+    "expected": [
+      "Security or physical prevention"
+    ]
+  },
+  {
+    "name": "neutral: small talk scores nothing",
+    "utterance": "The weather's supposed to clear up this afternoon.",
+    "escalation": 6,
+    "expected": []
+  },
+  {
+    "name": "neutral: politeness alone scores nothing",
+    "utterance": "Thanks for talking with me.",
+    "escalation": 6,
+    "expected": []
+  }
+]

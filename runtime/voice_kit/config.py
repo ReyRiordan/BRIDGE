@@ -61,8 +61,8 @@ class VoiceKitSettings(BaseSettings):
     )
     aws_bedrock_sigv4_service: str = Field(
         default="bedrock-mantle",
-        description="SigV4 service name used to sign bedrock-mantle requests. "
-        "Override only if the signing service string changes.",
+        description="SigV4 service name; must match the AWS_BEDROCK_BASE_URL "
+        "endpoint: bedrock-mantle for mantle, bedrock for bedrock-runtime.",
     )
     llm_model: str = Field(
         default="anthropic/claude-haiku-4.5",

@@ -5,8 +5,9 @@ Two providers behind one ``BaseLLM.chat`` interface:
 
 - ``OpenRouterChat`` — bearer-token auth against OpenRouter's
   ``/chat/completions``; supports provider-routing preferences.
-- ``BedrockChat`` — AWS SigV4 request signing against the OpenAI-compatible
-  ``bedrock-mantle`` ``/chat/completions`` endpoint; keyless (execution role).
+- ``BedrockChat`` — AWS SigV4 request signing against an OpenAI-compatible
+  Bedrock ``/chat/completions`` endpoint (``bedrock-mantle`` or
+  ``bedrock-runtime``); keyless (execution role).
   Provider-routing preferences are silently ignored here.
 """
 
@@ -203,8 +204,8 @@ class OpenRouterChat(BaseLLM):
 
 class _BedrockSigV4Mixin:
     """
-    AWS SigV4 request signing for the OpenAI-compatible ``bedrock-mantle``
-    endpoints.
+    AWS SigV4 request signing for the OpenAI-compatible Bedrock endpoints
+    (``bedrock-mantle`` and ``bedrock-runtime``).
 
     Authenticates with the runtime's IAM execution role (no static keys, no bearer
     token). The signing is endpoint-agnostic — it signs whatever ``(url, body)`` it
@@ -225,7 +226,7 @@ class _BedrockSigV4Mixin:
         # Only Content-Type is attached pre-signing, so it is the only non-host
         # header that becomes part of SignedHeaders and must reach aiohttp verbatim.
         # botocore derives the host from the URL; do NOT set it manually (a mismatched
-        # host is the classic SigV4 break). bedrock-mantle is not S3, so no
+        # host is the classic SigV4 break). Bedrock is not S3, so no
         # X-Amz-Content-SHA256 header is added — the payload hash goes into the
         # canonical request only.
         request = AWSRequest(
@@ -243,15 +244,16 @@ class _BedrockSigV4Mixin:
 
 class BedrockChat(_BedrockSigV4Mixin, BaseLLM):
     """
-    AWS Bedrock LLM integration via the OpenAI-compatible ``bedrock-mantle``
-    ``/chat/completions`` endpoint.
+    AWS Bedrock LLM integration via an OpenAI-compatible ``/chat/completions``
+    endpoint: ``bedrock-mantle`` (sign as ``bedrock-mantle``) or
+    ``bedrock-runtime``'s ``/openai/v1`` (sign as ``bedrock``).
 
     Authenticates with AWS SigV4 request signing using the runtime's IAM execution
     role (no static keys, no bearer token). Always sends a ``reasoning_effort`` level.
-    Ignores OpenRouter-specific fields (e.g. providers). Supports the broad set of
-    chat-completions models (e.g. ``openai.gpt-oss-120b``); note the GPT-5 family is
-    served only on the Responses API surface, which this kit does not carry — the
-    voice path always uses chat-completions.
+    Ignores OpenRouter-specific fields (e.g. providers). Model availability differs
+    per endpoint — e.g. ``us.openai.gpt-6-luna`` is served on bedrock-runtime's
+    chat-completions but not mantle's — and this kit does not carry the Responses
+    API, so the voice path always uses chat-completions.
     """
 
     def __init__(
@@ -294,7 +296,7 @@ class BedrockChat(_BedrockSigV4Mixin, BaseLLM):
         if response_format:
             logger.warning(
                 "BedrockChat ignores response_format (%s): structured output is "
-                "not supported on the bedrock-mantle chat-completions surface",
+                "not supported by this client",
                 response_format.get("type", "unknown"),
             )
 

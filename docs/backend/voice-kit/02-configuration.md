@@ -31,13 +31,13 @@ All kit config is env-driven through `runtime/voice_kit/config.py` (pydantic-set
 | `LLM_PROVIDERS` | runtime | — | OpenRouter routing priority, comma-separated. **Silently ignored on bedrock** |
 | `OPENROUTER_API_KEY` | runtime | — | Required when `openrouter` |
 | `OPENROUTER_BASE_URL` | runtime | `https://openrouter.ai/api/v1` | |
-| `AWS_BEDROCK_BASE_URL` | runtime | — | Required when `bedrock`; US East: `https://bedrock-mantle.us-east-1.api.aws/v1`. Unset, the request URL becomes the literal `None/chat/completions`. Public endpoint, so plain env config rather than an SSM secret |
-| `AWS_BEDROCK_SIGV4_SERVICE` | runtime | `bedrock-mantle` | SigV4 signing service string |
+| `AWS_BEDROCK_BASE_URL` | runtime | — | Required when `bedrock`. Two OpenAI-compatible endpoints: `https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1` (deployed) or `https://bedrock-mantle.us-east-1.api.aws/v1`; model availability differs between them. Unset, the request URL becomes the literal `None/chat/completions`. Public endpoint, so plain env config rather than an SSM secret |
+| `AWS_BEDROCK_SIGV4_SERVICE` | runtime | `bedrock-mantle` | SigV4 signing service; must match the endpoint — `bedrock` for bedrock-runtime, `bedrock-mantle` for mantle. A mismatch is rejected on every call. Deployed: `bedrock` |
 
 | Provider | Auth | Model ID format | IAM |
 |---|---|---|---|
 | OpenRouter | Bearer key | `anthropic/claude-haiku-4.5` | none |
-| Bedrock | IAM execution role / SigV4 (no token) | `openai.gpt-oss-120b`, `us.anthropic.claude-haiku-4-5-20251001-v1:0` | `bedrock-mantle:CreateInference` |
+| Bedrock | IAM execution role / SigV4 (no token) | bedrock-runtime: `us.openai.gpt-6-luna` (an inference profile — the bare `openai.gpt-6-luna` is rejected on-demand). mantle: `openai.gpt-oss-120b` | bedrock-runtime: `bedrock:InvokeModel`; mantle: `bedrock-mantle:CreateInference` |
 
 The voice path always uses the chat-completions surface (`/chat/completions`). GPT-5-family models are served only on Bedrock's Responses API and are **not usable** with this kit's LLM path — pick a chat-capable model.
 
@@ -45,7 +45,7 @@ That surface also **ignores `response_format`**: `BedrockChat.chat()` warns and 
 
 Nothing in the repo validates a model ID, and a wrong one fails per request rather than at deploy time. **Do not confirm it with `aws bedrock list-foundation-models`** — that lists the InvokeModel catalog, whose IDs carry a version suffix the bedrock-mantle surface rejects. `openai.gpt-oss-120b-1:0` is what the catalog shows and it 404s with `The model ... does not exist`; the bare `openai.gpt-oss-120b` is what works. Verify with a real one-shot `/chat/completions` call against the deploy region instead.
 
-**Deployed** (`amplify/constants.ts`): `bedrock` / `openai.gpt-oss-120b` / `medium`, for the patient and the referee alike. Keyless, off the AgentCore execution role.
+**Deployed** (`amplify/constants.ts`): `bedrock` / `us.openai.gpt-6-luna` on bedrock-runtime — `medium` for the patient, `low` for the referee. Keyless, off the AgentCore execution role. GPT-6 Luna is not served on mantle's chat-completions route (nor its Responses API), only on bedrock-runtime's.
 
 ## STT
 
@@ -99,9 +99,9 @@ Read by `runtime/bridge/config.py` — plain environment reads, all runtime-side
 |---|---|---|
 | `SCENARIOS_DIR` | `resources/scenarios` | One folder per scenario: `scenario.json` (actions, point values, time limit, TTS voice), `patient.txt` (persona template), `patient.json` (case file). The folder names are the scenario allow-list. Deployed: `/app/resources/scenarios` |
 | `REFEREE_PROMPT_PATH` | `resources/referee.txt` | Referee system prompt, shared by every scenario. Deployed: `/app/resources/referee.txt` |
-| `REFEREE_PROVIDER` | `openrouter` | `openrouter` \| `bedrock`. OpenRouter is sent `require_parameters` so routing only picks backends that honour the strict `json_schema`; bedrock-mantle ignores `response_format` entirely, leaving the prompt to hold the shape. Deployed: `bedrock` |
-| `REFEREE_MODEL` | `anthropic/claude-haiku-4.5` | Separate from `LLM_MODEL`. The referee and the patient are different calls, and today both are deployed on `openai.gpt-oss-120b` |
-| `REFEREE_REASONING` | `none` | Same vocabulary as `LLM_REASONING`. Deployed: `medium` |
+| `REFEREE_PROVIDER` | `openrouter` | `openrouter` \| `bedrock`. OpenRouter is sent `require_parameters` so routing only picks backends that honour the strict `json_schema`; `BedrockChat` drops `response_format` entirely, leaving the prompt to hold the shape. Deployed: `bedrock` |
+| `REFEREE_MODEL` | `anthropic/claude-haiku-4.5` | Separate from `LLM_MODEL`. The referee and the patient are different calls, and today both are deployed on `us.openai.gpt-6-luna` |
+| `REFEREE_REASONING` | `none` | Same vocabulary as `LLM_REASONING`. Deployed: `low` |
 | `REFEREE_TIMEOUT_SECONDS` | `7.0` | The referee is on every turn's serial critical path; past this it fails open (scores the turn as no-detection) |
 | `GAME_GRACE_SECONDS` | `45.0` | Window between `game_over` and the reaper cancelling the pipeline, so the client can render the debrief |
 
