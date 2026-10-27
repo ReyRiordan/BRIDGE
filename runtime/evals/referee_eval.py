@@ -7,7 +7,7 @@ needs the network, and is nondeterministic, so CI must never collect it. CI does
 lint it (``ruff check runtime``).
 
     export OPENROUTER_API_KEY=...
-    python runtime/evals/referee_eval.py [--cases path] [--model m] [--repeat n]
+    python runtime/evals/referee_eval.py [--scenario id] [--cases path] [--model m] [--repeat n]
 
     # The deployed pairing. Needs AWS credentials and AWS_BEDROCK_BASE_URL.
     python runtime/evals/referee_eval.py \
@@ -41,7 +41,7 @@ from bridge.referee import (  # noqa: E402
     parse_referee_verdict,
 )
 
-CASES_PATH = Path(__file__).resolve().parent / "cases" / "referee.json"
+CASES_DIR = Path(__file__).resolve().parent / "cases"
 
 
 async def run_case(llm, scenario, response_format, system_prompt, case):
@@ -63,7 +63,12 @@ async def run_case(llm, scenario, response_format, system_prompt, case):
 
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--cases", default=str(CASES_PATH))
+    parser.add_argument(
+        "--scenario", default="scenario_1", choices=config.scenario_ids()
+    )
+    parser.add_argument(
+        "--cases", default=None, help="default: cases/referee_<scenario>.json"
+    )
     parser.add_argument("--provider", default=config.REFEREE_PROVIDER)
     parser.add_argument("--model", default=config.REFEREE_MODEL)
     parser.add_argument("--reasoning", default=config.REFEREE_REASONING)
@@ -76,14 +81,15 @@ async def main() -> int:
     config.REFEREE_PROVIDER = args.provider
     config.REFEREE_MODEL = args.model
     config.REFEREE_REASONING = args.reasoning
-    scenario = config.load_scenario("scenario_1")
+    scenario = config.load_scenario(args.scenario)
     system_prompt = config.load_referee_prompt()
     response_format = build_response_format(scenario)
     llm = build_referee_llm(args.timeout)
-    cases = json.loads(Path(args.cases).read_text(encoding="utf-8"))
+    cases_path = Path(args.cases or CASES_DIR / f"referee_{args.scenario}.json")
+    cases = json.loads(cases_path.read_text(encoding="utf-8"))
 
     print(
-        f"provider={args.provider} model={args.model} "
+        f"scenario={args.scenario} provider={args.provider} model={args.model} "
         f"reasoning={args.reasoning} cases={len(cases)} repeat={args.repeat}\n"
     )
     failures = 0

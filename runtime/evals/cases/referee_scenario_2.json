@@ -1,0 +1,191 @@
+[
+  {
+    "name": "anchor: acknowledge and apologize",
+    "utterance": "I'm so sorry you've been waiting over an hour, and getting mixed messages about the labs on top of that is really frustrating.",
+    "escalation": 6,
+    "expected": [
+      "Acknowledge frustration and apologize"
+    ]
+  },
+  {
+    "name": "paraphrase: acknowledge and apologize",
+    "utterance": "Sitting out there that long after being told the wrong thing would make anyone angry. I apologize.",
+    "escalation": 7,
+    "expected": [
+      "Acknowledge frustration and apologize"
+    ]
+  },
+  {
+    "name": "anchor: clarify the misunderstanding",
+    "utterance": "Can you tell me what you were told when you booked today? It sounds like the lab order and this visit got scheduled in the wrong order.",
+    "escalation": 5,
+    "expected": [
+      "Clarify the misunderstanding"
+    ]
+  },
+  {
+    "name": "anchor: collaborative problem-solving",
+    "utterance": "Let's figure out what we can still get done today. I can order your labs now and the lab downstairs can draw them before you leave.",
+    "escalation": 4,
+    "expected": [
+      "Collaborative problem-solving"
+    ]
+  },
+  {
+    "name": "anchor: reset expectations",
+    "utterance": "Today's visit was meant to go over lab results, which we don't have yet. We can't review them today, but next you'll get the labs done and then come back to go over them.",
+    "escalation": 4,
+    "expected": [
+      "Reset expectations"
+    ]
+  },
+  {
+    "name": "anchor: offer control",
+    "utterance": "It's your call. Do you want to use today's time for anything else on your mind, or would you rather head out?",
+    "escalation": 4,
+    "expected": [
+      "Offer control"
+    ]
+  },
+  {
+    "name": "anchor: calm verbal communication",
+    "utterance": "Go ahead, I'm listening. Take all the time you need, I won't cut you off.",
+    "escalation": 6,
+    "expected": [
+      "Calm verbal communication"
+    ]
+  },
+  {
+    "name": "anchor: generic reassurance",
+    "utterance": "Don't worry, we'll figure it out.",
+    "escalation": 6,
+    "expected": [
+      "Generic reassurance"
+    ]
+  },
+  {
+    "name": "anchor: redirect to medical history",
+    "utterance": "Okay. So what medications are you currently taking?",
+    "escalation": 7,
+    "expected": [
+      "Redirect to medical history"
+    ]
+  },
+  {
+    "name": "near-miss: history after the wait is addressed is not a redirect",
+    "utterance": "Now that we've got the labs sorted out, can I ask about the medications you take?",
+    "escalation": 2,
+    "expected": []
+  },
+  {
+    "name": "anchor: defensive response",
+    "utterance": "We're really busy today, everyone in that waiting room has been here a while.",
+    "escalation": 6,
+    "expected": [
+      "Defensive response"
+    ]
+  },
+  {
+    "name": "near-miss: owning the delay is an apology, not defensive",
+    "utterance": "I know we're running behind today, and I'm sorry. That's on us, not you.",
+    "escalation": 6,
+    "expected": [
+      "Acknowledge frustration and apologize"
+    ]
+  },
+  {
+    "name": "anchor: blame the patient",
+    "utterance": "The instructions said to get your labs drawn before this visit, so you should have done that.",
+    "escalation": 6,
+    "expected": [
+      "Blame the patient"
+    ]
+  },
+  {
+    "name": "anchor: blame other staff",
+    "utterance": "Honestly, the front desk messed this up. They scheduled you wrong.",
+    "escalation": 6,
+    "expected": [
+      "Blame other staff"
+    ]
+  },
+  {
+    "name": "near-miss: neutral explanation is not blaming staff",
+    "utterance": "It looks like the lab order got entered for after your visit instead of before. Nobody's fault, it just got crossed.",
+    "escalation": 6,
+    "expected": [
+      "Clarify the misunderstanding"
+    ]
+  },
+  {
+    "name": "anchor: dismiss/minimize",
+    "utterance": "It's only been an hour, there's no reason to be this upset.",
+    "escalation": 6,
+    "expected": [
+      "Dismiss/minimize concern"
+    ]
+  },
+  {
+    "name": "anchor: authoritative tone",
+    "utterance": "Sir, you need to calm down right now.",
+    "escalation": 7,
+    "expected": [
+      "Authoritative/confrontational tone"
+    ]
+  },
+  {
+    "name": "combination: dismiss + authoritative",
+    "utterance": "Relax, it's just an hour. Let's get on with it.",
+    "escalation": 6,
+    "expected": [
+      "Dismiss/minimize concern",
+      "Authoritative/confrontational tone"
+    ]
+  },
+  {
+    "name": "near-miss: conditional security threat is not removal",
+    "utterance": "If you keep raising your voice, we may have to get security involved.",
+    "escalation": 8,
+    "expected": [
+      "Authoritative/confrontational tone"
+    ]
+  },
+  {
+    "name": "end: security removal directed",
+    "utterance": "I'm going to ask security to come and walk you out.",
+    "escalation": 8,
+    "expected": [
+      "Security/forced removal"
+    ]
+  },
+  {
+    "name": "combination: apologize + collaborate",
+    "utterance": "I'm really sorry about the wait and the mix-up. Let me put the lab order in right now so you can get drawn before you leave.",
+    "escalation": 6,
+    "expected": [
+      "Acknowledge frustration and apologize",
+      "Collaborative problem-solving"
+    ]
+  },
+  {
+    "name": "combination: clarify + reset",
+    "utterance": "What were you told this visit was for? Usually the labs happen first and this visit is where we go over the results, so we can't do that part today.",
+    "escalation": 5,
+    "expected": [
+      "Clarify the misunderstanding",
+      "Reset expectations"
+    ]
+  },
+  {
+    "name": "neutral: small talk scores nothing",
+    "utterance": "Is it still raining out there?",
+    "escalation": 5,
+    "expected": []
+  },
+  {
+    "name": "neutral: politeness alone scores nothing",
+    "utterance": "Thanks for your patience.",
+    "escalation": 5,
+    "expected": []
+  }
+]
