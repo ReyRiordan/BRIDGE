@@ -76,7 +76,7 @@ export const VOICE_CONFIG: Record<string, string> = {
   // --- TTS
   TTS_PROVIDER: 'inworld',
   TTS_VOICE: 'Mark',
-  TTS_MODEL: 'inworld-tts-1.5-mini',
+  TTS_MODEL: 'inworld-tts-2-flash',
 
   // --- Session. SESSION_TIME_LIMIT_MINUTES is the app's conversation cap
   // (informational to the kit); IDLE_TIMEOUT_SECS is the pipeline's
