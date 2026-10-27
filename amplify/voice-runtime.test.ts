@@ -19,3 +19,15 @@ test('never injects the local-dev flags into the runtime container', () => {
   expect(source).not.toContain('BRIDGE_LOCAL')
   expect(source).not.toContain('VOICE_INVOKER')
 })
+
+// AWS_BEDROCK_BASE_URL picks the Bedrock endpoint, and the two OpenAI-compatible
+// endpoints authorize on different actions. A missing grant is an AccessDenied
+// on every LLM call, found only after a deploy — so both stay granted.
+test('grants both Bedrock chat-completions endpoints', () => {
+  const source = readFileSync(new URL('./voice-runtime.ts', import.meta.url), 'utf8')
+
+  expect(source).toContain("'bedrock-mantle:CreateInference'")
+  expect(source).toContain("'bedrock:InvokeModel'")
+  // Cross-region inference profiles route to the model in any region.
+  expect(source).toContain("'arn:aws:bedrock:*::foundation-model/*'")
+})

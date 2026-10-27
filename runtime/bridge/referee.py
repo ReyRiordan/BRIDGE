@@ -68,8 +68,7 @@ def parse_referee_verdict(raw: str) -> RefereeVerdict:
     """Parse one raw referee completion. Raises on anything unusable.
 
     The tolerance here is the whole reason the referee can run on a provider
-    without structured output: on the bedrock-mantle chat-completions surface
-    ``response_format`` is ignored, so the JSON shape comes from the prompt and
+    without structured output: ``BedrockChat`` drops ``response_format``, so the JSON shape comes from the prompt and
     a stray markdown fence is a live failure mode rather than a legacy one.
     ``runtime/evals/referee_eval.py`` calls this too, so the eval measures the
     same parse the pipeline does.

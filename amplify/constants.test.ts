@@ -64,9 +64,16 @@ describe('VOICE_CONFIG', () => {
     // Unset, BedrockChat requests the literal URL `None/chat/completions`. It is
     // a public regional endpoint, so it is plain env config, not an SSM secret.
     expect(VOICE_CONFIG.AWS_BEDROCK_BASE_URL).toMatch(
-      /^https:\/\/bedrock-mantle\.[a-z0-9-]+\.api\.aws\/v1$/,
+      /^https:\/\/bedrock-runtime\.[a-z0-9-]+\.amazonaws\.com\/openai\/v1$/,
     )
     expect(SECRET_NAMES).not.toContain('AWS_BEDROCK_BASE_URL')
+  })
+
+  test('signs for the endpoint it calls', () => {
+    // The kit defaults to mantle's signing service. Against bedrock-runtime that
+    // signature is rejected on every call, so the pair moves together.
+    expect(VOICE_CONFIG.AWS_BEDROCK_BASE_URL).toContain('bedrock-runtime.')
+    expect(VOICE_CONFIG.AWS_BEDROCK_SIGV4_SERVICE).toBe('bedrock')
   })
 
   test('both agents run the same Bedrock model', () => {
@@ -74,22 +81,22 @@ describe('VOICE_CONFIG', () => {
     // deploy region before shipping.
     expect(VOICE_CONFIG.REFEREE_PROVIDER).toBe(VOICE_CONFIG.LLM_PROVIDER)
     expect(VOICE_CONFIG.REFEREE_MODEL).toBe(VOICE_CONFIG.LLM_MODEL)
-    expect(VOICE_CONFIG.LLM_MODEL).toBe('openai.gpt-oss-120b')
+    expect(VOICE_CONFIG.LLM_MODEL).toBe('us.openai.gpt-6-luna')
     expect(VOICE_CONFIG.LLM_REASONING).toBe('medium')
   })
 
   test('the referee reasons less than the patient, because it is timed', () => {
     // Not an oversight that these differ. The referee is on the serial critical
     // path and fails open past REFEREE_TIMEOUT_SECONDS, and on this model
-    // `medium` peaked at 7.15s against that 7s budget while scoring no better
-    // than `low` (docs/backend/prompts.md). The patient has no such budget.
+    // `medium` had the slower tail while scoring no better than `low`
+    // (docs/backend/prompts.md). The patient has no such budget.
     expect(VOICE_CONFIG.REFEREE_REASONING).toBe('low')
     expect(VOICE_CONFIG.REFEREE_REASONING).not.toBe(VOICE_CONFIG.LLM_REASONING)
   })
 
   test('bedrock model IDs carry no OpenRouter vendor prefix', () => {
-    // `anthropic/claude-haiku-4.5` is OpenRouter's format; bedrock-mantle takes
-    // the bare id, and the slashed form 404s at request time, not deploy time.
+    // `anthropic/claude-haiku-4.5` is OpenRouter's format; Bedrock takes its own
+    // id, and the slashed form fails at request time, not deploy time.
     for (const key of ['LLM_MODEL', 'REFEREE_MODEL']) {
       expect(VOICE_CONFIG[key], `${key}`).not.toContain('/')
     }

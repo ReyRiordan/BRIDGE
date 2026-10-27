@@ -29,8 +29,14 @@ export const SECRET_NAMES = [
  * inside the account, and Bedrock serves the patient and the referee off the
  * execution role, so neither needs an API key. TTS stays on Inworld.
  *
- * Moving the referee to Bedrock costs it structured output: the bedrock-mantle
- * chat-completions surface ignores `response_format`, so the JSON shape is
+ * Both agents run GPT-6 Luna through the OpenAI-compatible chat-completions
+ * API on the `bedrock-runtime` endpoint. Not `bedrock-mantle`: Luna is not
+ * served on mantle's chat-completions route, and the previous model
+ * (`openai.gpt-oss-120b`) ran on past its reply there — extra turns, stray
+ * `[NO RESPONSE]` tokens, an echoed escalation marker — all spoken by the TTS.
+ * See docs/backend/prompts.md for the measurements.
+ *
+ * `BedrockChat` drops `response_format`, so the referee's JSON shape is
  * enforced by `resources/referee.txt` alone. `runtime/bridge/referee.py` parses
  * defensively and fails open, and `runtime/evals/referee_eval.py --provider
  * bedrock` measures the parse rate rather than assuming it.
@@ -45,12 +51,18 @@ export const VOICE_CONFIG: Record<string, string> = {
   // --- LLM: the patient agent is the kit's pipeline LLM, so it has no var
   // block of its own. The REFEREE_* trio below mirrors these three names.
   LLM_PROVIDER: 'bedrock',
-  LLM_MODEL: 'openai.gpt-oss-120b',
+  // A cross-region inference profile, not a bare model id: on-demand calls to
+  // `openai.gpt-6-luna` itself are rejected.
+  LLM_MODEL: 'us.openai.gpt-6-luna',
+  // `medium`, not `low`: at the top escalation bands `low` speaks in calm full
+  // sentences where the persona tables ask for yelling and single words.
   LLM_REASONING: 'medium',
   // Public regional endpoint, not a secret — a plain env var rather than an SSM
   // entry. Unset, BedrockChat builds the request URL `None/chat/completions`.
-  // The region must match the deploy region.
-  AWS_BEDROCK_BASE_URL: 'https://bedrock-mantle.us-east-1.api.aws/v1',
+  // The region must match the deploy region, and the signing service must
+  // match the endpoint (`bedrock` here; the kit default is mantle's).
+  AWS_BEDROCK_BASE_URL: 'https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1',
+  AWS_BEDROCK_SIGV4_SERVICE: 'bedrock',
 
   // --- STT. `transcribe` is also the kit default; pinned because this file is
   // the source of truth for every deployed value.
@@ -88,11 +100,11 @@ export const VOICE_CONFIG: Record<string, string> = {
   // "system agent" terminology is retired. The paths are the image's copies
   // (Dockerfile.voice COPYs resources/ to /app/resources).
   // The referee's own LLM, symmetric with the patient's LLM_* trio above.
-  // `low`, not the patient's `medium`: the referee is measured, and on this
-  // model medium was both slower (7.15s max, against the 7s budget below) and
-  // no more accurate. See docs/backend/prompts.md for the numbers.
+  // `low`, not the patient's `medium`: the referee is timed, and on this
+  // model medium was slower in the tail and no more accurate. See
+  // docs/backend/prompts.md for the numbers.
   REFEREE_PROVIDER: 'bedrock',
-  REFEREE_MODEL: 'openai.gpt-oss-120b',
+  REFEREE_MODEL: 'us.openai.gpt-6-luna',
   REFEREE_REASONING: 'low',
   // The referee is on the serial critical path of every turn, so it fails open
   // rather than making the student wait.
