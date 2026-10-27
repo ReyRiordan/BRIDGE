@@ -53,7 +53,7 @@ def test_context_carries_the_scenario_voice_time_limit_and_session():
 
 
 @pytest.mark.parametrize(
-    "scenario_id, voice", [("scenario_2", "Dennis"), ("scenario_3", "Ronald")]
+    "scenario_id, voice", [("scenario_2", "Brandon"), ("scenario_3", "Calvin")]
 )
 def test_the_session_id_prefix_selects_the_scenario(scenario_id, voice):
     context = asyncio.run(provide_context(f"{scenario_id}--abc"))

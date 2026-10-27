@@ -6,8 +6,8 @@
     "patient_frame_ext": "webp",
     "speech": {
         "provider": "inworld",
-        "voice": "Dennis",
-        "model": "inworld-tts-1.5-mini",
+        "voice": "Brandon",
+        "model": "inworld-tts-2-flash",
         "speed": 1.2
     },
     "intro": "The family medicine clinic is running behind schedule. You are told that your next patient is a 45-year-old man who has been waiting for over an hour. When you enter the room, he immediately says, “I waited all this time for a useless appointment.” He explains that he was told today’s appointment was for laboratory testing, but clinic staff have now told him that the labs were supposed to be completed beforehand. He becomes increasingly frustrated, raises his voice, and states that the clinic has wasted his time.",

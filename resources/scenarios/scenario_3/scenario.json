@@ -6,8 +6,8 @@
     "patient_frame_ext": "webp",
     "speech": {
         "provider": "inworld",
-        "voice": "Ronald",
-        "model": "inworld-tts-1.5-mini",
+        "voice": "Calvin",
+        "model": "inworld-tts-2-flash",
         "speed": 1.2
     },
     "intro": "You are on the internal medicine service. Your next patient is a 47-year-old man admitted overnight for evaluation of a suspected gastrointestinal bleed after presenting with melena and symptomatic anemia. He is awaiting repeat labs and a possible endoscopy later today. The nurse stops you outside the room and tells you the patient has become increasingly frustrated with the hospitalization, has started removing his monitoring leads, and says he needs to leave to get to work. When she explained that leaving could be dangerous, he raised his voice and told her that no one can keep him here. A tech and a second nurse are still in the room after trying to reattach his leads.",

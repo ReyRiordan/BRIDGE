@@ -26,7 +26,7 @@ def test_voice_config_comes_from_the_scenario_speech_block():
     voice = build_voice_config(SCENARIO)
     assert voice.provider == "inworld"
     assert voice.voice == "Mark"
-    assert voice.model == "inworld-tts-1.5-mini"
+    assert voice.model == "inworld-tts-2-flash"
     assert voice.speed == 1.2
 
 

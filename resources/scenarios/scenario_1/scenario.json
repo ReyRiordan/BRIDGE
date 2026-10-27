@@ -5,7 +5,7 @@
     "speech": {
         "provider": "inworld",
         "voice": "Mark",
-        "model": "inworld-tts-1.5-mini",
+        "model": "inworld-tts-2-flash",
         "speed": 1.2
     },
     "intro": "The EM Physician has told you that you will be getting a history from a 22-year-old male with autism spectrum disorder presenting with abdominal pain. The ED is busy (many staff present), loud, and bright. You discuss with the nurse before entering the patient room and he tells you he attempted IV placement, which caused the patient to become distressed and yell “Stop!” He lets you know that the patient remains visibly agitated and sensitive to the surrounding noise and activity. The patient's caregiver is present.",
