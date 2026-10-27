@@ -13,11 +13,12 @@ import { addVoiceRuntime } from './voice-runtime';
 // (all values must be strings — these become container env vars):
 const VOICE_CONFIG = {
   LLM_PROVIDER: 'bedrock',            // 'openrouter' | 'bedrock'
-  LLM_MODEL: 'openai.gpt-oss-120b',
+  LLM_MODEL: 'us.openai.gpt-6-luna',
   LLM_REASONING: 'medium',
   LLM_PROVIDERS: '',                  // OpenRouter routing prefs; ignored on bedrock
   // Bedrock has no default endpoint. Public URL, so env config, not a secret.
-  AWS_BEDROCK_BASE_URL: 'https://bedrock-mantle.us-east-1.api.aws/v1',
+  AWS_BEDROCK_BASE_URL: 'https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1',
+  AWS_BEDROCK_SIGV4_SERVICE: 'bedrock', // must match the endpoint
   STT_PROVIDER: 'transcribe',         // 'transcribe' | 'together' (together = off-AWS, dev only)
   TTS_PROVIDER: 'polly',              // 'polly' | 'inworld'
   TTS_VOICE: 'Ruth',
@@ -87,7 +88,8 @@ One `CfnSignalingChannel`, type `SINGLE_MASTER` (the only supported type), with 
 | `kinesisvideo:GetIceServerConfig` | channel ARN | Fetch managed-TURN credentials; issued against the per-call signaling endpoint but authorizes on the channel ARN |
 | `transcribe:StartStreamTranscription` | `*` (resource-less action) | AmazonTranscribeSTT streaming |
 | `polly:StartSpeechSynthesisStream` | `*` | PollyTTS generative streaming — NOT `SynthesizeSpeech` (gotcha #2) |
-| `bedrock-mantle:CreateInference` (+ `aws-marketplace:Subscribe/ViewSubscriptions`) | `*` | Bedrock chat-completions via SigV4 when `LLM_PROVIDER=bedrock`; no-op cost under OpenRouter |
+| `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream` | account inference profiles + `foundation-model/*` in any region | bedrock-runtime chat-completions (deployed) via SigV4 when `LLM_PROVIDER=bedrock`. Cross-region profiles (`us.…`) route to the model in any profile region, hence the region wildcard |
+| `bedrock-mantle:CreateInference` (+ `aws-marketplace:Subscribe/ViewSubscriptions`) | `*` | The same over bedrock-mantle. Both endpoints stay granted so `AWS_BEDROCK_BASE_URL` alone switches between them; no-op cost under OpenRouter |
 | `ssm:GetParameter` | your secret prefixes | Cold-start secret resolution (SecureStrings under the AWS-managed `aws/ssm` key need no extra `kms:Decrypt`) |
 | *(yours via `extraRuntimePolicies`)* | — | Whatever your context provider reads and your transcript sink writes |
 

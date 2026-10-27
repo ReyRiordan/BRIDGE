@@ -10,8 +10,8 @@ boto3's default credential chain prefers env-var creds over the IAM task role, s
 **2. `polly:StartSpeechSynthesisStream`, not `polly:SynthesizeSpeech`.**
 `PollyTTS` uses the generative-engine *streaming* action, which is a distinct IAM action. Granting only `SynthesizeSpeech` fails with AccessDenied. Already correct in `amplify/voice-runtime.ts`.
 
-**3. Bedrock signs with `bedrock-mantle:CreateInference`, not `bedrock:InvokeModel`.**
-The OpenAI-compatible bedrock-mantle endpoint authorizes via `bedrock-mantle:*`. Also SigV4 exact-bytes: serialize the payload once and send `data=body` — re-serializing with `json=payload` changes bytes and invalidates the signature (opaque 403). Never set the `Host` header manually. Both handled in `runtime/voice_kit/providers/llm.py`.
+**3. Each Bedrock endpoint has its own IAM action and signing service.**
+bedrock-runtime's `/openai/v1` authorizes `bedrock:InvokeModel` and signs as `bedrock`; bedrock-mantle authorizes `bedrock-mantle:CreateInference` and signs as `bedrock-mantle`. `AWS_BEDROCK_BASE_URL` and `AWS_BEDROCK_SIGV4_SERVICE` move together, and the runtime role grants both actions so the URL alone picks the endpoint. Also SigV4 exact-bytes: serialize the payload once and send `data=body` — re-serializing with `json=payload` changes bytes and invalidates the signature (opaque 403). Never set the `Host` header manually. Both handled in `runtime/voice_kit/providers/llm.py`.
 
 ## AgentCore
 
@@ -113,7 +113,10 @@ numpy 2.x ships no prebuilt arm64 cp311 wheel for these base images; without the
 ## Game engine
 
 **36. On Bedrock the referee's `json_schema` is decoration.**
-`BedrockChat.chat()` accepts `response_format` and drops it (warning once per call) — the bedrock-mantle chat-completions surface has no structured output, and raising instead would turn a config mismatch into a per-turn outage. The deployed referee runs on Bedrock, so `resources/referee.txt` is the only thing holding the JSON shape, and `parse_referee_verdict` is the only thing catching what it misses. Re-run `runtime/evals/referee_eval.py --provider bedrock` after any edit to that prompt: a parse failure costs the student the turn silently, because the referee fails open. Measured across ~135 calls the prompt holds it — the thing that actually bites on Bedrock is latency, not parsing (`../prompts.md`).
+`BedrockChat.chat()` accepts `response_format` and drops it (warning once per call) — the client carries no structured output, and raising instead would turn a config mismatch into a per-turn outage. The deployed referee runs on Bedrock, so `resources/referee.txt` is the only thing holding the JSON shape, and `parse_referee_verdict` is the only thing catching what it misses. Re-run `runtime/evals/referee_eval.py --provider bedrock` after any edit to that prompt: a parse failure costs the student the turn silently, because the referee fails open. Measured across ~135 calls the prompt holds it — the thing that actually bites on Bedrock is latency, not parsing (`../prompts.md`).
+
+**38. `openai.gpt-oss-120b` on Bedrock runs on past its reply.**
+On bedrock-mantle chat-completions it answers, then keeps generating further assistant messages — imagined later turns, `[NO RESPONSE]`, or a copy of the next escalation marker — and the endpoint concatenates them into one `content` string with no separator (`…already.[CURRENT ESCALATION: 5/10]`). Roughly one patient turn in five; the TTS speaks it and the history keeps it, so the pattern compounds. Not fixable from the prompt side (marker placement, effort, and Converse only shift the rate), and on bedrock-runtime it leaks `<reasoning>` into `content` every turn. The deployed model is GPT-6 Luna for that reason (`../prompts.md`). If a run-on ever reappears, the signature is a sentence glued to the next with no space.
 
 **29. The data channel is not open inside the connection callback.**
 Anything emitted while the pipeline is being built (including from the session start hook) is silently dropped — the emitter swallows the failure by design. Send the connect-time authoritative `state_update` from `@transport.event_handler("on_client_connected")` instead, as `bridge/app.py` does.

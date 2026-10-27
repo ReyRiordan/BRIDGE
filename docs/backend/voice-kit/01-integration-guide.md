@@ -5,7 +5,7 @@ How BRIDGE wires the voice kit together. Read `00-architecture.md` first for the
 The kit is a voice-to-voice pipeline — **browser WebRTC → Bedrock AgentCore → pipecat (STT → LLM → TTS)** — extracted from a production deployment and now vendored into this repo:
 
 - **STT**: Amazon Transcribe Streaming (default) or Together AI (Parakeet)
-- **LLM**: OpenRouter or AWS Bedrock (bedrock-mantle, SigV4) — env-switchable
+- **LLM**: OpenRouter or AWS Bedrock (bedrock-runtime or bedrock-mantle chat-completions, SigV4) — env-switchable
 - **TTS**: Amazon Polly (generative streaming, default) or Inworld
 - **Transport**: WebRTC over KVS-managed TURN (relay-only), signaling proxied through `api/`
 - **Hosting**: AgentCore Runtime (ARM64 container), infra as an Amplify Gen 2 / CDK module
