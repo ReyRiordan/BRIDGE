@@ -11,7 +11,7 @@ become one running game. All of it lives in `web/src/voice/useVoiceSession.ts`
 
 | Id | Minted by | Lifetime | Job |
 |---|---|---|---|
-| `session_id` | the browser, `crypto.randomUUID()` | one whole game | The domain key in every control-plane path. The server treats it as a free-form string. |
+| `session_id` | the browser, `` `${scenarioId}--${crypto.randomUUID()}` `` | one whole game | The domain key in every control-plane path. The control plane treats it as a free-form string; the voice runtime reads the scenario off its `<id>--` prefix (prototype shortcut — the kit passes the runtime nothing else). `begin()` refuses with `NO_SCENARIO` before a scenario is loaded. |
 | `runtime_session_id` | `POST /voice/{session_id}/start` | one connect attempt | AgentCore container affinity. Every attempt — first connect or retry — takes a fresh one; a stale key pins signaling to a container that may be gone. |
 
 `/start` creates no state, so re-calling it under the same `session_id` is the
@@ -22,7 +22,7 @@ sanctioned way to get a new affinity key.
 ```
 IntroScreen "Begin"
   → requestPermission()            inside the click gesture, or the prompt never shows
-  → session_id = randomUUID()
+  → session_id = `${scenario.id}--${randomUUID()}`
   → POST /voice/{id}/start         → runtime_session_id + ice_servers
   → startCall(..., RELAY_ONLY)     RELAY_ONLY from src/config.ts
   → ICE connected                  → dispatch BEGIN → GameScreen

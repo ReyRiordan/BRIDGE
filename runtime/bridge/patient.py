@@ -1,10 +1,11 @@
 """
 The patient agent's inputs: system prompt, voice, and per-turn context.
 
-The prompt is assembled from two files — ``resources/patient.txt`` (the persona
-and its escalation-behaviour table, carrying a ``{patient_name}`` placeholder)
-and ``resources/patient.json`` (the case file) — joined by a rendered
-``PATIENT CASE DETAILS`` section.
+The prompt is assembled from two per-scenario files under
+``resources/scenarios/<id>/`` — ``patient.txt`` (the persona and its
+escalation-behaviour table, carrying a ``{patient_name}`` placeholder) and
+``patient.json`` (the case file) — joined by a rendered ``PATIENT CASE DETAILS``
+section.
 
 ``locked_information`` is deliberately NEVER rendered. History-taking is out of
 scope for the current sim; the case file keeps the items as seed data for that
@@ -26,12 +27,13 @@ def build_patient_prompt(
 ) -> str:
     """The patient agent's system prompt: persona template + case details.
 
-    ``template``/``case`` override the configured files (tests, evals).
+    The files are the scenario's own (``scenario["id"]``); ``template``/``case``
+    override them (tests, evals).
     """
     if template is None:
-        template = config.load_patient_prompt_template()
+        template = config.load_patient_prompt_template(scenario["id"])
     if case is None:
-        case = config.load_patient_case()
+        case = config.load_patient_case(scenario["id"])
 
     demo = case["demographics"]
     # str.replace, not str.format: the template body is curly-brace-heavy.

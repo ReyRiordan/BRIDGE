@@ -7,7 +7,7 @@ it prints the patient's replies at a ladder of escalation levels so you can read
 them side by side. A 30-second check before a manual voice run.
 
     export OPENROUTER_API_KEY=...
-    python runtime/evals/patient_probe.py [--model m]
+    python runtime/evals/patient_probe.py [--model m] [--scenario scenario_2]
 
 The prompt is the real one (``build_patient_prompt``), and the per-turn marker
 is the real one (``turn_context``'s format), so what the model sees here is what
@@ -40,9 +40,12 @@ PROBES = [
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="anthropic/claude-haiku-4.5")
+    parser.add_argument(
+        "--scenario", default="scenario_1", choices=config.scenario_ids()
+    )
     args = parser.parse_args()
 
-    scenario = config.load_scenario()
+    scenario = config.load_scenario(args.scenario)
     system_prompt = build_patient_prompt(scenario)
     max_escalation = scenario["point_bar"]["max"]
     llm = OpenRouterChat(

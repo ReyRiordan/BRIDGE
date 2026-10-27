@@ -26,12 +26,12 @@ function frame(vm: ViewModel) {
   }
 }
 
-const ENV_OFF = '/visuals/environment_default.png'
-const ENV_ON = '/visuals/environment_active.png'
-const CG_OFF = '/visuals/caregiver_default.png'
-const CG_ON = '/visuals/caregiver_active.png'
-const IV_ON = '/visuals/iv_active.png'
-const RESTRAINT_ON = '/visuals/restraint_active.png'
+const ENV_OFF = '/visuals/scenario_1/environment_default.png'
+const ENV_ON = '/visuals/scenario_1/environment_active.png'
+const CG_OFF = '/visuals/scenario_1/caregiver_default.png'
+const CG_ON = '/visuals/scenario_1/caregiver_active.png'
+const IV_ON = '/visuals/scenario_1/iv_active.png'
+const RESTRAINT_ON = '/visuals/scenario_1/restraint_active.png'
 
 const layers = (
   env: string,
@@ -53,7 +53,13 @@ describe('golden success run', () => {
       esc: '5/10',
       pct: 50,
       tone: 'watch',
-      layers: layers(ENV_OFF, '/visuals/patient_5.png', CG_OFF, null, null),
+      layers: layers(
+        ENV_OFF,
+        '/visuals/scenario_1/patient_5.png',
+        CG_OFF,
+        null,
+        null,
+      ),
       badge: null,
       clock: '5:00',
       urgent: false,
@@ -70,7 +76,13 @@ describe('golden success run', () => {
       esc: '9/10',
       pct: 90,
       tone: 'crit',
-      layers: layers(ENV_OFF, '/visuals/patient_9.png', CG_OFF, IV_ON, null),
+      layers: layers(
+        ENV_OFF,
+        '/visuals/scenario_1/patient_9.png',
+        CG_OFF,
+        IV_ON,
+        null,
+      ),
       badge: [2, 'Force IV', 4],
       clock: '5:00',
       urgent: false,
@@ -88,7 +100,13 @@ describe('golden success run', () => {
       pct: 50,
       tone: 'watch',
       // Force IV is gone from active_actions and has no inactive art → null.
-      layers: layers(ENV_OFF, '/visuals/patient_5.png', CG_ON, null, null),
+      layers: layers(
+        ENV_OFF,
+        '/visuals/scenario_1/patient_5.png',
+        CG_ON,
+        null,
+        null,
+      ),
       // The second action of the turn owns the badge.
       badge: [6, 'Acknowledge distress', -1],
       clock: '4:48',
@@ -106,7 +124,13 @@ describe('golden success run', () => {
       esc: '2/10',
       pct: 20,
       tone: 'calm',
-      layers: layers(ENV_ON, '/visuals/patient_2.png', CG_ON, null, null),
+      layers: layers(
+        ENV_ON,
+        '/visuals/scenario_1/patient_2.png',
+        CG_ON,
+        null,
+        null,
+      ),
       badge: [12, 'Environmental', -2],
       clock: '4:48',
       urgent: false,
@@ -144,7 +168,13 @@ describe('golden success run', () => {
       esc: '0/10',
       pct: 0,
       tone: 'calm',
-      layers: layers(ENV_ON, '/visuals/patient_0.png', CG_ON, null, null),
+      layers: layers(
+        ENV_ON,
+        '/visuals/scenario_1/patient_0.png',
+        CG_ON,
+        null,
+        null,
+      ),
       badge: [16, 'Offer Control', -1],
       clock: '4:48',
       urgent: false,
@@ -176,6 +206,7 @@ describe('golden success run', () => {
         desc: 'Ask caregiver for guidance or involve them in calming',
         pointChange: -3,
         delta: '-3',
+        note: null,
         status: 'found-good',
       },
       {
@@ -183,6 +214,7 @@ describe('golden success run', () => {
         desc: 'Dim lights, reduce noise, limit staff',
         pointChange: -2,
         delta: '-2',
+        note: null,
         status: 'found-good',
       },
       {
@@ -190,6 +222,7 @@ describe('golden success run', () => {
         desc: 'Calm tone, simple explanations, reassurance',
         pointChange: -1,
         delta: '-1',
+        note: null,
         status: 'found-good',
       },
       {
@@ -197,6 +230,7 @@ describe('golden success run', () => {
         desc: 'Give choices (explain vs show)',
         pointChange: -1,
         delta: '-1',
+        note: null,
         status: 'found-good',
       },
       {
@@ -204,6 +238,7 @@ describe('golden success run', () => {
         desc: 'E.g. “I see this is overwhelming”',
         pointChange: -1,
         delta: '-1',
+        note: null,
         status: 'found-good',
       },
       {
@@ -211,6 +246,7 @@ describe('golden success run', () => {
         desc: 'Acknowledge that IV will be done later',
         pointChange: -1,
         delta: '-1',
+        note: null,
         status: 'missed',
       },
       {
@@ -218,6 +254,7 @@ describe('golden success run', () => {
         desc: 'Attempt IV while agitated',
         pointChange: 4,
         delta: '+4',
+        note: null,
         status: 'found-bad',
       },
       {
@@ -225,6 +262,7 @@ describe('golden success run', () => {
         desc: 'E.g. “We need to do this now”',
         pointChange: 2,
         delta: '+2',
+        note: null,
         status: 'missed',
       },
       {
@@ -232,6 +270,7 @@ describe('golden success run', () => {
         desc: 'Chemical Sedations or Physical Restraints',
         pointChange: 10,
         delta: '+10',
+        note: null,
         status: 'missed',
       },
     ])
@@ -252,7 +291,7 @@ describe('golden fail run', () => {
       tone: 'crit',
       layers: layers(
         ENV_OFF,
-        '/visuals/patient_10.png',
+        '/visuals/scenario_1/patient_10.png',
         CG_OFF,
         null,
         RESTRAINT_ON,

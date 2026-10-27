@@ -1,6 +1,7 @@
 """
 The BRIDGE_LOCAL umbrella flag: what it implies, and the two things it refuses
-(a production ENV, and any AWS-backed provider).
+(a production ENV, and any AWS-backed provider). Plus ``bridge.config``'s
+scenario allow-list, session-id parsing and per-scenario loaders.
 
 EVERY case constructs settings with ``_env_file=None``. The settings class now
 reads a repo-root ``.env`` as well as the package-adjacent one, and a developer's
@@ -9,6 +10,7 @@ unaffected — a fresh checkout has no ``.env``).
 """
 
 import pytest
+from bridge import config as bridge_config
 from voice_kit.config import VoiceKitSettings
 
 # The zero-AWS provider trio local mode requires (legacy parity, minus Bedrock).
@@ -114,3 +116,68 @@ def test_vad_defaults_reproduce_pipecat():
 def test_out_of_range_vad_values_are_refused(field, value):
     with pytest.raises(ValueError, match=field):
         _settings(**{field: value})
+
+
+# --- bridge.config: the scenario allow-list and the per-scenario loaders ------
+
+
+def test_the_allow_list_is_the_scenario_folders():
+    assert bridge_config.scenario_ids() == ["scenario_1", "scenario_2", "scenario_3"]
+
+
+@pytest.mark.parametrize(
+    "session_id, scenario_id",
+    [
+        ("scenario_1--0f8e", "scenario_1"),
+        ("scenario_3--3b1c-4d2e-9a7f", "scenario_3"),
+        # Split on the FIRST separator: the rest of the id is opaque.
+        ("scenario_2--a--b", "scenario_2"),
+    ],
+)
+def test_parse_session_id_returns_the_prefix(session_id, scenario_id):
+    assert bridge_config.parse_session_id(session_id) == scenario_id
+
+
+@pytest.mark.parametrize(
+    "session_id", ["0f8e-uuid", "scenario_1", "scenario_1-x", "scenario_4--x", "--x"]
+)
+def test_parse_session_id_rejects_a_missing_or_unknown_prefix(session_id):
+    with pytest.raises(ValueError, match="known scenario id"):
+        bridge_config.parse_session_id(session_id)
+
+
+@pytest.mark.parametrize("scenario_id", ["scenario_1", "scenario_2", "scenario_3"])
+def test_each_scenario_loads_its_own_files(scenario_id):
+    scenario = bridge_config.load_scenario(scenario_id)
+    assert scenario["id"] == scenario_id
+    assert scenario["title"]
+    assert bridge_config.load_patient_prompt_template(scenario_id).strip()
+    assert bridge_config.load_patient_case(scenario_id)["demographics"]["name"]
+    # Cached by id: the same object comes back.
+    assert bridge_config.load_scenario(scenario_id) is scenario
+
+
+def test_the_loaders_refuse_an_unknown_scenario():
+    for loader in (
+        bridge_config.load_scenario,
+        bridge_config.load_patient_prompt_template,
+        bridge_config.load_patient_case,
+    ):
+        with pytest.raises(ValueError, match="unknown scenario"):
+            loader("../resources")
+
+
+@pytest.mark.parametrize("scenario_id", ["scenario_1", "scenario_2", "scenario_3"])
+def test_every_requires_names_a_real_action_and_every_end_has_a_debrief(scenario_id):
+    actions = bridge_config.load_scenario(scenario_id)["actions"]
+    types = {a["type"] for a in actions}
+    for action in actions:
+        if "requires" in action:
+            assert action["requires"] in types
+            assert "requires" not in next(
+                a for a in actions if a["type"] == action["requires"]
+            )
+            assert isinstance(action["point_change_without"], int)
+        if action.get("ends_simulation"):
+            assert action["point_change"] == 0
+            assert action["debrief"].strip()

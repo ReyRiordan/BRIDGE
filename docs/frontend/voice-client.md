@@ -24,7 +24,7 @@ configureVoiceApi(createTransport(baseUrl))        // src/api/transport.ts
 ```
 
 - `resolveApiBaseUrl()` returns `''` under `BRIDGE_LOCAL` (same-origin, the Vite
-  proxy owns `/voice` and `/scenario`); otherwise it fetches
+  proxy owns `/voice` and `/scenario*`); otherwise it fetches
   `/amplify_outputs.json` and reads `custom.apiUrl`, trailing slash trimmed.
   It memoizes; `getApiBaseUrl()` is the sync read used by `src/api/scenario.ts`.
   A build-time `VITE_API_URL` was rejected on purpose — it would couple the SPA
@@ -115,7 +115,7 @@ import { RELAY_ONLY } from '../config'
 await startCall(sessionId, runtime_session_id, ice_servers, RELAY_ONLY)
 ```
 
-Never infer this from `import.meta.env.DEV`: `vite dev` against the deployed backend is a normal workflow, and handing that session host candidates hides the TURN-only reality until after deploy. Locally the SPA also reaches the control plane **same-origin**, through the Vite `server.proxy` for `/voice` and `/scenario` — so no CORS is involved and the resolved API base stays empty. See [`../backend/local-dev.md`](../backend/local-dev.md).
+Never infer this from `import.meta.env.DEV`: `vite dev` against the deployed backend is a normal workflow, and handing that session host candidates hides the TURN-only reality until after deploy. Locally the SPA also reaches the control plane **same-origin**, through the Vite `server.proxy` for `/voice` and `/scenario*` — so no CORS is involved and the resolved API base stays empty. See [`../backend/local-dev.md`](../backend/local-dev.md).
 
 ## Behavior notes
 

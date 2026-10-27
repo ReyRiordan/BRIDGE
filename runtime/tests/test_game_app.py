@@ -28,6 +28,9 @@ from voice_kit.processors import (
     TTSProcessor,
 )
 
+# The SPA prefixes every session id with the scenario it picked.
+SID = "scenario_1--s1"
+
 
 @pytest.fixture(autouse=True)
 def clean_state():
@@ -41,12 +44,31 @@ def clean_state():
 
 
 def test_context_carries_the_scenario_voice_time_limit_and_session():
-    context = asyncio.run(provide_context("s1"))
+    context = asyncio.run(provide_context(SID))
     assert context.voice.provider == "inworld"
     assert context.voice.speed == 1.2
     assert context.time_limit_seconds == 300
     assert context.system_prompt.strip()
-    assert context.metadata["game"] is session_module.get_session("s1")
+    assert context.metadata["game"] is session_module.get_session(SID)
+
+
+@pytest.mark.parametrize(
+    "scenario_id, voice", [("scenario_2", "Dennis"), ("scenario_3", "Ronald")]
+)
+def test_the_session_id_prefix_selects_the_scenario(scenario_id, voice):
+    context = asyncio.run(provide_context(f"{scenario_id}--abc"))
+    session = context.metadata["game"]
+    assert session.scenario["id"] == scenario_id
+    assert session.escalation == load_scenario(scenario_id)["point_bar"]["start"]
+    assert context.voice.voice == voice
+    assert context.system_prompt != asyncio.run(provide_context(SID)).system_prompt
+
+
+@pytest.mark.parametrize("session_id", ["s1", "nope--s1", "--s1", "scenario_9--s1"])
+def test_an_unprefixed_or_unknown_session_id_fails_loudly(session_id):
+    with pytest.raises(ValueError):
+        asyncio.run(provide_context(session_id))
+    assert session_module._sessions == {}
 
 
 def test_the_idle_backstop_outlives_the_whole_game_window():
@@ -58,25 +80,25 @@ def test_the_idle_backstop_outlives_the_whole_game_window():
     channel before `game_over` is emitted and the student sees a dropped
     connection instead of the timeout debrief.
     """
-    scenario = load_scenario()
-    context = asyncio.run(provide_context("s1"))
+    scenario = load_scenario("scenario_1")
+    context = asyncio.run(provide_context(SID))
     assert context.idle_timeout_seconds > scenario["time_limit"] + GAME_GRACE_SECONDS
 
 
 def test_a_rebuild_on_a_warm_container_resumes_the_same_session():
-    first = asyncio.run(provide_context("s1"))
+    first = asyncio.run(provide_context(SID))
     session = first.metadata["game"]
     session.apply_action("Environmental")
     asyncio.run(
         store_turn(
-            "s1",
+            SID,
             TranscriptMessage(
                 role="user", content="dim the lights", timestamp=datetime(2026, 1, 1)
             ),
         )
     )
 
-    second = asyncio.run(provide_context("s1"))
+    second = asyncio.run(provide_context(SID))
     assert second.metadata["game"] is session
     assert second.metadata["game"].escalation == 3
     # The prior transcript seeds the patient LLM so it resumes mid-conversation.
@@ -95,9 +117,9 @@ def test_store_turn_ignores_an_unknown_session():
 
 
 def a_factory_args(emit=None) -> ProcessorFactoryArgs:
-    context = asyncio.run(provide_context("s1"))
+    context = asyncio.run(provide_context(SID))
     return ProcessorFactoryArgs(
-        session_id="s1",
+        session_id=SID,
         session_context=context,
         system_prompt=context.system_prompt,
         voice=context.voice,
@@ -166,7 +188,7 @@ class FakePipelineContext:
 
 
 def test_session_start_arms_the_clock_and_emits_state_on_connect():
-    context = asyncio.run(provide_context("s1"))
+    context = asyncio.run(provide_context(SID))
     session = context.metadata["game"]
     session.apply_action("Environmental")
     sent = []
@@ -174,7 +196,7 @@ def test_session_start_arms_the_clock_and_emits_state_on_connect():
 
     async def run():
         await on_session_start(
-            "s1",
+            SID,
             FakePipelineContext(session),
             transport,
             lambda payload: sent.append(json.loads(payload)),
@@ -182,7 +204,7 @@ def test_session_start_arms_the_clock_and_emits_state_on_connect():
         # The data channel is not open yet: nothing is emitted inline.
         assert sent == []
         await transport.handlers["on_client_connected"](transport, None)
-        timer_module.cancel_timer("s1")
+        timer_module.cancel_timer(SID)
 
     asyncio.run(run())
 

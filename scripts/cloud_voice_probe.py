@@ -106,7 +106,8 @@ async def probe(api_base: str) -> None:
     import aiohttp
     from aiortc import RTCSessionDescription
 
-    session_id = str(uuid.uuid4())
+    # The runtime reads the scenario off the id's prefix, as the SPA mints it.
+    session_id = f"scenario_1--{uuid.uuid4()}"
     print(f"Cloud voice probe — {api_base}")
     print(f"  session {session_id}\n")
 

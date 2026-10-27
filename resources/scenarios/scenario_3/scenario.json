@@ -1,0 +1,188 @@
+{
+    "id": "scenario_3",
+    "title": "Inpatient Ward: Patient with a GI Bleed Who Wants to Leave",
+    "intro_image": "intro.webp",
+    "environment": "environment.webp",
+    "patient_frame_ext": "webp",
+    "speech": {
+        "provider": "inworld",
+        "voice": "Ronald",
+        "model": "inworld-tts-1.5-mini",
+        "speed": 1.2
+    },
+    "intro": "You are on the internal medicine service. Your next patient is a 47-year-old man admitted overnight for evaluation of a suspected gastrointestinal bleed after presenting with melena and symptomatic anemia. He is awaiting repeat labs and a possible endoscopy later today. The nurse stops you outside the room and tells you the patient has become increasingly frustrated with the hospitalization, has started removing his monitoring leads, and says he needs to leave to get to work. When she explained that leaving could be dangerous, he raised his voice and told her that no one can keep him here. A tech and a second nurse are still in the room after trying to reattach his leads.",
+    "goal": "Your goal is to reduce the patient’s frustration using appropriate de-escalation strategies, ensure he understands the risks of leaving, and work toward a plan that protects his safety while respecting his autonomy.",
+    "time_limit": 300,
+    "point_bar": {
+        "max": 10,
+        "start": 6,
+        "goal": 0
+    },
+    "inactivity": {
+        "seconds": 120,
+        "point_change": 1
+    },
+    "actions": [
+        {
+            "type": "Acknowledge autonomy and outside pressures",
+            "desc": "Recognize that he has responsibilities outside the hospital and state plainly that the decision is ultimately his",
+            "point_change": -3,
+            "inactive": "staff_present.webp",
+            "active": null,
+            "persist": true,
+            "layer": -1
+        },
+        {
+            "type": "Explore the specific barrier",
+            "desc": "Ask what is waiting for him at work, whether anyone can be called, and what he is most worried about missing",
+            "point_change": -2,
+            "requires": "Acknowledge autonomy and outside pressures",
+            "point_change_without": -1,
+            "inactive": null,
+            "active": "door_closed.webp",
+            "persist": true,
+            "layer": -2
+        },
+        {
+            "type": "Explain risks in plain language",
+            "desc": "Describe what an active GI bleed can do, using concrete and non-threatening terms, and check his understanding",
+            "point_change": -2,
+            "requires": "Acknowledge autonomy and outside pressures",
+            "point_change_without": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Collaborative problem-solving",
+            "desc": "Offer concrete options such as expediting labs, contacting the endoscopy team for a time estimate, or arranging a call to his employer",
+            "point_change": -2,
+            "requires": "Acknowledge autonomy and outside pressures",
+            "point_change_without": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Give a concrete timeline",
+            "desc": "Commit to a specific update time and follow through with what can and cannot be promised",
+            "point_change": -2,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Offer control",
+            "desc": "Give reasonable choices such as which tests to prioritize, when to be updated, or whether to speak with the attending directly",
+            "point_change": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Calm verbal communication",
+            "desc": "Sit down, maintain open posture, let him finish speaking without interruption",
+            "point_change": -1,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Generic reassurance",
+            "desc": "Statements such as “You’re in good hands” or “We’ll take care of it” with no specific plan attached",
+            "point_change": 0,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Redirect to medical history",
+            "desc": "Begin routine questioning without addressing the stated desire to leave",
+            "point_change": 0,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Restate hospital policy",
+            "desc": "Explain visiting rules, discharge procedures, or unit routines without addressing his concern",
+            "point_change": 0,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Tell the patient he cannot leave",
+            "desc": "Statements such as “You’re not allowed to leave” or “I can’t let you go”",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Weaponize AMA paperwork",
+            "desc": "Threaten that leaving AMA means his insurance will not cover the stay or that he will not be allowed back",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Dismiss or minimize concern",
+            "desc": "Statements such as “Your job can wait” or “This is more important than work”",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Authoritative or confrontational tone",
+            "desc": "Tell the patient to calm down, or respond in a demanding manner",
+            "point_change": 3,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Fear-based coercion",
+            "desc": "Describe worst-case outcomes in graphic terms without offering any plan or timeline",
+            "point_change": 2,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Scold about the monitoring leads",
+            "desc": "Focus on the removed leads or equipment rather than the underlying frustration",
+            "point_change": 2,
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        },
+        {
+            "type": "Security or physical prevention",
+            "desc": "Call security, block the doorway, or attempt restraint on a patient with intact capacity who is verbally frustrated",
+            "point_change": 0,
+            "ends_simulation": true,
+            "debrief": "You moved to keep the patient from leaving by force. A patient with decision-making capacity has the right to leave, even against medical advice, and coercion is not an appropriate substitute for an informed discussion of the risks. The clinical goal is an informed decision — that he understands what an untreated GI bleed can do and what options exist for staying — not a prevented departure.",
+            "inactive": null,
+            "active": null,
+            "persist": false,
+            "layer": null
+        }
+    ]
+}

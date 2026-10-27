@@ -7,7 +7,13 @@
  */
 import { act, cleanup, render, screen } from '@testing-library/react'
 import GameScreen from './GameScreen'
-import { foldTo, successRun } from '../state/__fixtures__/goldenRun'
+import {
+  foldTo,
+  successRun,
+  wardBaseState,
+  wardEndRun,
+} from '../state/__fixtures__/goldenRun'
+import { WARD_BARRIER, WARD_KEY } from '../state/__fixtures__/scenario.fixture'
 
 afterEach(() => {
   cleanup()
@@ -22,14 +28,52 @@ const layerAttrs = () =>
     el.getAttribute('data-src'),
   ])
 
+describe('scene composite — scenario_3', () => {
+  const ward = (n: number) => foldTo(wardEndRun, n, wardBaseState)
+
+  it('draws the environment plate, the staff and the webp patient frame', () => {
+    render(<GameScreen state={ward(1)} />)
+    expect(layerAttrs()).toEqual([
+      ['__environment__', '1', '/visuals/scenario_3/environment.webp'],
+      [WARD_BARRIER, '2', ''],
+      [WARD_KEY, '3', '/visuals/scenario_3/staff_present.webp'],
+      ['__patient__', '4', '/visuals/scenario_3/patient_6.webp'],
+    ])
+  })
+
+  it('closes the door UNDER the staff, then removes the staff for good', () => {
+    const { rerender } = render(<GameScreen state={ward(4)} />)
+    expect(layerAttrs()).toEqual([
+      ['__environment__', '1', '/visuals/scenario_3/environment.webp'],
+      [WARD_BARRIER, '2', '/visuals/scenario_3/door_closed.webp'],
+      [WARD_KEY, '3', '/visuals/scenario_3/staff_present.webp'],
+      ['__patient__', '4', '/visuals/scenario_3/patient_5.webp'],
+    ])
+
+    const staff = () =>
+      document
+        .querySelector(`[data-layer="${WARD_KEY}"]`)
+        ?.getAttribute('data-src')
+    rerender(<GameScreen state={ward(8)} />)
+    expect(staff()).toBe('')
+    // A later turn with no detections keeps them gone (the layer persists).
+    rerender(<GameScreen state={ward(11)} />)
+    expect(staff()).toBe('')
+  })
+})
+
 describe('scene composite', () => {
   it('stacks the scenario layers back to front with ascending z', () => {
     render(<GameScreen state={foldTo(successRun, 1)} />)
 
     expect(layerAttrs()).toEqual([
-      ['Environmental', '1', '/visuals/environment_default.png'],
-      ['__patient__', '2', '/visuals/patient_5.png'],
-      ['Caregiver involvement', '3', '/visuals/caregiver_default.png'],
+      ['Environmental', '1', '/visuals/scenario_1/environment_default.png'],
+      ['__patient__', '2', '/visuals/scenario_1/patient_5.png'],
+      [
+        'Caregiver involvement',
+        '3',
+        '/visuals/scenario_1/caregiver_default.png',
+      ],
       // No inactive art → renders nothing.
       ['Force IV', '4', ''],
       ['Restraint', '5', ''],
@@ -39,7 +83,9 @@ describe('scene composite', () => {
   it('lights a transient layer and clears it again', () => {
     const { rerender } = render(<GameScreen state={foldTo(successRun, 5)} />)
     const iv = () => document.querySelector('[data-layer="Force IV"]')
-    expect(iv()?.getAttribute('data-src')).toBe('/visuals/iv_active.png')
+    expect(iv()?.getAttribute('data-src')).toBe(
+      '/visuals/scenario_1/iv_active.png',
+    )
 
     rerender(<GameScreen state={foldTo(successRun, 11)} />)
     expect(iv()?.getAttribute('data-src')).toBe('')
@@ -54,7 +100,7 @@ describe('scene composite', () => {
       document
         .querySelector('[data-layer="__patient__"]')
         ?.getAttribute('data-src'),
-    ).toBe('/visuals/patient_0.png')
+    ).toBe('/visuals/scenario_1/patient_0.png')
   })
 })
 

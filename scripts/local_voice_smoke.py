@@ -102,7 +102,8 @@ async def run(api_base: str) -> None:
     import aiohttp
     from aiortc import RTCConfiguration, RTCPeerConnection, RTCSessionDescription
 
-    session_id = str(uuid.uuid4())
+    # The runtime reads the scenario off the id's prefix, as the SPA mints it.
+    session_id = f"scenario_1--{uuid.uuid4()}"
     print(f"Local voice smoke — session {session_id}")
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as http:

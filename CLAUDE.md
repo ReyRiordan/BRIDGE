@@ -7,7 +7,7 @@ A voice-to-voice medical training simulation where medical students practice beh
 ## Architecture
 
 - **`web/`** — Vite + React + TS + Tailwind SPA on Amplify Hosting.
-- **`api/`** — thin FastAPI control-plane Lambda (`/scenario` + voice signaling), container image under the Lambda Web Adapter.
+- **`api/`** — thin FastAPI control-plane Lambda (`/scenarios` + `/scenario/{id}` + voice signaling), container image under the Lambda Web Adapter.
 - **`runtime/`** — the voice pipeline on Bedrock AgentCore + pipecat, built on the vendored `voice_kit` package; `runtime/bridge/` holds the game engine.
 - **`amplify/`** — Amplify Gen 2 TS CDK infra.
 - **`resources/`** — scenario config + prompts, COPYed into both container images.

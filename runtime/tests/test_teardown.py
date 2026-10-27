@@ -19,7 +19,7 @@ from bridge.timer import (
     start_timer,
 )
 
-SCENARIO = load_scenario()
+SCENARIO = load_scenario("scenario_1")
 
 
 @pytest.fixture(autouse=True)

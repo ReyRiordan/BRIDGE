@@ -12,14 +12,16 @@ state, so there is no second source of truth to keep in sync.
 
 | Phase | Screen | Leaves on |
 |---|---|---|
-| `start` | `StartScreen` — fetches `GET /scenario` | `SCENARIO_LOADED` |
-| `intro` | `IntroScreen` — case text + goal | `BEGIN` |
+| `start` | `StartScreen` — lists `GET /scenarios` as picker cards; a card fetches `GET /scenario/{id}` | `SCENARIO_LOADED` |
+| `intro` | `IntroScreen` — the scenario's intro image, title, case text + goal | `BEGIN` |
 | `game` | `GameScreen` — scene, escalation bar, transcript | `SHOW_END` |
 | `end` | `GameScreen` + `EndScreen` overlay | `PLAY_AGAIN` → `start` |
 
 `SCENARIO_LOADED` is the only action carrying a payload; `PLAY_AGAIN` resets to
-`initialState` and drops the cached scenario, so a replay refetches `/scenario`
-and picks up scenario edits.
+`initialState` and drops the cached scenario, so a replay goes back to the picker,
+refetches, and picks up scenario edits. The Start screen's loading and error
+state are local; Retry re-runs whichever fetch failed (the list, or the chosen
+card's config). Each card's thumbnail is `/visuals/<id>/<intro_image>`.
 
 ## Reducer contract
 
@@ -43,8 +45,8 @@ runtime can add events without breaking a deployed SPA.
 ## Rules
 
 **Everything is scenario-derived.** No escalation max, starting value, time
-limit or action list is hardcoded. Editing `resources/scenario_1.json` changes
-the UI with zero code edits — `gameReducer.test.ts` asserts exactly that.
+limit, action list or patient frame range is hardcoded. Editing a
+`resources/scenarios/<id>/scenario.json` changes the UI with zero code edits — `gameReducer.test.ts` asserts exactly that.
 
 **No wall-clock in the reducer.** The reducer is a pure function of
 `(state, action)`. Timed behaviour lives in whatever owns it: the 3 s badge
@@ -61,8 +63,17 @@ the game itself — expiry arrives as a `game_over` event.
 every action with a non-null `layer`, plus a synthetic `__patient__` layer at
 layer 0, sorted ascending into `z = index + 1`. The sort is stable and the
 patient entry is appended last, so **same-layer ties resolve by the `actions`
-array order**. For `scenario_1` that is Environmental (−1) → patient (0) →
-Caregiver → Force IV → Restraint.
+array order**. A top-level `environment` adds an `__environment__` plate under
+everything. For `scenario_1` (no `environment`; its room is the Environmental
+action at −1) that is Environmental → patient → Caregiver → Force IV →
+Restraint. For `scenario_3` it is environment → `door_closed` (−2) →
+`staff_present` (−1) → patient: the door layer repaints most of the staff's
+pixels, so it must sit underneath when both are up.
+
+Every path is `/visuals/<scenario id>/<file>` (`visualSrc`). Patient frames are
+`patient_<n>.<patient_frame_ext>` (default `png`) for `n` in
+`0..point_bar.max`; `patientFrameSources(scenario)` is what `SceneStage`
+preloads. Other images use their full file names, so PNG/JPG and WebP coexist.
 
 Each layer's src is `active` when the action is in `state_update.active_actions`
 and `inactive` otherwise; `null` means the layer renders nothing (Force IV and
@@ -72,6 +83,14 @@ mounted and cross-fades opacity rather than swapping one `<img>`'s src, and
 that all layers absolutely fill.
 
 `state_update.status` is stored but deliberately not rendered.
+
+## Debrief checklist
+
+`selectChecklist` lists every action in scenario order. A conditional action
+(`requires`) shows its with-KEY value plus a muted `(<without> without <KEY>)`
+note; an END SIMULATION action shows `END` and is `found-bad` once taken. The
+END debrief itself arrives as `game_over.reason`, which `EndScreen` already
+renders. Inactivity charges are not actions and never appear here.
 
 ## Styling
 

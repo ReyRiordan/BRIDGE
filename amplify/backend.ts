@@ -73,7 +73,7 @@ const apiFn = new DockerImageFunction(stack, 'BridgeApi', {
   architecture: Architecture.ARM_64,
   memorySize: API_LAMBDA.memorySizeMb,
   timeout: Duration.seconds(API_LAMBDA.timeoutSeconds),
-  // Deliberately no SCENARIO_PATH: VOICE_CONFIG's value is the *voice*
+  // Deliberately no SCENARIOS_DIR: VOICE_CONFIG's value is the *voice*
   // container's path. This image COPYs resources/ next to api/, which is what
   // api/scenario.py's default resolves to.
   environment: { ALLOWED_ORIGINS: ALLOWED_ORIGINS.join(',') },

@@ -15,6 +15,7 @@ from bridge.config import load_scenario
 from bridge.emitter import GameEvents
 from bridge.referee import (
     RefereeProcessor,
+    apply_order,
     build_referee_payload,
     build_response_format,
     parse_referee_verdict,
@@ -25,7 +26,7 @@ from voice_kit.processors import TranscriptMessageFrame
 from voice_kit.providers.llm import BaseLLM
 from voice_kit.types import TranscriptMessage
 
-SCENARIO = load_scenario()
+SCENARIO = load_scenario("scenario_1")
 
 
 class StubLLM(BaseLLM):
@@ -59,8 +60,8 @@ def reply_with(*types: str) -> str:
 class Harness:
     """A session + referee wired to a recording emit callback."""
 
-    def __init__(self, llm, **kwargs):
-        self.session = GameSession(session_id="s1", scenario=SCENARIO)
+    def __init__(self, llm, scenario=SCENARIO, **kwargs):
+        self.session = GameSession(session_id="s1", scenario=scenario)
         self.sent = []
         self.events = GameEvents(
             "s1", lambda payload: self.sent.append(json.loads(payload))
@@ -376,3 +377,78 @@ def test_the_referee_can_run_on_bedrock(monkeypatch):
     assert isinstance(llm, BedrockChat)
     assert llm.model == "openai.gpt-oss-120b"
     assert llm.reasoning_effort == "medium"
+
+
+# --- conditional points + END SIMULATION -------------------------------------
+
+WARD = load_scenario("scenario_3")
+WARD_KEY = "Acknowledge autonomy and outside pressures"
+WARD_END = next(a for a in WARD["actions"] if a.get("ends_simulation"))
+
+
+def test_an_end_simulation_action_counts_as_escalating():
+    payload = json.loads(build_referee_payload(WARD, "anything", 6))
+    flags = {a["type"]: a["escalates"] for a in payload["actions"]}
+    assert WARD_END["point_change"] == 0
+    assert flags[WARD_END["type"]] is True
+    assert flags["Generic reassurance"] is False  # 0 without ends_simulation
+    assert flags["Fear-based coercion"] is True
+    # Still no numbers, and none of the new server-only fields, reach the model.
+    for action in payload["actions"]:
+        assert set(action) == {"type", "desc", "escalates"}
+
+
+def test_apply_order_puts_requires_free_actions_first_and_is_stable():
+    detected = [
+        "Explain risks in plain language",
+        "Offer control",
+        "Collaborative problem-solving",
+        WARD_KEY,
+    ]
+    assert apply_order(WARD, detected) == [
+        "Offer control",
+        WARD_KEY,
+        "Explain risks in plain language",
+        "Collaborative problem-solving",
+    ]
+
+
+def test_a_key_in_the_same_utterance_prices_its_dependant_and_events_carry_it():
+    # The model lists the dependant FIRST; the KEY must still be applied first.
+    h = Harness(
+        StubLLM(reply_with("Explain risks in plain language", WARD_KEY)), scenario=WARD
+    )
+    sent = h.score()
+    detections = [e for e in sent if e["type"] == "action_detected"]
+    assert [(e["action_type"], e["point_change"]) for e in detections] == [
+        (WARD_KEY, -3),
+        ("Explain risks in plain language", -2),
+    ]
+    assert h.session.escalation == 1  # 6 - 3 - 2
+
+
+def test_without_the_key_the_event_carries_the_effective_delta():
+    h = Harness(StubLLM(reply_with("Explain risks in plain language")), scenario=WARD)
+    sent = h.score()
+    assert sent[1]["point_change"] == -1
+    assert sent[2]["escalation"] == 5
+
+
+def test_an_end_simulation_action_ends_the_game_with_its_debrief():
+    h = Harness(StubLLM(reply_with(WARD_END["type"])), scenario=WARD)
+    sent = h.score("I'm calling security to keep you here")
+    assert h.types() == [
+        "transcript_update",
+        "action_detected",
+        "state_update",
+        "game_over",
+    ]
+    assert sent[1]["point_change"] == 0
+    assert sent[2]["escalation"] == 6
+    assert sent[3] == {
+        "v": 1,
+        "type": "game_over",
+        "status": "fail",
+        "reason": WARD_END["debrief"],
+    }
+    assert h.game_over_calls == 1

@@ -15,6 +15,17 @@ state instead of silently restarting.
 
 Every bound (start/goal/max escalation, time limit) is read from the scenario
 JSON. No point value is hardcoded here.
+
+Three optional scenario mechanics live here too:
+
+- **Conditional points** — an action with ``requires: "<KEY type>"`` is worth
+  ``point_change`` once that KEY action has ever been taken, else
+  ``point_change_without``.
+- **END SIMULATION** — an action with ``ends_simulation: true`` ends the session
+  as ``fail`` with its ``debrief`` as the reason, on the next ``check_terminal``.
+- **Inactivity** — a top-level ``inactivity: {seconds, point_change}`` charges
+  ``point_change`` each time ``seconds`` pass without a helpful (negative-delta)
+  action; the 1 Hz timer drives it through ``apply_inactivity``.
 """
 
 import logging
@@ -56,10 +67,17 @@ class GameSession:
     # survives a pipeline rebuild so a reconnect resumes a continuous clock.
     started_at: float = field(default_factory=time.monotonic)
     ended_at: Optional[float] = None
+    # The inactivity clock's origin: game start, then the last helpful action
+    # (and each inactivity charge). Seeded from `started_at` in __post_init__.
+    last_helpful_at: Optional[float] = None
+    # Set by an END SIMULATION action; `check_terminal` turns it into the ending.
+    pending_end: Optional[Tuple[str, str]] = None
 
     def __post_init__(self) -> None:
         if self.escalation is None:
             self.escalation = self.point_bar["start"]
+        if self.last_helpful_at is None:
+            self.last_helpful_at = self.started_at
 
     # --- scenario-derived bounds ------------------------------------------
 
@@ -96,21 +114,57 @@ class GameSession:
                 self.action_states[action["type"]] = False
 
     def apply_action(self, action_type: str) -> Optional[dict]:
-        """Apply one detected action; return the scenario action, or None if unknown.
+        """Apply one detected action; return it with its EFFECTIVE point change.
 
-        The point value comes from the SCENARIO, never from the model — the
-        referee reports *what* happened, the server decides what it costs.
+        Returns a copy of the scenario action whose ``point_change`` is the delta
+        actually applied (resolved through ``requires``), or None if unknown. The
+        point value comes from the SCENARIO, never from the model — the referee
+        reports *what* happened, the server decides what it costs.
         """
         action = self.action_map.get(action_type)
         if action is None:
             return None
-        self.escalation = max(
-            0, min(self.max_escalation, self.escalation + action["point_change"])
-        )
+        delta = self.effective_point_change(action)
+        self.escalation = max(0, min(self.max_escalation, self.escalation + delta))
         self.action_states[action_type] = True
         if action_type not in self.actions_ever_taken:
             self.actions_ever_taken.append(action_type)
-        return action
+        if delta < 0:
+            self.last_helpful_at = time.monotonic()
+        if action.get("ends_simulation") and self.pending_end is None:
+            self.pending_end = (STATUS_FAIL, action.get("debrief") or action["desc"])
+        return {**action, "point_change": delta}
+
+    def effective_point_change(self, action: dict) -> int:
+        """``point_change``, or ``point_change_without`` while its KEY is untaken."""
+        required = action.get("requires")
+        if required is None or required in self.actions_ever_taken:
+            return action["point_change"]
+        return action["point_change_without"]
+
+    def apply_inactivity(self) -> bool:
+        """Charge the inactivity penalty if it is due; True when it was applied.
+
+        Due once ``inactivity.seconds`` have passed since the last helpful action
+        (or game start, or the previous charge). A no-op for a scenario without
+        an ``inactivity`` block and for a session that has already ended.
+        """
+        rule = self.scenario.get("inactivity")
+        if not rule or self.status != STATUS_ACTIVE:
+            return False
+        if time.monotonic() - self.last_helpful_at < rule["seconds"]:
+            return False
+        self.last_helpful_at += rule["seconds"]
+        self.escalation = max(
+            0, min(self.max_escalation, self.escalation + rule["point_change"])
+        )
+        logger.info(
+            "[%s] inactivity: %+d -> %s",
+            self.session_id,
+            rule["point_change"],
+            self.escalation,
+        )
+        return True
 
     def active_actions(self) -> List[str]:
         """Currently lit action types, in first-seen order."""
@@ -121,11 +175,15 @@ class GameSession:
     def check_terminal(self) -> Optional[Tuple[str, str]]:
         """Return ``(status, reason)`` if this session just ended, else None.
 
-        Success is checked first: an utterance that lands exactly on the goal wins
-        even when the bar is also at its maximum in a degenerate scenario config.
+        An END SIMULATION action wins over everything (its debrief is the
+        reason). Then success is checked: an utterance that lands exactly on the
+        goal wins even when the bar is also at its maximum in a degenerate
+        scenario config.
         """
         if self.status != STATUS_ACTIVE:
             return None
+        if self.pending_end is not None:
+            return self._end(*self.pending_end)
         if self.escalation <= self.goal:
             return self._end(STATUS_SUCCESS, "Escalation reduced to goal")
         if self.escalation >= self.max_escalation:

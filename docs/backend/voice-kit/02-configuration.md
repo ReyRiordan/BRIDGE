@@ -97,10 +97,8 @@ Read by `runtime/bridge/config.py` — plain environment reads, all runtime-side
 
 | Env var | Default | Notes |
 |---|---|---|
-| `SCENARIO_PATH` | `resources/scenario_1.json` | Actions, point values, time limit, TTS voice. Deployed: `/app/resources/scenario_1.json` |
-| `REFEREE_PROMPT_PATH` | `resources/referee.txt` | Referee system prompt. Deployed: `/app/resources/referee.txt` |
-| `PATIENT_PROMPT_PATH` | `resources/patient.txt` | Patient persona template. Deployed: `/app/resources/patient.txt` |
-| `PATIENT_CASE_PATH` | `resources/patient.json` | Patient case file. Deployed: `/app/resources/patient.json` |
+| `SCENARIOS_DIR` | `resources/scenarios` | One folder per scenario: `scenario.json` (actions, point values, time limit, TTS voice), `patient.txt` (persona template), `patient.json` (case file). The folder names are the scenario allow-list. Deployed: `/app/resources/scenarios` |
+| `REFEREE_PROMPT_PATH` | `resources/referee.txt` | Referee system prompt, shared by every scenario. Deployed: `/app/resources/referee.txt` |
 | `REFEREE_PROVIDER` | `openrouter` | `openrouter` \| `bedrock`. OpenRouter is sent `require_parameters` so routing only picks backends that honour the strict `json_schema`; bedrock-mantle ignores `response_format` entirely, leaving the prompt to hold the shape. Deployed: `bedrock` |
 | `REFEREE_MODEL` | `anthropic/claude-haiku-4.5` | Separate from `LLM_MODEL`. The referee and the patient are different calls, and today both are deployed on `openai.gpt-oss-120b` |
 | `REFEREE_REASONING` | `none` | Same vocabulary as `LLM_REASONING`. Deployed: `medium` |

@@ -40,12 +40,19 @@ function ActionChecklist({ rows }: ActionChecklistProps) {
               {row.desc}
             </span>
           </span>
-          <span
-            className={`font-mono text-sm font-semibold tabular-nums ${
-              row.pointChange < 0 ? 'text-good' : 'text-bad'
-            }`}
-          >
-            {row.delta}
+          <span className="flex shrink-0 flex-col items-end">
+            <span
+              className={`font-mono text-sm font-semibold tabular-nums ${
+                row.pointChange < 0 ? 'text-good' : 'text-bad'
+              }`}
+            >
+              {row.delta}
+            </span>
+            {row.note && (
+              <span className="max-w-48 truncate text-xs text-ink-muted">
+                {row.note}
+              </span>
+            )}
           </span>
         </li>
       ))}

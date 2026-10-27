@@ -19,7 +19,14 @@
  */
 import type { GameEvent } from '../../voice/gameEvents.gen'
 import { gameReducer, initialState, type GameState } from '../gameState'
-import { scenarioFixture } from './scenario.fixture'
+import {
+  scenarioFixture,
+  WARD_BARRIER,
+  WARD_DEBRIEF,
+  WARD_END,
+  WARD_KEY,
+  wardFixture,
+} from './scenario.fixture'
 
 const TS = '2026-01-01T00:00:00Z'
 
@@ -191,6 +198,38 @@ export const gameBaseState: GameState = gameReducer(
 export function foldTo(
   events: GameEvent[],
   n: number = events.length,
+  base: GameState = gameBaseState,
 ): GameState {
-  return events.slice(0, n).reduce(gameReducer, gameBaseState)
+  return events.slice(0, n).reduce(gameReducer, base)
 }
+
+/** scenario_3 loaded and begun. */
+export const wardBaseState: GameState = gameReducer(
+  gameReducer(initialState, { type: 'SCENARIO_LOADED', scenario: wardFixture }),
+  { type: 'BEGIN' },
+)
+
+/**
+ * scenario_3, ending on an END SIMULATION action. The barrier is explored
+ * BEFORE the KEY (so the door and the staff are both up, door underneath),
+ * the KEY then clears the staff for good — a later turn keeps them gone — and
+ * the END action fails the game with its debrief at a mid-bar escalation.
+ * `point_change` on each detection is the runtime's effective delta.
+ */
+export const wardEndRun: GameEvent[] = [
+  state(6, [], 'active'),
+  student('What is waiting for you at work?'),
+  detected(WARD_BARRIER, 'Ask what is waiting for him at work', -1),
+  state(5, [WARD_BARRIER], 'active'),
+  patient('My shift starts at three.'),
+  student('It is your decision, and I know the job matters.'),
+  detected(WARD_KEY, 'Recognize outside responsibilities', -3),
+  state(2, [WARD_BARRIER, WARD_KEY], 'active'),
+  patient('I just cannot lose this job.'),
+  student('Okay.'),
+  state(2, [WARD_BARRIER, WARD_KEY], 'active'),
+  student('I am calling security to keep you here.'),
+  detected(WARD_END, 'Call security', 0),
+  state(2, [WARD_BARRIER, WARD_KEY], 'active'),
+  { v: 1, type: 'game_over', status: 'fail', reason: WARD_DEBRIEF },
+]
