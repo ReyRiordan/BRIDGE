@@ -15,6 +15,9 @@ amplify/
 scripts/
 node_modules/
 runtime/tests/
+# Local art cache for scripts/visuals (hundreds of MB). Untracked, so leaving
+# it in would bloat every staged asset copy in cdk.out and bust both hashes.
+.visuals-work/
 
 # CDK build output. NOT optional and NOT covered by `amplify/` above: CDK
 # stages this docker context (the repo root) INTO .amplify/artifacts/cdk.out/,

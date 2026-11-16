@@ -181,7 +181,7 @@ Shot lists live at `scripts/visuals/shots/<id>.yaml`. The required fields are `r
   <id>/layers/<layer>.png                accepted full-res RGBA action layers
   ```
 
-- **push** uploads only files whose sha256 (kept in object metadata) differs. **pull** downloads what the work dir lacks. Previews, contact sheets and batch records stay local.
+- **push** uploads only files whose sha256 (kept in object metadata) differs. **pull** downloads what the work dir lacks. Previews, contact sheets and batch records stay local. (Completed batch records for scenario_2/3 are archived by hand under `_batch-records/<id>/`, outside any `pull` prefix.)
 - **Manifest**: `scripts/visuals/masters/<id>.json` is committed. It holds:
   - `accepted`: slot → key, for `plate`, each action layer (by name) and `level_<n>`
   - `objects`: key → sha256, `size`, bytes, model, tier, prompt, references, cost, and `rejected`/`note`. Layers also record their source composite, plate and matting parameters.
