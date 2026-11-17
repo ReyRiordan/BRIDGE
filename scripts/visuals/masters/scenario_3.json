@@ -4,17 +4,17 @@
     "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
     "door_closed": "scenario_3/composites/door_closed/door_closed_20261026T050223_2.jpg",
     "staff_present": "scenario_3/composites/staff_present/staff_present_20261026T051002_0.jpg",
-    "level_0": "scenario_3/composites/level_0/level_0_20261026T061052_0.jpg",
-    "level_1": "scenario_3/composites/level_1/level_1_20261026T060939_0.jpg",
-    "level_2": "scenario_3/composites/level_2/level_2_20261026T060610_0.jpg",
-    "level_3": "scenario_3/composites/level_3/level_3_20261026T060304_0.jpg",
-    "level_4": "scenario_3/composites/level_4/level_4_20261026T055950_0.jpg",
-    "level_5": "scenario_3/composites/level_5/level_5_20261026T055621_0.jpg",
-    "level_6": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-    "level_7": "scenario_3/composites/level_7/level_7_20261026T055621_2.jpg",
-    "level_8": "scenario_3/composites/level_8/level_8_20261026T055950_0.jpg",
-    "level_9": "scenario_3/composites/level_9/level_9_20261026T060304_0.jpg",
-    "level_10": "scenario_3/composites/level_10/level_10_20261026T060610_2.jpg"
+    "level_0": "scenario_3/composites/level_0/level_0_20261117T005802_0.jpg",
+    "level_1": "scenario_3/composites/level_1/level_1_20261117T011320_1.jpg",
+    "level_2": "scenario_3/composites/level_2/level_2_20261117T010945_1.jpg",
+    "level_3": "scenario_3/composites/level_3/level_3_20261117T010818_0.jpg",
+    "level_4": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
+    "level_5": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
+    "level_6": "scenario_3/composites/level_6/level_6_20261117T005003_0.jpg",
+    "level_7": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+    "level_8": "scenario_3/composites/level_8/level_8_20261117T010626_1.jpg",
+    "level_9": "scenario_3/composites/level_9/level_9_20261117T011214_0.jpg",
+    "level_10": "scenario_3/composites/level_10/level_10_20261117T011442_0.jpg"
   },
   "objects": {
     "scenario_3/composites/door_closed/door_closed_20261026T050028_0.jpg": {
@@ -137,664 +137,1036 @@
       "cost_usd": 0.0523,
       "recorded_at": "2026-10-26T05:03:45+00:00"
     },
-    "scenario_3/composites/level_0/level_0_20261026T061052_0.jpg": {
-      "sha256": "6b8b3bbc8d293d862e69d045aba01d6c94d4eba5fbed11b909f2f7d21ce31c24",
+    "scenario_3/composites/level_0/level_0_20261117T005802_0.jpg": {
+      "sha256": "e319498d8f0139acde94258d56b9ad13f85aadfa311877d2bc013d087f842308",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2274839,
+      "bytes": 2307687,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Lying reclined in the bed with the head raised, blanket over his legs, calm, hands resting on the blanket, a slight tired smile at the camera. A few ECG electrode stickers on his chest at the gown's neckline, with one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Lying reclined in the bed with the head raised, blanket over her legs, calm, hands resting on the blanket, a slight tired smile at the camera. A few ECG electrode stickers on her chest at the gown's neckline, with one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_1/level_1_20261026T060939_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_1/level_1_20261117T005552_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2468,
       "cost_usd": 0.0541,
-      "recorded_at": "2026-10-26T06:11:12+00:00"
+      "recorded_at": "2026-11-17T00:58:20+00:00"
     },
-    "scenario_3/composites/level_0/level_0_20261026T061052_1.jpg": {
-      "sha256": "f04aabaf071a7324b36acbbc26a39e3420855ed4db7da8bddd4a1179cb131cb7",
+    "scenario_3/composites/level_0/level_0_20261117T005802_1.jpg": {
+      "sha256": "d4548b1c4608010843a78763f95da9249f08d81ff60d3683aacb4d4c35b8ac95",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2297271,
+      "bytes": 2324470,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Lying reclined in the bed with the head raised, blanket over his legs, calm, hands resting on the blanket, a slight tired smile at the camera. A few ECG electrode stickers on his chest at the gown's neckline, with one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Lying reclined in the bed with the head raised, blanket over her legs, calm, hands resting on the blanket, a slight tired smile at the camera. A few ECG electrode stickers on her chest at the gown's neckline, with one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_1/level_1_20261026T060939_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_1/level_1_20261117T005552_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2468,
       "cost_usd": 0.0541,
-      "recorded_at": "2026-10-26T06:11:36+00:00"
+      "recorded_at": "2026-11-17T00:58:37+00:00"
     },
-    "scenario_3/composites/level_0/level_0_20261026T061052_2.jpg": {
-      "sha256": "87b29e5cda1121c8976570fa798de28c9b16d2ddadbdbb7b0ac44dca564d4bce",
+    "scenario_3/composites/level_0/level_0_20261117T005802_2.jpg": {
+      "sha256": "9727c7970e32c9d0cd51cbe525480094cee3858302219f21363fdb1b88b9939f",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2318333,
+      "bytes": 2347828,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Lying reclined in the bed with the head raised, blanket over his legs, calm, hands resting on the blanket, a slight tired smile at the camera. A few ECG electrode stickers on his chest at the gown's neckline, with one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Lying reclined in the bed with the head raised, blanket over her legs, calm, hands resting on the blanket, a slight tired smile at the camera. A few ECG electrode stickers on her chest at the gown's neckline, with one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_1/level_1_20261026T060939_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_1/level_1_20261117T005552_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2468,
       "cost_usd": 0.0541,
-      "recorded_at": "2026-10-26T06:11:55+00:00"
+      "recorded_at": "2026-11-17T00:58:55+00:00"
     },
-    "scenario_3/composites/level_1/level_1_20261026T060939_0.jpg": {
-      "sha256": "f4b6f1061e37472b7792c6269d21a07ecde66d3ed6da7b59383fbcf849add147",
+    "scenario_3/composites/level_1/level_1_20261117T005552_0.jpg": {
+      "sha256": "0fbcb25df618f2331b487aa1183afac9ecac4df6c8c53df56093d3e0bed97076",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2306658,
+      "bytes": 2314656,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over his legs, calm and attentive, looking at the camera. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over her legs, calm and attentive, looking at the camera. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_2/level_2_20261026T060610_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_2/level_2_20261117T005332_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2448,
       "cost_usd": 0.0541,
-      "recorded_at": "2026-10-26T06:10:02+00:00"
+      "recorded_at": "2026-11-17T00:56:12+00:00"
     },
-    "scenario_3/composites/level_1/level_1_20261026T060939_1.jpg": {
-      "sha256": "c5cd28ea4659c5aae903bc9f9bf90480af31073a3b159dcef6d258e5ffa7cf09",
+    "scenario_3/composites/level_1/level_1_20261117T005552_1.jpg": {
+      "sha256": "1f921e6a9ed55fe3440aa55bc610e497df675754ab8e45844610153c4ce45719",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2288941,
+      "bytes": 2288630,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over his legs, calm and attentive, looking at the camera. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over her legs, calm and attentive, looking at the camera. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_2/level_2_20261026T060610_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_2/level_2_20261117T005332_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2448,
       "cost_usd": 0.0541,
-      "recorded_at": "2026-10-26T06:10:22+00:00"
+      "recorded_at": "2026-11-17T00:56:29+00:00"
     },
-    "scenario_3/composites/level_1/level_1_20261026T060939_2.jpg": {
-      "sha256": "1c949c832d07defa46c9d203ed83744362404dce9f93d6a3441590d2913180d4",
+    "scenario_3/composites/level_1/level_1_20261117T005552_2.jpg": {
+      "sha256": "b8995f938da30b91d7646e756d16d000ed55bc7307a6daa483416bd8756aa4b8",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2319983,
+      "bytes": 2312995,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over his legs, calm and attentive, looking at the camera. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over her legs, calm and attentive, looking at the camera. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_2/level_2_20261026T060610_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_2/level_2_20261117T005332_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2448,
       "cost_usd": 0.0541,
-      "recorded_at": "2026-10-26T06:10:41+00:00"
+      "recorded_at": "2026-11-17T00:56:46+00:00"
     },
-    "scenario_3/composites/level_10/level_10_20261026T060610_0.jpg": {
-      "sha256": "e5ab8d63c1a3b81f8ab0f462c53cf67fed05e20135a544cf8c938d0568084f24",
+    "scenario_3/composites/level_1/level_1_20261117T011320_0.jpg": {
+      "sha256": "760d1a9a9cca2cd1b6aa6fa46d6d8551d9a7d9a6a141844fd03c6edaa5d7a51d",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2377178,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. He is not touching the door or its handle.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_9/level_9_20261026T060304_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2449,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:09:22+00:00"
-    },
-    "scenario_3/composites/level_10/level_10_20261026T060610_1.jpg": {
-      "sha256": "7b0211ff918795bd7f200f98cf8788e2b2625fa3e765539df07fa81af013c405",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2360413,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. He is not touching the door or its handle.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_9/level_9_20261026T060304_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2449,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:09:22+00:00"
-    },
-    "scenario_3/composites/level_10/level_10_20261026T060610_2.jpg": {
-      "sha256": "53e31e3ea4053cd7ff6439f4e9c688a6eaa7ef8388954b6e23e3a208f0abbf2a",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2403319,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. He is not touching the door or its handle.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_9/level_9_20261026T060304_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2449,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:09:22+00:00"
-    },
-    "scenario_3/composites/level_2/level_2_20261026T060610_0.jpg": {
-      "sha256": "798036e761cda589d463709fc1e62d70798c9dc30949e6ead64021de8aa8b459",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2317299,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over his legs, a neutral listening expression. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_3/level_3_20261026T060304_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2448,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:09:22+00:00"
-    },
-    "scenario_3/composites/level_2/level_2_20261026T060610_1.jpg": {
-      "sha256": "25c63e4d561530d74efb4bedb81d38cfe0f44483dc670362d6555b7a7a6f216e",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2236708,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over his legs, a neutral listening expression. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_3/level_3_20261026T060304_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2448,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:09:22+00:00"
-    },
-    "scenario_3/composites/level_2/level_2_20261026T060610_2.jpg": {
-      "sha256": "0a26a6e2db074819a39d7a49b9665adaba0dc437af97c2340e92fc83704a6d8f",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2302182,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over his legs, a neutral listening expression. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_3/level_3_20261026T060304_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2448,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:09:22+00:00"
-    },
-    "scenario_3/composites/level_3/level_3_20261026T060304_0.jpg": {
-      "sha256": "0a533939e85ccc8cf237f17b30b1aea0d23fc81ae728d111867c6c5cdd6b3a8c",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2297497,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, blanket over his legs, brow furrowed, looking at the camera. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_4/level_4_20261026T055950_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2447,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:05:44+00:00"
-    },
-    "scenario_3/composites/level_3/level_3_20261026T060304_1.jpg": {
-      "sha256": "43ee2baf650a3f839fd784186036ca4ad8faf8bd5111398e3575261d430c1bca",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2249675,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, blanket over his legs, brow furrowed, looking at the camera. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_4/level_4_20261026T055950_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2447,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:05:44+00:00"
-    },
-    "scenario_3/composites/level_3/level_3_20261026T060304_2.jpg": {
-      "sha256": "82dfbccbb89bdbee748ed650c6d35c6d1acfbc6d8241e8acac547e089d358c18",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2299052,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, blanket over his legs, brow furrowed, looking at the camera. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_4/level_4_20261026T055950_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2447,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:05:44+00:00"
-    },
-    "scenario_3/composites/level_4/level_4_20261026T055950_0.jpg": {
-      "sha256": "9eb262ad96bd139f2549206815141cf607f8ba10031742205362a0a8996e7388",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2314926,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up straight in the bed, tense, hands still on the blanket, jaw set, frowning. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_5/level_5_20261026T055621_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2447,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:02:30+00:00"
-    },
-    "scenario_3/composites/level_4/level_4_20261026T055950_1.jpg": {
-      "sha256": "ef08a8cbb60ac506b0493e18fc245ced2b8c16b506344bd52814fe96af268e31",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2282969,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up straight in the bed, tense, hands still on the blanket, jaw set, frowning. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_5/level_5_20261026T055621_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2447,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:02:30+00:00"
-    },
-    "scenario_3/composites/level_4/level_4_20261026T055950_2.jpg": {
-      "sha256": "f547833b86566d087764fade688ec991a70308e1f3026b351590874544f0cf6d",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2300524,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up straight in the bed, tense, hands still on the blanket, jaw set, frowning. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_5/level_5_20261026T055621_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2447,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:02:30+00:00"
-    },
-    "scenario_3/composites/level_5/level_5_20261026T055621_0.jpg": {
-      "sha256": "1c908f9aae686423bfa3e23154385e29b07a46294861710063d0788aad659c72",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2296208,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, tense, hands still, blanket pushed down, glancing toward the open door with an anxious, frustrated expression. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2454,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T05:59:29+00:00"
-    },
-    "scenario_3/composites/level_5/level_5_20261026T055621_1.jpg": {
-      "sha256": "a766b3570541e72cdf57b8bf2fb79909b57a789da78ac12e1facf1446556e11f",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2335149,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, tense, hands still, blanket pushed down, glancing toward the open door with an anxious, frustrated expression. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2454,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T05:59:29+00:00"
-    },
-    "scenario_3/composites/level_5/level_5_20261026T055621_2.jpg": {
-      "sha256": "d249e39e4fc8366faafe0c581ef06b4bc681f7ba752bfd0f8cd15cc01458f7aa",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2312845,
-      "model": "gemini-nano-banana-2.1",
-      "resolution_tier": "2K",
-      "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, tense, hands still, blanket pushed down, glancing toward the open door with an anxious, frustrated expression. A few electrode stickers on his chest, one or two lead wires loose and dangling.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
-      "references": {
-        "source": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
-      },
-      "prompt_tokens": 2454,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T05:59:29+00:00"
-    },
-    "scenario_3/composites/level_6/level_6_20261026T055427_0.jpg": {
-      "sha256": "8d3020174039b38291a96ea130eb70313730378baa8f14f1b722315a9540c52e",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 2333256,
+      "bytes": 2263299,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\nPose and expression: Sitting on the edge of the bed facing the camera, feet on the floor, tugging at a lead wire on his chest with one hand, frustrated and agitated. A few electrode stickers still on his chest, one or two lead wires loose and dangling.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over her legs, calm and attentive, looking at the camera, a soft, open expression with no frown. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "plate": "scenario_3/plate/plate_20261026T045809_2.jpg"
+        "source": "scenario_3/composites/level_2/level_2_20261117T010945_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 1323,
-      "cost_usd": 0.0524,
-      "recorded_at": "2026-10-26T05:54:43+00:00"
+      "prompt_tokens": 2475,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:13:36+00:00"
     },
-    "scenario_3/composites/level_6/level_6_20261026T055427_1.jpg": {
-      "sha256": "6c589fb80a741f29bbf546bbb118e63958d0e971005809cfdc9b492507a8622f",
+    "scenario_3/composites/level_1/level_1_20261117T011320_1.jpg": {
+      "sha256": "4599adf0176ce62135f93418352e355c629537c646b4f76b8506ef689d8e58d0",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2346049,
+      "bytes": 2238039,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\nPose and expression: Sitting on the edge of the bed facing the camera, feet on the floor, tugging at a lead wire on his chest with one hand, frustrated and agitated. A few electrode stickers still on his chest, one or two lead wires loose and dangling.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over her legs, calm and attentive, looking at the camera, a soft, open expression with no frown. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "plate": "scenario_3/plate/plate_20261026T045809_2.jpg"
+        "source": "scenario_3/composites/level_2/level_2_20261117T010945_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 1323,
-      "cost_usd": 0.0524,
-      "recorded_at": "2026-10-26T05:55:00+00:00"
+      "prompt_tokens": 2475,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:13:56+00:00"
     },
-    "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg": {
-      "sha256": "b37205a8c717a0c44620730485977712b319e1575bb0142f1ccf94599b4328dc",
+    "scenario_3/composites/level_1/level_1_20261117T011320_2.jpg": {
+      "sha256": "b48a72a86d5142d408616934977fb8266765fb81762db0c2112a4238764b446f",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2339821,
+      "bytes": 2284535,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
       "batch": false,
-      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\nPose and expression: Sitting on the edge of the bed facing the camera, feet on the floor, tugging at a lead wire on his chest with one hand, frustrated and agitated. A few electrode stickers still on his chest, one or two lead wires loose and dangling.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed, blanket over her legs, calm and attentive, looking at the camera, a soft, open expression with no frown. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "plate": "scenario_3/plate/plate_20261026T045809_2.jpg"
+        "source": "scenario_3/composites/level_2/level_2_20261117T010945_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 1323,
-      "cost_usd": 0.0524,
-      "recorded_at": "2026-10-26T05:55:19+00:00"
+      "prompt_tokens": 2475,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:14:14+00:00"
     },
-    "scenario_3/composites/level_7/level_7_20261026T055621_0.jpg": {
-      "sha256": "747a29f8b0136e6ddf2d778c6a820a9ec35173c4c6ebe4c9fcbff1f738b62a1c",
+    "scenario_3/composites/level_10/level_10_20261117T005855_0.jpg": {
+      "sha256": "b90206e6cd8c1f595282e31b40f156a47e574902270f34914767119c3f783c43",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2306447,
+      "bytes": 2414054,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed, feet on the floor, holding up the last lead wire he has just pulled off, angry, mouth open mid-sentence. A few electrode stickers still on his chest; the wires dangle loose.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. She is not touching the door or its handle.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_9/level_9_20261117T005646_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 2457,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T05:59:29+00:00"
+      "prompt_tokens": 2449,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:59:19+00:00"
     },
-    "scenario_3/composites/level_7/level_7_20261026T055621_1.jpg": {
-      "sha256": "5b5eace000b64934f5a8223ad105a665f602829fa20d0f32e7eaf733cd2f248f",
+    "scenario_3/composites/level_10/level_10_20261117T005855_1.jpg": {
+      "sha256": "9072c4d88429972115d31be6934d62559a55a810bf1700ff339054791a51a824",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2392861,
+      "bytes": 2388704,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed, feet on the floor, holding up the last lead wire he has just pulled off, angry, mouth open mid-sentence. A few electrode stickers still on his chest; the wires dangle loose.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. She is not touching the door or its handle.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_9/level_9_20261117T005646_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 2457,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T05:59:29+00:00"
+      "prompt_tokens": 2449,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:59:42+00:00"
     },
-    "scenario_3/composites/level_7/level_7_20261026T055621_2.jpg": {
-      "sha256": "bf6efb57e89607d98401b26f73dc3e8ca007f4d552ea7ff71963bcde82fd6956",
+    "scenario_3/composites/level_10/level_10_20261117T005855_2.jpg": {
+      "sha256": "f89928f41ab2e7beef3821401618967d232e22f63ac8bd5bed13a90dea23dec3",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2313699,
+      "bytes": 2383121,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed, feet on the floor, holding up the last lead wire he has just pulled off, angry, mouth open mid-sentence. A few electrode stickers still on his chest; the wires dangle loose.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. She is not touching the door or its handle.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_9/level_9_20261117T005646_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 2457,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T05:59:29+00:00"
+      "prompt_tokens": 2449,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:59:59+00:00"
     },
-    "scenario_3/composites/level_8/level_8_20261026T055950_0.jpg": {
-      "sha256": "321d16971db4c4c00762596e3daeffd4d48962464bc337a20bc86215395c8ad0",
+    "scenario_3/composites/level_10/level_10_20261117T011442_0.jpg": {
+      "sha256": "6f8acc9709bf9aef10f9a2790f1253efc347b7726786befb4a42c231cb3100b9",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2386175,
+      "bytes": 2368007,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing his folded clothes into a clear plastic patient belongings bag, angry and hurried.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. She is not touching the door or its handle. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_7/level_7_20261026T055621_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_9/level_9_20261117T011214_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 2444,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:02:30+00:00"
+      "prompt_tokens": 2490,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:15:01+00:00"
     },
-    "scenario_3/composites/level_8/level_8_20261026T055950_1.jpg": {
-      "sha256": "f46a8a249a819fd82f269d709edf8b3513a9094f286feb542a8715adc1b764a0",
+    "scenario_3/composites/level_10/level_10_20261117T011442_1.jpg": {
+      "sha256": "0b987429df4dacc346ad0754ee1fcb7b959300c509ce4a985506a969cc173fd3",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2391955,
+      "bytes": 2403541,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing his folded clothes into a clear plastic patient belongings bag, angry and hurried.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. She is not touching the door or its handle. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_7/level_7_20261026T055621_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_9/level_9_20261117T011214_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 2444,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:02:30+00:00",
+      "prompt_tokens": 2490,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:15:33+00:00",
       "rejected": true,
-      "note": "an electrode sticker is still on his chest (8-10: all leads off)"
+      "note": "moved away from the door"
     },
-    "scenario_3/composites/level_8/level_8_20261026T055950_2.jpg": {
-      "sha256": "5da3b91ca92173318ed9a182eeaac16b9d13147b696f56b59652349e566d3881",
+    "scenario_3/composites/level_10/level_10_20261117T011442_2.jpg": {
+      "sha256": "10f7615845f7429a697ad5c309c13c1aa939bbdd7f4daec67bd655147cf8d025",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2387112,
+      "bytes": 2366451,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing his folded clothes into a clear plastic patient belongings bag, angry and hurried.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing right beside the open door, about to walk out, belongings bag in hand, all leads off, looking back at the camera defiantly. She is not touching the door or its handle. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_7/level_7_20261026T055621_2.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_9/level_9_20261117T011214_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2490,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:15:59+00:00",
+      "rejected": true,
+      "note": "same position as level 9"
+    },
+    "scenario_3/composites/level_2/level_2_20261117T005332_0.jpg": {
+      "sha256": "38e0648661cdea822fff0c1b6776219a3ca4b28389e29570fa9c51d0e4de33bc",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2251753,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over her legs, a neutral listening expression. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_3/level_3_20261117T005110_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2448,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:53:50+00:00"
+    },
+    "scenario_3/composites/level_2/level_2_20261117T005332_1.jpg": {
+      "sha256": "1f0eff6f2337257606872593936facc229fe9fe236d450935f0f3f9bf20a6e2c",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2292671,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over her legs, a neutral listening expression. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_3/level_3_20261117T005110_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2448,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:54:10+00:00"
+    },
+    "scenario_3/composites/level_2/level_2_20261117T005332_2.jpg": {
+      "sha256": "fab51d65ef32e8c7036a699635550c6251b3049328339883aa6c71d1cd1093e5",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2246820,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over her legs, a neutral listening expression. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_3/level_3_20261117T005110_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2448,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:54:27+00:00"
+    },
+    "scenario_3/composites/level_2/level_2_20261117T010945_0.jpg": {
+      "sha256": "f725d038f44b99b21709d53d06e1e3868c0088740a7082a53206aa6f84023ffd",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2290661,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over her legs, looking straight at the camera with a neutral listening expression, noticeably calmer than before: brow smooth, mouth relaxed. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_3/level_3_20261117T010818_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2483,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:10:11+00:00"
+    },
+    "scenario_3/composites/level_2/level_2_20261117T010945_1.jpg": {
+      "sha256": "0428c84adf5f9ec3ea8c9ae2ffbf51ee151c0944f729a20e3b85fb3f3653d666",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2291361,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over her legs, looking straight at the camera with a neutral listening expression, noticeably calmer than before: brow smooth, mouth relaxed. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_3/level_3_20261117T010818_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2483,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:10:38+00:00"
+    },
+    "scenario_3/composites/level_2/level_2_20261117T010945_2.jpg": {
+      "sha256": "aa205e6db4b6e55e2afafe3454a287b97d05c53ccee93c3163e57bc2bc03a8bc",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2259438,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Reclined in the bed but slightly more upright, blanket over her legs, looking straight at the camera with a neutral listening expression, noticeably calmer than before: brow smooth, mouth relaxed. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_3/level_3_20261117T010818_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2483,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:10:59+00:00"
+    },
+    "scenario_3/composites/level_3/level_3_20261117T005110_0.jpg": {
+      "sha256": "bd804aaad1377c49acb872429717e9e961327758db7dd48ea4ad8e903c032eef",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2290905,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, blanket over her legs, brow furrowed, looking at the camera. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2447,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:51:42+00:00"
+    },
+    "scenario_3/composites/level_3/level_3_20261117T005110_1.jpg": {
+      "sha256": "a9c27d0bf067656f450fd72733a8118fa58fd101de0f7c8819cf4e4c7a0d74ee",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2283229,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, blanket over her legs, brow furrowed, looking at the camera. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2447,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:52:07+00:00"
+    },
+    "scenario_3/composites/level_3/level_3_20261117T005110_2.jpg": {
+      "sha256": "15912dbb163906be48d5846872c609b1a336e8fb31715fdb5cfbe62744ed7db8",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2332015,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, blanket over her legs, brow furrowed, looking at the camera. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2447,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:52:26+00:00"
+    },
+    "scenario_3/composites/level_3/level_3_20261117T010818_0.jpg": {
+      "sha256": "dc41e8ec51169221628160c3324ee4ef5c867d3f1fef9958312785839570dcc9",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2270037,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, leaning back slightly, blanket over her legs, looking at the camera, noticeably calmer than before: shoulders lowered, only a slight crease between the brows, lips together, wary but listening. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2488,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:08:44+00:00"
+    },
+    "scenario_3/composites/level_3/level_3_20261117T010818_1.jpg": {
+      "sha256": "b0605bc81b3280b968be0288cc958fa350d606172922a61c075fd9135929ff55",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2213465,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, leaning back slightly, blanket over her legs, looking at the camera, noticeably calmer than before: shoulders lowered, only a slight crease between the brows, lips together, wary but listening. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2488,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:09:04+00:00"
+    },
+    "scenario_3/composites/level_3/level_3_20261117T010818_2.jpg": {
+      "sha256": "0b3a3c715c1f316c9c55492d43ad0fe9d5134f9b4ed83bcc9470bceee27013bc",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2305900,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up in the bed, leaning back slightly, blanket over her legs, looking at the camera, noticeably calmer than before: shoulders lowered, only a slight crease between the brows, lips together, wary but listening. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2488,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:09:24+00:00"
+    },
+    "scenario_3/composites/level_4/level_4_20261117T004855_0.jpg": {
+      "sha256": "fa01a4d4c9e8c5e708562ae8ca2ffe19a6512584d1ea4fe396d5f5ea8c0259a9",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2311287,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up straight in the bed, tense, hands still on the blanket, jaw set, frowning. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2447,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:49:20+00:00",
+      "rejected": true,
+      "note": "looks at the window, not the camera"
+    },
+    "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg": {
+      "sha256": "27e21bd0c29d42154113be0064a01906dffbc00332abe6530fe8434f9534a54d",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2325453,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up straight in the bed, tense, hands still on the blanket, jaw set, frowning. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2447,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:49:37+00:00"
+    },
+    "scenario_3/composites/level_4/level_4_20261117T004855_2.jpg": {
+      "sha256": "4b1889354de6afd305f26fb2b383b46d80738cd3301b3c2e4c6e96bda441a8b4",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2267184,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting up straight in the bed, tense, hands still on the blanket, jaw set, frowning. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2447,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:50:03+00:00"
+    },
+    "scenario_3/composites/level_5/level_5_20261117T004730_0.jpg": {
+      "sha256": "f774d5ce741475d09365ed56b38ed927dfbea7a60b8649e3130a9e91c16731d5",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2359810,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\nPose and expression: Sitting up in the bed, tense, hands still, blanket pushed down, glancing toward the open door with an anxious, frustrated expression. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_3/plate/plate_20261026T045809_2.jpg"
+      },
+      "prompt_tokens": 1316,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-11-17T00:47:49+00:00"
+    },
+    "scenario_3/composites/level_5/level_5_20261117T004730_1.jpg": {
+      "sha256": "d9b58198e8054f284d19aa380143aa69bbd286a056452310dd4ee4c81c7f3db4",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2349947,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\nPose and expression: Sitting up in the bed, tense, hands still, blanket pushed down, glancing toward the open door with an anxious, frustrated expression. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_3/plate/plate_20261026T045809_2.jpg"
+      },
+      "prompt_tokens": 1316,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-11-17T00:48:06+00:00",
+      "rejected": true,
+      "note": "edge-of-bed pose is level 6, not 5"
+    },
+    "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg": {
+      "sha256": "63f4aae319de9ebf0c867717366978c94b31361e9166a94b6f83d2120d16e51f",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2319110,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "The image is an empty room. Edit it: place the patient described below into this exact room.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\nPose and expression: Sitting up in the bed, tense, hands still, blanket pushed down, glancing toward the open door with an anxious, frustrated expression. A few electrode stickers on her chest, one or two lead wires loose and dangling.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as they are; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height. Photorealistic, consistent with the room's lighting.",
+      "references": {
+        "plate": "scenario_3/plate/plate_20261026T045809_2.jpg"
+      },
+      "prompt_tokens": 1316,
+      "cost_usd": 0.0524,
+      "recorded_at": "2026-11-17T00:48:27+00:00"
+    },
+    "scenario_3/composites/level_6/level_6_20261117T005003_0.jpg": {
+      "sha256": "3adffd2e1ed5161f4410f8173a3c993a9666184a029e94c3c8f1b35660c203d4",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2334608,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed facing the camera, feet on the floor, tugging at a lead wire on her chest with one hand, frustrated and agitated. A few electrode stickers still on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2461,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:50:22+00:00"
+    },
+    "scenario_3/composites/level_6/level_6_20261117T005003_1.jpg": {
+      "sha256": "a867bee198fdb229d49019988d0f9a4f2c66ba532a07cc4c25d30c10b34b0157",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2355666,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed facing the camera, feet on the floor, tugging at a lead wire on her chest with one hand, frustrated and agitated. A few electrode stickers still on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2461,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:50:38+00:00"
+    },
+    "scenario_3/composites/level_6/level_6_20261117T005003_2.jpg": {
+      "sha256": "44a3c8ff10f919a5f010097a45ac90a0844a3a1a045d01732150daa1737cd91e",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2328905,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed facing the camera, feet on the floor, tugging at a lead wire on her chest with one hand, frustrated and agitated. A few electrode stickers still on her chest, one or two lead wires loose and dangling.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2461,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:50:54+00:00"
+    },
+    "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg": {
+      "sha256": "5231eb26e0232d21123bd64963225e3bb091b1674d552698532a23b2367b6984",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2310428,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed, feet on the floor, holding up the last lead wire she has just pulled off, angry, mouth open mid-sentence. A few electrode stickers still on her chest; the wires dangle loose.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_6/level_6_20261117T005003_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2457,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:52:45+00:00"
+    },
+    "scenario_3/composites/level_7/level_7_20261117T005226_1.jpg": {
+      "sha256": "82b61a5cbce4237b36c85d0633d8b83f8b54bc2fb506af91ed1767f9cca2c0ac",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2319649,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed, feet on the floor, holding up the last lead wire she has just pulled off, angry, mouth open mid-sentence. A few electrode stickers still on her chest; the wires dangle loose.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_6/level_6_20261117T005003_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2457,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:53:02+00:00"
+    },
+    "scenario_3/composites/level_7/level_7_20261117T005226_2.jpg": {
+      "sha256": "d0e7a922d79f4167ff12ff1f482f28355f3ae4c1f9183e863df01c7ee9569f74",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2337469,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Sitting on the edge of the bed, feet on the floor, holding up the last lead wire she has just pulled off, angry, mouth open mid-sentence. A few electrode stickers still on her chest; the wires dangle loose.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_6/level_6_20261117T005003_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2457,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:53:19+00:00"
+    },
+    "scenario_3/composites/level_8/level_8_20261117T005428_0.jpg": {
+      "sha256": "66560116181cebc5e775eb8ffae780f478d1d417cc36c91365a85f38a5b38442",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2401291,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing her folded clothes into a clear plastic patient belongings bag, angry and hurried.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2444,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:02:30+00:00"
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:54:50+00:00"
     },
-    "scenario_3/composites/level_9/level_9_20261026T060304_0.jpg": {
-      "sha256": "acf6945509cca6c6972816e7bf6cc4ad94b7fc48770ada52f9613d09b1bd7c2d",
+    "scenario_3/composites/level_8/level_8_20261117T005428_1.jpg": {
+      "sha256": "6fa0dfc935b7772790bee64a9ae5fac08dcb9d099f2e49eea7075543516b708e",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2395732,
+      "bytes": 2366109,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing near the open door holding his belongings bag, all leads off, turned back toward the camera, angry. He is near the door but not touching it or its handle.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing her folded clothes into a clear plastic patient belongings bag, angry and hurried.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_8/level_8_20261026T055950_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 2445,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:05:44+00:00"
+      "prompt_tokens": 2444,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:55:12+00:00",
+      "rejected": true,
+      "note": "adds a bedside table that is not in the plate"
     },
-    "scenario_3/composites/level_9/level_9_20261026T060304_1.jpg": {
-      "sha256": "268912bfffc4a30ab6470e8d05dd1af9d08ed89b43a3aa00792be44b18af310c",
+    "scenario_3/composites/level_8/level_8_20261117T005428_2.jpg": {
+      "sha256": "cf0bc928fcb9489c846cb6edcdbcc8cabde2b7a8a6088124466dacd80e6051a7",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2405996,
+      "bytes": 2351598,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing near the open door holding his belongings bag, all leads off, turned back toward the camera, angry. He is near the door but not touching it or its handle.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing her folded clothes into a clear plastic patient belongings bag, angry and hurried.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_8/level_8_20261026T055950_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
-      "prompt_tokens": 2445,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:05:44+00:00"
+      "prompt_tokens": 2444,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:55:31+00:00"
     },
-    "scenario_3/composites/level_9/level_9_20261026T060304_2.jpg": {
-      "sha256": "f2725da404cbb26c3a9b0d77825ee3c08f3a9c854b1ed09eed7efa6a90be94a3",
+    "scenario_3/composites/level_8/level_8_20261117T010626_0.jpg": {
+      "sha256": "52738b46cbeaf6453fefa7e057dbd8ef2952527b3af02b5eced78724275317ea",
       "size": [
         2400,
         1792
       ],
-      "bytes": 2397828,
+      "bytes": 2444110,
       "model": "gemini-nano-banana-2.1",
       "resolution_tier": "2K",
       "aspect_ratio": "4:3",
-      "batch": true,
-      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing near the open door holding his belongings bag, all leads off, turned back toward the camera, angry. He is near the door but not touching it or its handle.\n\nPatient: A 47-year-old Black man, stocky build, very short black hair, a trimmed beard, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing her folded clothes into a clear plastic patient belongings bag, angry and hurried. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
       "references": {
-        "source": "scenario_3/composites/level_8/level_8_20261026T055950_0.jpg",
-        "anchor": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg"
+        "source": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2485,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:06:55+00:00",
+      "rejected": true,
+      "note": "hair still lighter than the anchor"
+    },
+    "scenario_3/composites/level_8/level_8_20261117T010626_1.jpg": {
+      "sha256": "0d963353eed14ad31fd5433616b455fddeca698cbd078921dc1447b8f9f5b64f",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2390408,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing her folded clothes into a clear plastic patient belongings bag, angry and hurried. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2485,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:07:14+00:00"
+    },
+    "scenario_3/composites/level_8/level_8_20261117T010626_2.jpg": {
+      "sha256": "4915192f6b3c8b0900973ec51ac2dbee35db4b6ae986ce7f3429ee95b10d6a9e",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2369839,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing beside the bed, all leads off, the lead wires hanging loose from the monitor, stuffing her folded clothes into a clear plastic patient belongings bag, angry and hurried. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2485,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:07:36+00:00",
+      "rejected": true,
+      "note": "hair still lighter than the anchor"
+    },
+    "scenario_3/composites/level_9/level_9_20261117T005646_0.jpg": {
+      "sha256": "527af26343ab77e818fd2c3bb4122602af587c2c96b9f34e3de6658e92087043",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2415553,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing near the open door holding her belongings bag, all leads off, turned back toward the camera, angry. She is near the door but not touching it or its handle.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_8/level_8_20261117T005428_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
       },
       "prompt_tokens": 2445,
-      "cost_usd": 0.027,
-      "recorded_at": "2026-10-26T06:05:44+00:00"
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:57:03+00:00"
+    },
+    "scenario_3/composites/level_9/level_9_20261117T005646_1.jpg": {
+      "sha256": "4242520517cfdbcd628e5d98b07a63a6acd6f6c93fe05b9c329fb21cd9f9553d",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2402209,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing near the open door holding her belongings bag, all leads off, turned back toward the camera, angry. She is near the door but not touching it or its handle.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_8/level_8_20261117T005428_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2445,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:57:19+00:00"
+    },
+    "scenario_3/composites/level_9/level_9_20261117T005646_2.jpg": {
+      "sha256": "44da314dff66cf9beaa922fae421ab45a4830c37dcb484f11442a2477b934c92",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2369441,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing near the open door holding her belongings bag, all leads off, turned back toward the camera, angry. She is near the door but not touching it or its handle.\n\nPatient: A 55-year-old white woman, medium build, shoulder-length greying light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_8/level_8_20261117T005428_0.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2445,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T00:57:43+00:00"
+    },
+    "scenario_3/composites/level_9/level_9_20261117T011214_0.jpg": {
+      "sha256": "429ea073d82184782a31c82d5f60ae7e26623db6bf4915281ac677f56660f003",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2358777,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing a step from the open door, clearly closer to it than to the bed, holding her belongings bag, all leads off, turned back toward the camera, angry. She is near the door but not touching it or its handle. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_8/level_8_20261117T010626_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2498,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:12:33+00:00"
+    },
+    "scenario_3/composites/level_9/level_9_20261117T011214_1.jpg": {
+      "sha256": "4d2d2465b82ec21e2667bf4f48d07198d1505f85e160132bafe7238004db3531",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2397993,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing a step from the open door, clearly closer to it than to the bed, holding her belongings bag, all leads off, turned back toward the camera, angry. She is near the door but not touching it or its handle. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_8/level_8_20261117T010626_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2498,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:13:01+00:00"
+    },
+    "scenario_3/composites/level_9/level_9_20261117T011214_2.jpg": {
+      "sha256": "c313c7fbb53697d3efd2e6feb9965beb56b7fbdb6fa612f88aef34540938756e",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 2390469,
+      "model": "gemini-nano-banana-2.1",
+      "resolution_tier": "2K",
+      "aspect_ratio": "4:3",
+      "batch": false,
+      "prompt": "Image 1 is the current scene. Image 2 is the identity reference: the same patient \u2014 keep their face, hair, skin, build and clothing identical to it.\n\nEdit image 1: change only the patient's pose and expression to: Standing a step from the open door, clearly closer to it than to the bed, holding her belongings bag, all leads off, turned back toward the camera, angry. She is near the door but not touching it or its handle. Her face and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in the identity reference.\n\nPatient: A 55-year-old white woman, medium build, a round face with fine lines, shoulder-length dark-blonde hair going grey at the roots, worn loose with a side part, tired eyes, wearing a pale blue patterned hospital gown, a white hospital ID wristband and white grip socks.\n\nKeep the camera, framing, perspective, lighting and every object in the room exactly as in image 1; change only the pixels the patient covers and the soft shadow they cast. Keep the whole patient inside the box from 4% to 96% of the width and 4% to 97% of the height.",
+      "references": {
+        "source": "scenario_3/composites/level_8/level_8_20261117T010626_1.jpg",
+        "anchor": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg"
+      },
+      "prompt_tokens": 2498,
+      "cost_usd": 0.0541,
+      "recorded_at": "2026-11-17T01:13:19+00:00"
     },
     "scenario_3/composites/staff_present/staff_present_20261026T045930_0.jpg": {
       "sha256": "1ffbf0430acef0588eec9efa1d31dd9778ea237e5d21aefcec7970b17e9d5156",
@@ -1001,13 +1373,13 @@
       "recorded_at": "2026-10-26T05:04:54+00:00"
     },
     "scenario_3/layers/patient_0.png": {
-      "sha256": "cc808d893e3e73436f4e07caecf64e052f3b56be72288e296e87e8a79fbf9c60",
+      "sha256": "9b1fbe482cc85dcab82006ce4424a30e20d85e0da2ddbebfae68655980494fc3",
       "size": [
         2400,
         1792
       ],
-      "bytes": 587856,
-      "source": "scenario_3/composites/level_0/level_0_20261026T061052_0.jpg",
+      "bytes": 495093,
+      "source": "scenario_3/composites/level_0/level_0_20261117T005802_0.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1022,16 +1394,16 @@
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:12:21+00:00"
+      "recorded_at": "2026-11-17T01:17:35+00:00"
     },
     "scenario_3/layers/patient_1.png": {
-      "sha256": "b0996342f617b5385dcd87d8ae8a736c48d916412dda2d98ef444a44c335d60b",
+      "sha256": "822f0b89f554218aedcab029b9592441d0faed8121b59418227100843a0d1349",
       "size": [
         2400,
         1792
       ],
-      "bytes": 563237,
-      "source": "scenario_3/composites/level_1/level_1_20261026T060939_0.jpg",
+      "bytes": 502683,
+      "source": "scenario_3/composites/level_1/level_1_20261117T011320_1.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1046,16 +1418,16 @@
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:12:39+00:00"
+      "recorded_at": "2026-11-17T01:18:16+00:00"
     },
     "scenario_3/layers/patient_10.png": {
-      "sha256": "9a9148447a0c0c95f12e70530ab3cd712bb8398c639037d2fea98320bae522be",
+      "sha256": "89882dfad73af0b9d024f1bff1b7e0c6bca008a03a767c92f7c162aba9ce8660",
       "size": [
         2400,
         1792
       ],
-      "bytes": 998722,
-      "source": "scenario_3/composites/level_10/level_10_20261026T060610_2.jpg",
+      "bytes": 904366,
+      "source": "scenario_3/composites/level_10/level_10_20261117T011442_0.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1065,21 +1437,21 @@
         "relight": false,
         "max_hole": 0.002,
         "min_area": 0.0005,
-        "close": 0.02,
+        "close": 0.0,
         "near": 0.03,
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:15:12+00:00"
+      "recorded_at": "2026-11-17T01:23:08+00:00"
     },
     "scenario_3/layers/patient_2.png": {
-      "sha256": "9b5190718860dca5f0102d51c4382029e6d8e52bffa286c46bd91480ced16344",
+      "sha256": "06e02807d86439039ba921e92296d4f40744e4a74f50de9697e29d4e1ef9652b",
       "size": [
         2400,
         1792
       ],
-      "bytes": 585607,
-      "source": "scenario_3/composites/level_2/level_2_20261026T060610_0.jpg",
+      "bytes": 461965,
+      "source": "scenario_3/composites/level_2/level_2_20261117T010945_1.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1094,16 +1466,16 @@
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:12:53+00:00"
+      "recorded_at": "2026-11-17T01:18:51+00:00"
     },
     "scenario_3/layers/patient_3.png": {
-      "sha256": "5714cfa8014637db2a1e5b1e58382b27239c3873e70074d03eb18de8983476f3",
+      "sha256": "49158be001daa11b25735acb08b6d84117aa8f99d8b923b6a2312fcbd04e1645",
       "size": [
         2400,
         1792
       ],
-      "bytes": 463020,
-      "source": "scenario_3/composites/level_3/level_3_20261026T060304_0.jpg",
+      "bytes": 479452,
+      "source": "scenario_3/composites/level_3/level_3_20261117T010818_0.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1118,16 +1490,16 @@
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:13:09+00:00"
+      "recorded_at": "2026-11-17T01:19:38+00:00"
     },
     "scenario_3/layers/patient_4.png": {
-      "sha256": "5422ff6842a03219851363ad5fbc7914f9f36e91aa9c0776c1510e6f52f084b2",
+      "sha256": "1f1420a9bcb86ac8259f265a426f8a3bf64cb6a35d2637466894a8db20d99a92",
       "size": [
         2400,
         1792
       ],
-      "bytes": 444652,
-      "source": "scenario_3/composites/level_4/level_4_20261026T055950_0.jpg",
+      "bytes": 455643,
+      "source": "scenario_3/composites/level_4/level_4_20261117T004855_1.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1142,16 +1514,16 @@
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:13:23+00:00"
+      "recorded_at": "2026-11-17T01:20:09+00:00"
     },
     "scenario_3/layers/patient_5.png": {
-      "sha256": "0dc32757618c4f1b991d54fee0563c0c55e46a97f3b19f4c2619ecf169f7c41a",
+      "sha256": "aa2b6025642b53fb52a1673474e3fbdcfaeab55281e9d14998fc6b84475f23ac",
       "size": [
         2400,
         1792
       ],
-      "bytes": 423758,
-      "source": "scenario_3/composites/level_5/level_5_20261026T055621_0.jpg",
+      "bytes": 453980,
+      "source": "scenario_3/composites/level_5/level_5_20261117T004730_2.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1166,64 +1538,16 @@
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:13:37+00:00"
+      "recorded_at": "2026-11-17T01:20:41+00:00"
     },
     "scenario_3/layers/patient_6.png": {
-      "sha256": "9add75d79a42ac888307d182ed9127bd025c2553f36c8a8fe8b54a4b867b2acf",
+      "sha256": "a5eb8df83ceb0a9abd5430ff159c60a7feac76c32b2b7da961f496eace4261dc",
       "size": [
         2400,
         1792
       ],
-      "bytes": 601757,
-      "source": "scenario_3/composites/level_6/level_6_20261026T055427_2.jpg",
-      "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
-      "matte": "vitmatte",
-      "params": {
-        "threshold": 0.1,
-        "tile": 1024,
-        "shadow": false,
-        "relight": false,
-        "max_hole": 0.002,
-        "min_area": 0.0005,
-        "close": 0.02,
-        "near": 0.03,
-        "erode_px": 6,
-        "dilate_px": 12
-      },
-      "recorded_at": "2026-10-26T05:55:51+00:00"
-    },
-    "scenario_3/layers/patient_7.png": {
-      "sha256": "c4d269dacad0bd97c5ddfce5249bc5dc2cba5acd00e224b0e087889cf77dcadf",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 667629,
-      "source": "scenario_3/composites/level_7/level_7_20261026T055621_2.jpg",
-      "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
-      "matte": "vitmatte",
-      "params": {
-        "threshold": 0.1,
-        "tile": 1024,
-        "shadow": false,
-        "relight": false,
-        "max_hole": 0.002,
-        "min_area": 0.0005,
-        "close": 0.035,
-        "near": 0.03,
-        "erode_px": 6,
-        "dilate_px": 12
-      },
-      "recorded_at": "2026-10-26T06:14:09+00:00"
-    },
-    "scenario_3/layers/patient_8.png": {
-      "sha256": "17cf5aed18ddb306664973b35a5fec0a9e3a0c3eed4c819d62b2820aca3c58a7",
-      "size": [
-        2400,
-        1792
-      ],
-      "bytes": 1090709,
-      "source": "scenario_3/composites/level_8/level_8_20261026T055950_0.jpg",
+      "bytes": 665737,
+      "source": "scenario_3/composites/level_6/level_6_20261117T005003_0.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1233,21 +1557,45 @@
         "relight": false,
         "max_hole": 0.002,
         "min_area": 0.0005,
-        "close": 0.035,
+        "close": 0.03,
         "near": 0.03,
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:14:29+00:00"
+      "recorded_at": "2026-11-17T01:21:01+00:00"
     },
-    "scenario_3/layers/patient_9.png": {
-      "sha256": "668ec218179fc8a1b70ac62db745fb9ab532f20bab9381a12882970e4df35915",
+    "scenario_3/layers/patient_7.png": {
+      "sha256": "9d083974032c72c27c220801529eae883e19055cc8d8593870b20feda9961109",
       "size": [
         2400,
         1792
       ],
-      "bytes": 766054,
-      "source": "scenario_3/composites/level_9/level_9_20261026T060304_0.jpg",
+      "bytes": 805314,
+      "source": "scenario_3/composites/level_7/level_7_20261117T005226_0.jpg",
+      "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
+      "matte": "vitmatte",
+      "params": {
+        "threshold": 0.07,
+        "tile": 1024,
+        "shadow": false,
+        "relight": false,
+        "max_hole": 0.002,
+        "min_area": 0.0005,
+        "close": 0.03,
+        "near": 0.03,
+        "erode_px": 6,
+        "dilate_px": 12
+      },
+      "recorded_at": "2026-11-17T01:21:30+00:00"
+    },
+    "scenario_3/layers/patient_8.png": {
+      "sha256": "e73eb5f961b3f8c691bd9f3f9ee021bed438293085bb0a738a160990ecb8c086",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 1122196,
+      "source": "scenario_3/composites/level_8/level_8_20261117T010626_1.jpg",
       "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
       "matte": "vitmatte",
       "params": {
@@ -1257,12 +1605,36 @@
         "relight": false,
         "max_hole": 0.002,
         "min_area": 0.0005,
-        "close": 0.02,
+        "close": 0.0,
         "near": 0.03,
         "erode_px": 6,
         "dilate_px": 12
       },
-      "recorded_at": "2026-10-26T06:14:48+00:00"
+      "recorded_at": "2026-11-17T01:22:17+00:00"
+    },
+    "scenario_3/layers/patient_9.png": {
+      "sha256": "bd97f02e0142c6590498b32224da48670e2ef29a570924607816bb82b035ec3f",
+      "size": [
+        2400,
+        1792
+      ],
+      "bytes": 641062,
+      "source": "scenario_3/composites/level_9/level_9_20261117T011214_0.jpg",
+      "plate": "scenario_3/plate/plate_20261026T045809_2.jpg",
+      "matte": "vitmatte",
+      "params": {
+        "threshold": 0.1,
+        "tile": 1024,
+        "shadow": false,
+        "relight": false,
+        "max_hole": 0.002,
+        "min_area": 0.0005,
+        "close": 0.0,
+        "near": 0.03,
+        "erode_px": 6,
+        "dilate_px": 12
+      },
+      "recorded_at": "2026-11-17T01:22:44+00:00"
     },
     "scenario_3/layers/staff_present.png": {
       "sha256": "d982bef296eae9acdf6bca6e00f74c7ac7a50bb25d2f3d3925e534f08ac50079",
