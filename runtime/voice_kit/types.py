@@ -20,6 +20,9 @@ class TranscriptMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str  # Transcribed (user) or generated (assistant) text
     timestamp: datetime
+    # How a student turn arrived. The LLM history reads only role/content, so
+    # this is metadata for the host (BRIDGE's session record).
+    source: Literal["voice", "text"] = "voice"
 
 
 class IceServerConfig(BaseModel):

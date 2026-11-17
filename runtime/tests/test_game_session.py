@@ -359,3 +359,51 @@ def test_repeat_keeps_persistent_layer_lit():
     assert session.action_states["Environmental"] is True
     assert session.active_actions() == ["Environmental"]
     assert session.actions_ever_taken == ["Environmental"]
+
+
+# --- end_reason (the session record's vocabulary) -------------------------
+
+
+def test_end_reason_goal():
+    session = a_session()
+    assert session.end_reason is None
+    session.escalation = 0
+    session.check_terminal()
+    assert (session.end_reason, session.reason) == (
+        "goal",
+        "Escalation reduced to goal",
+    )
+
+
+def test_end_reason_max():
+    session = a_session()
+    session.escalation = 10
+    session.check_terminal()
+    assert session.end_reason == "max"
+
+
+def test_end_reason_timeout():
+    session = a_session()
+    session.expire()
+    assert (session.end_reason, session.reason) == ("timeout", "Time limit reached")
+
+
+def test_end_reason_end_action():
+    session = a_ward()
+    session.apply_action(WARD_END["type"])
+    session.check_terminal()
+    assert (session.end_reason, session.reason) == ("end_action", WARD_END["debrief"])
+
+
+def test_expire_after_another_ending_keeps_its_end_reason():
+    session = a_session()
+    session.escalation = 0
+    session.check_terminal()
+    session.expire()
+    assert session.end_reason == "goal"
+
+
+def test_elapsed_is_a_float_from_started_at():
+    session = a_session()
+    session.started_at = time.monotonic() - 12.34
+    assert 12.3 < session.elapsed() < 12.5
