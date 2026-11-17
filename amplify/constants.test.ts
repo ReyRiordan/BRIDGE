@@ -4,6 +4,7 @@ import {
   ALLOWED_ORIGINS,
   API_IMAGE_EXCLUDE,
   API_LAMBDA,
+  API_SECRET_NAMES,
   RUNTIME_NAME_MAX_LENGTH,
   SECRET_NAMES,
   SESSION_SUMMARY_ATTRIBUTES,
@@ -30,6 +31,19 @@ describe('SECRET_NAMES', () => {
 
   test('joins into the comma-separated form SECRETS_FROM_SSM expects', () => {
     expect(SECRET_NAMES.join(',')).not.toContain(' ')
+  })
+})
+
+describe('API_SECRET_NAMES', () => {
+  test('is the results-page password only', () => {
+    expect(API_SECRET_NAMES).toEqual(['BRIDGE_ADMIN_PASSWORD'])
+  })
+
+  test('never overlaps the runtime secrets or the container env', () => {
+    for (const name of API_SECRET_NAMES) {
+      expect(SECRET_NAMES).not.toContain(name)
+      expect(Object.keys(VOICE_CONFIG)).not.toContain(name)
+    }
   })
 })
 

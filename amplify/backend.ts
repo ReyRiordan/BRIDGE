@@ -34,6 +34,7 @@ import {
   ALLOWED_ORIGINS,
   API_IMAGE_EXCLUDE,
   API_LAMBDA,
+  API_SECRET_NAMES,
   SECRET_NAMES,
   SESSION_SUMMARY_ATTRIBUTES,
   SESSIONS_INDEX,
@@ -108,6 +109,10 @@ const apiFn = new DockerImageFunction(stack, 'BridgeApi', {
   environment: {
     ALLOWED_ORIGINS: ALLOWED_ORIGINS.join(','),
     SESSIONS_TABLE: sessionsTable.tableName,
+    // The results-page password, resolved from SSM by voice_kit.config at
+    // cold start (api/admin.py imports it explicitly).
+    SECRETS_FROM_SSM: API_SECRET_NAMES.join(','),
+    SECRETS_SSM_PREFIXES: secretsSsmPrefixes,
   },
   code: DockerImageCode.fromImageAsset('.', {
     file: 'api/Dockerfile.api',
@@ -125,6 +130,17 @@ const apiFn = new DockerImageFunction(stack, 'BridgeApi', {
 // Create (POST /sessions) plus the reads the results page needs. `grant`
 // covers the index ARNs too, which Query on the GSI requires.
 sessionsTable.grant(apiFn, 'dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:Query');
+
+// The API's SSM secrets, scoped to the same prefixes as the runtime's grant in
+// voice-runtime.ts (SecureStrings under the AWS-managed key need no kms grant).
+apiFn.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['ssm:GetParameter'],
+    resources: secretsSsmPrefixes
+      .split(',')
+      .map((prefix) => `arn:aws:ssm:${stack.region}:${stack.account}:parameter${prefix}/*`),
+  }),
+);
 
 const apiFnUrl = apiFn.addFunctionUrl({ authType: FunctionUrlAuthType.NONE });
 
