@@ -14,6 +14,7 @@ export default defineConfig({
       '/voice': 'http://localhost:8000',
       '/scenario': 'http://localhost:8000',
       '/sessions': 'http://localhost:8000',
+      '/admin': 'http://localhost:8000',
     },
   },
   test: {
