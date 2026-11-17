@@ -203,14 +203,14 @@ def a_ward(**kwargs) -> GameSession:
 
 
 def test_a_conditional_action_without_its_key_uses_point_change_without():
-    session = a_ward()  # start 6
+    session = a_ward()  # start 5
     action = session.apply_action("Explain risks in plain language")
     assert action["point_change"] == -1
-    assert session.escalation == 5
+    assert session.escalation == 4
 
 
 def test_a_conditional_action_after_its_key_uses_point_change():
-    session = a_ward()
+    session = a_ward(escalation=6)
     session.apply_action(WARD_KEY)  # -3 -> 3
     action = session.apply_action("Explain risks in plain language")
     assert action["point_change"] == -2
@@ -238,7 +238,7 @@ def test_an_end_simulation_action_fails_the_game_with_its_debrief():
     session = a_ward()
     action = session.apply_action(WARD_END["type"])
     assert action["point_change"] == 0
-    assert session.escalation == 6
+    assert session.escalation == 5
     assert session.status == "active"  # ends on check_terminal, like any other
     assert session.check_terminal() == ("fail", WARD_END["debrief"])
     assert session.status == "fail"
@@ -257,7 +257,7 @@ def test_inactivity_is_due_after_its_window():
     assert session.apply_inactivity() is False
     session.last_helpful_at -= WARD["inactivity"]["seconds"]
     assert session.apply_inactivity() is True
-    assert session.escalation == 7
+    assert session.escalation == 6
     # The window restarts from the charge.
     assert session.apply_inactivity() is False
 
@@ -274,9 +274,9 @@ def test_a_neutral_or_harmful_action_does_not_restart_the_window():
     session = a_ward()
     session.last_helpful_at -= WARD["inactivity"]["seconds"]
     session.apply_action("Generic reassurance")  # 0
-    session.apply_action("Fear-based coercion")  # +2 -> 8
+    session.apply_action("Fear-based coercion")  # +2 -> 7
     assert session.apply_inactivity() is True
-    assert session.escalation == 9
+    assert session.escalation == 8
 
 
 def test_inactivity_is_a_no_op_without_the_block_or_after_the_end():
@@ -288,3 +288,74 @@ def test_inactivity_is_a_no_op_without_the_block_or_after_the_end():
     ended.expire()
     ended.last_helpful_at -= 10_000
     assert ended.apply_inactivity() is False
+
+
+# --- helpful actions count once ---------------------------------------------
+
+WARD_RISKS = "Explain risks in plain language"
+
+
+def test_helpful_action_counts_once():
+    session = a_session()
+    session.apply_action("Verbal Communication")  # -1 -> 4
+    session.apply_action("Verbal Communication")
+    session.apply_action("Verbal Communication")
+    assert session.escalation == 4
+
+
+def test_repeat_returns_zero_and_flag():
+    session = a_session()
+    first = session.apply_action("Verbal Communication")
+    assert (first["point_change"], first["repeat"]) == (-1, False)
+    again = session.apply_action("Verbal Communication")
+    assert (again["point_change"], again["repeat"]) == (0, True)
+
+
+def test_requires_top_up_after_key():
+    session = a_ward(escalation=8)
+    assert session.apply_action(WARD_RISKS)["point_change"] == -1  # 8 -> 7
+    session.apply_action(WARD_KEY)  # -3 -> 4
+    assert session.apply_action(WARD_RISKS)["point_change"] == -1  # top-up -> 3
+    third = session.apply_action(WARD_RISKS)
+    assert (third["point_change"], third["repeat"]) == (0, True)
+    assert session.escalation == 3
+
+
+def test_top_up_is_not_a_repeat():
+    session = a_ward(escalation=8)
+    session.apply_action(WARD_RISKS)
+    session.apply_action(WARD_KEY)
+    assert session.apply_action(WARD_RISKS)["repeat"] is False
+
+
+def test_escalating_action_counts_every_time():
+    session = a_session()
+    first = session.apply_action("Authoritative tone")  # +2 -> 7
+    again = session.apply_action("Authoritative tone")  # +2 -> 9
+    assert (first["point_change"], again["point_change"]) == (2, 2)
+    assert again["repeat"] is False
+    assert session.escalation == 9
+
+
+def test_zero_point_action_is_never_a_repeat():
+    session = a_ward()
+    session.apply_action("Generic reassurance")
+    assert session.apply_action("Generic reassurance")["repeat"] is False
+
+
+def test_repeat_does_not_reset_inactivity_clock():
+    session = a_ward()
+    session.apply_action("Offer control")  # helpful: restarts the window
+    session.last_helpful_at -= WARD["inactivity"]["seconds"]
+    session.apply_action("Offer control")  # repeat: does not
+    assert session.apply_inactivity() is True
+
+
+def test_repeat_keeps_persistent_layer_lit():
+    session = a_session()
+    session.apply_action("Environmental")  # persist: true
+    session.clear_transient_actions()
+    session.apply_action("Environmental")  # repeat
+    assert session.action_states["Environmental"] is True
+    assert session.active_actions() == ["Environmental"]
+    assert session.actions_ever_taken == ["Environmental"]

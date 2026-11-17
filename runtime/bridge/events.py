@@ -55,6 +55,8 @@ class ActionDetected(BaseModel):
     action_type: str
     desc: str
     point_change: int
+    # True when a helpful action was already credited: point_change is then 0.
+    repeat: bool = False
 
 
 class Timer(BaseModel):

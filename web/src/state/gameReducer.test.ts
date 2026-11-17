@@ -69,6 +69,26 @@ describe('wire events', () => {
     })
   })
 
+  it('carries the repeat flag into lastAction, defaulting to false', () => {
+    const playing = gameReducer(loaded(), { type: 'BEGIN' })
+    const detected = {
+      v: 1 as const,
+      type: 'action_detected' as const,
+      action_type: 'Verbal Communication',
+      desc: 'Calm voice',
+      point_change: 0,
+      repeat: true,
+    }
+    const repeat = gameReducer(playing, detected)
+    expect(repeat.lastAction).toMatchObject({ pointChange: 0, repeat: true })
+
+    // A runtime that predates the field sends no `repeat` at all.
+    const { repeat: _omitted, ...legacy } = detected
+    void _omitted
+    const fresh = gameReducer(playing, legacy as unknown as typeof detected)
+    expect(fresh.lastAction?.repeat).toBe(false)
+  })
+
   it('ignores unknown types and non-v1 envelopes, returning the identical state', () => {
     const playing = gameReducer(loaded(), { type: 'BEGIN' })
     for (const event of noisyEvents) {

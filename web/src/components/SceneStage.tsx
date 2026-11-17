@@ -61,6 +61,7 @@ function SceneStage({ scenario, layers, clock, badge, mic }: SceneStageProps) {
           actionType={badge.actionType}
           desc={badge.desc}
           pointChange={badge.pointChange}
+          repeat={badge.repeat}
         />
       )}
     </div>

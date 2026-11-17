@@ -86,3 +86,13 @@ def test_transcript_roles_are_domain_roles():
         TranscriptUpdate(
             role="assistant", content="hi", timestamp="2026-01-01T00:00:00Z"
         )
+
+
+def test_action_detected_repeat_defaults_false_and_serialises():
+    event = ActionDetected(action_type="validate", desc="Validated", point_change=-1)
+    assert event.repeat is False
+    assert event.model_dump()["repeat"] is False
+    repeat = ActionDetected(
+        action_type="validate", desc="Validated", point_change=0, repeat=True
+    )
+    assert game_event.validate_python(repeat.model_dump()).repeat is True

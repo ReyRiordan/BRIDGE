@@ -165,7 +165,7 @@ def test_cancel_timer_is_a_no_op_without_one():
 
 # --- inactivity --------------------------------------------------------------
 
-INACTIVE = load_scenario("scenario_3")  # inactivity: +1 every 120 s, start 6
+INACTIVE = load_scenario("scenario_3")  # inactivity: +1 every 120 s, start 5
 
 
 def test_inactivity_charges_once_per_window_and_publishes_state():
@@ -184,7 +184,7 @@ def test_inactivity_charges_once_per_window_and_publishes_state():
     asyncio.run(run())
     states = [e for e in sent if e["type"] == "state_update"]
     # Due at 120 s and 240 s of silence — two charges, each one state_update.
-    assert [s["escalation"] for s in states] == [7, 8]
+    assert [s["escalation"] for s in states] == [6, 7]
     ticks = [e["elapsed"] for e in sent if e["type"] == "timer"]
     assert sent.index(states[0]) == ticks.index(120) + 1
 
@@ -198,7 +198,7 @@ def test_a_helpful_action_resets_the_inactivity_window():
         async def sleep(seconds):
             await clock(seconds)
             if len(clock.sleeps) == 100:
-                session.apply_action("Offer control")  # -1, helpful -> 5
+                session.apply_action("Offer control")  # -1, helpful -> 4
             if len(clock.sleeps) == 219:
                 session.status = "success"
 
@@ -208,7 +208,7 @@ def test_a_helpful_action_resets_the_inactivity_window():
     # Without the reset a charge would land at 120 s; with it, the next one is
     # due at 220 s — after the run stops.
     assert [e for e in sent if e["type"] == "state_update"] == []
-    assert session.escalation == 5
+    assert session.escalation == 4
 
 
 def test_an_inactivity_charge_to_the_maximum_ends_the_game():

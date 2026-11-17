@@ -68,12 +68,17 @@ export const VOICE_CONFIG: Record<string, string> = {
   // the source of truth for every deployed value.
   STT_PROVIDER: 'transcribe',
 
-  // --- VAD. These pin pipecat's own defaults, so they are a tuning surface,
-  // not a behaviour change. Tune them one at a time — see voice-kit gotcha #19
-  // before lowering VAD_CONFIDENCE or VAD_START_SECS.
+  // --- VAD. All but VAD_STOP_SECS pin pipecat's own defaults, so they are a
+  // tuning surface, not a behaviour change. Tune them one at a time — see
+  // voice-kit gotcha #19 before lowering VAD_CONFIDENCE or VAD_START_SECS.
   VAD_CONFIDENCE: '0.7',
   VAD_START_SECS: '0.2',
-  VAD_STOP_SECS: '0.2',
+  // Silence before a student turn ends. pipecat's 0.2 splits a sentence at any
+  // pause: the patient answers the fragment and the referee scores the halves
+  // separately. 0.8 covers a thinking pause; >= 1.0 makes the patient feel slow
+  // (every reply pays this). Kept under VAD_AUDIO_IDLE_TIMEOUT. If 0.8 is not
+  // enough, the follow-up is pipecat's Smart Turn analyser, not a bigger number.
+  VAD_STOP_SECS: '0.8',
   VAD_MIN_VOLUME: '0.6',
   VAD_SPEECH_ACTIVITY_PERIOD: '0.2',
   VAD_AUDIO_IDLE_TIMEOUT: '1.0',

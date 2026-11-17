@@ -8,7 +8,7 @@ Your goal is to reduce the patient’s frustration using appropriate de-escalati
 
 **De-escalation bar**
 
-Start: 6/10
+Start: 5/10
 
 Goal: 0/10
 
