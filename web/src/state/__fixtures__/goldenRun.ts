@@ -50,12 +50,14 @@ const detected = (
   action_type: string,
   desc: string,
   point_change: number,
+  repeat = false,
 ): GameEvent => ({
   v: 1,
   type: 'action_detected',
   action_type,
   desc,
   point_change,
+  repeat,
 })
 
 const state = (

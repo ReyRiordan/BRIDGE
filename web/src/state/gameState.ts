@@ -35,6 +35,8 @@ export interface LastAction {
   actionType: string
   desc: string
   pointChange: number
+  /** A helpful action already credited this session: `pointChange` is 0. */
+  repeat: boolean
 }
 
 export interface GameOverState {
@@ -164,6 +166,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           actionType: action.action_type,
           desc: action.desc,
           pointChange: action.point_change,
+          // Absent from a runtime that predates the field.
+          repeat: action.repeat ?? false,
         },
       }
     }
