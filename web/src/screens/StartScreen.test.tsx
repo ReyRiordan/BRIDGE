@@ -39,6 +39,11 @@ const byId: Record<string, unknown> = {
 const routes = (url: string) =>
   url === '/scenarios' ? json(SUMMARIES) : json(byId[url])
 
+const SIGNED_IN = {
+  identity: { netid: 'abc123', mode: 'voice' as const },
+  onIdentityChange: () => {},
+}
+
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
@@ -51,7 +56,7 @@ const card = (id: string) =>
 describe('StartScreen', () => {
   it('lists every scenario as a card with its intro thumbnail', async () => {
     stubFetch(routes)
-    render(<StartScreen onLoaded={() => {}} />)
+    render(<StartScreen onLoaded={() => {}} {...SIGNED_IN} />)
     expect(screen.getByText('Loading scenarios…')).toBeDefined()
     await settle()
 
@@ -72,7 +77,7 @@ describe('StartScreen', () => {
   it('fetches the chosen scenario and hands it up', async () => {
     const fetchMock = stubFetch(routes)
     const onLoaded = vi.fn()
-    render(<StartScreen onLoaded={onLoaded} />)
+    render(<StartScreen onLoaded={onLoaded} {...SIGNED_IN} />)
     await settle()
 
     card('scenario_3')?.click()
@@ -85,7 +90,7 @@ describe('StartScreen', () => {
   it('offers Retry when the list fails, and recovers', async () => {
     let up = false
     stubFetch((url) => (up ? routes(url) : fail(503)))
-    render(<StartScreen onLoaded={() => {}} />)
+    render(<StartScreen onLoaded={() => {}} {...SIGNED_IN} />)
     await settle()
 
     expect(screen.getByRole('alert').textContent).toContain('503')
@@ -102,7 +107,7 @@ describe('StartScreen', () => {
       url === '/scenarios' || up ? routes(url) : fail(500),
     )
     const onLoaded = vi.fn()
-    render(<StartScreen onLoaded={onLoaded} />)
+    render(<StartScreen onLoaded={onLoaded} {...SIGNED_IN} />)
     await settle()
 
     card('scenario_3')?.click()
@@ -119,8 +124,36 @@ describe('StartScreen', () => {
 
   it('rejects a list that does not match the contract', async () => {
     stubFetch(() => json([{ id: 'scenario_1' }]))
-    render(<StartScreen onLoaded={() => {}} />)
+    render(<StartScreen onLoaded={() => {}} {...SIGNED_IN} />)
     await settle()
     expect(screen.getByRole('alert').textContent).toContain('did not match')
+  })
+
+  it('disables the picker until the student signs in', async () => {
+    const fetchMock = stubFetch(routes)
+    const onLoaded = vi.fn()
+    render(
+      <StartScreen
+        onLoaded={onLoaded}
+        identity={null}
+        onIdentityChange={() => {}}
+      />,
+    )
+    await settle()
+
+    expect(screen.getByRole('form', { name: 'Sign in' })).toBeDefined()
+    expect(card('scenario_1')?.disabled).toBe(true)
+    card('scenario_1')?.click()
+    await settle()
+    expect(onLoaded).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(1) // the list only
+  })
+
+  it('enables the picker once signed in', async () => {
+    stubFetch(routes)
+    render(<StartScreen onLoaded={() => {}} {...SIGNED_IN} />)
+    await settle()
+    expect(card('scenario_1')?.disabled).toBe(false)
+    expect(screen.getByText(/Signed in as/)).toBeDefined()
   })
 })
