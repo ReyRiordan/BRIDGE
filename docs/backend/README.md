@@ -39,7 +39,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 |---|---|
 | `transcript_update` | `role: "student"\|"patient"`, `content`, `timestamp` |
 | `state_update` | `escalation`, `max`, `active_actions: string[]`, `status` |
-| `action_detected` | `action_type`, `desc`, `point_change` |
+| `action_detected` | `action_type`, `desc`, `point_change`, `repeat` (default `false`) |
 | `timer` | `elapsed`, `limit` |
 | `game_over` | `status: "success"\|"fail"`, `reason` |
 
@@ -75,6 +75,7 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 
 | Key | Where | Effect |
 |---|---|---|
+| **Helpful actions count once** | always on | A helpful (effective delta < 0) action is credited once per session: a repeat emits `action_detected{point_change: 0, repeat: true}`, keeps its layer lit, and does not restart the inactivity clock. `GameSession.credited` keeps the most negative delta paid per type, so a repeat after its `requires` KEY earns the difference (a top-up, `repeat: false`). Escalating and zero-point actions apply every time. |
 | `requires` + `point_change_without` | action | Worth `point_change` once the named KEY action is in `actions_ever_taken`, else `point_change_without`. Within one turn `requires`-free actions apply first, so a KEY said in the same utterance counts. `action_detected.point_change` carries the effective delta. |
 | `ends_simulation` + `debrief` | action (`point_change: 0`) | Ends the game as `fail` with `reason = debrief` on the turn's `check_terminal`, ahead of any success. The referee sees it as `escalates: true`. |
 | `inactivity: {seconds, point_change}` | top level | The timer charges `point_change` every `seconds` without a helpful (effective delta < 0) action, counted from game start; each charge emits `state_update` and can end the game at max. Not an action: never sent to the referee or shown in the checklist. |

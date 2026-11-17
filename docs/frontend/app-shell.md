@@ -33,7 +33,7 @@ with no adapter.
 | Event | Fields touched |
 |---|---|
 | `state_update` | `escalation`, `max`, `activeActions`, `status` |
-| `action_detected` | adds to `actionsTaken`; sets `lastAction` with a fresh `seq` id |
+| `action_detected` | adds to `actionsTaken`; sets `lastAction` (incl. `repeat`, `false` when absent) with a fresh `seq` id. `ActionBadge` toasts it green (helpful), red (escalating), or — on a `repeat` — neutral grey as "`<action>` — already credited" |
 | `transcript_update` | appends a `TranscriptEntry` |
 | `timer` | `timer.elapsed`, `timer.limit` |
 | `game_over` | `gameOver`, once — a second event returns the identical state. **Does not change phase.** |
