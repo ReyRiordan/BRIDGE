@@ -452,3 +452,16 @@ def test_an_end_simulation_action_ends_the_game_with_its_debrief():
         "reason": WARD_END["debrief"],
     }
     assert h.game_over_calls == 1
+
+
+def test_repeat_emits_action_detected_with_repeat_flag():
+    h = Harness(StubLLM(reply_with("Verbal Communication")))
+    h.score("I hear you")
+    first = [e for e in h.sent if e["type"] == "action_detected"]
+    assert (first[0]["point_change"], first[0]["repeat"]) == (-1, False)
+    h.sent.clear()
+
+    sent = h.score("I hear you")
+    assert h.types() == ["transcript_update", "action_detected", "state_update"]
+    assert (sent[1]["point_change"], sent[1]["repeat"]) == (0, True)
+    assert sent[2]["escalation"] == 4  # did not move

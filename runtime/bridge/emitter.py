@@ -62,6 +62,7 @@ class GameEvents:
                 action_type=scenario_action["type"],
                 desc=scenario_action["desc"],
                 point_change=scenario_action["point_change"],
+                repeat=scenario_action.get("repeat", False),
             )
         )
 

@@ -16,6 +16,15 @@ state instead of silently restarting.
 Every bound (start/goal/max escalation, time limit) is read from the scenario
 JSON. No point value is hardcoded here.
 
+One always-on mechanic:
+
+- **Helpful actions count once** — a helpful (negative effective delta) action
+  earns its points the first time it is detected; a repeat is applied as
+  ``point_change: 0, repeat: true``. ``credited`` remembers the most negative
+  delta paid per type, so a repeat after a ``requires`` KEY unlocks a bigger
+  value earns only the difference (a top-up, not a repeat). Escalating and
+  zero-point actions apply every time.
+
 Three optional scenario mechanics live here too:
 
 - **Conditional points** — an action with ``requires: "<KEY type>"`` is worth
@@ -72,6 +81,8 @@ class GameSession:
     last_helpful_at: Optional[float] = None
     # Set by an END SIMULATION action; `check_terminal` turns it into the ending.
     pending_end: Optional[Tuple[str, str]] = None
+    # helpful action type -> the most negative delta credited for it so far.
+    credited: Dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.escalation is None:
@@ -117,14 +128,27 @@ class GameSession:
         """Apply one detected action; return it with its EFFECTIVE point change.
 
         Returns a copy of the scenario action whose ``point_change`` is the delta
-        actually applied (resolved through ``requires``), or None if unknown. The
-        point value comes from the SCENARIO, never from the model — the referee
+        actually applied (resolved through ``requires``, then through what was
+        already credited) plus a ``repeat`` flag, or None if unknown. The point
+        value comes from the SCENARIO, never from the model — the referee
         reports *what* happened, the server decides what it costs.
+
+        A helpful action pays out at most its full value per session: a repeat
+        earns ``min(0, full - credited)`` — the ``requires`` top-up, else 0 and
+        ``repeat: True``. A repeat's delta is 0, so it does not reset the
+        inactivity clock.
         """
         action = self.action_map.get(action_type)
         if action is None:
             return None
         delta = self.effective_point_change(action)
+        repeat = False
+        if delta < 0:
+            seen = action_type in self.credited
+            already = self.credited.get(action_type, 0)
+            self.credited[action_type] = min(already, delta)
+            delta = min(0, delta - already)
+            repeat = seen and delta == 0
         self.escalation = max(0, min(self.max_escalation, self.escalation + delta))
         self.action_states[action_type] = True
         if action_type not in self.actions_ever_taken:
@@ -133,7 +157,7 @@ class GameSession:
             self.last_helpful_at = time.monotonic()
         if action.get("ends_simulation") and self.pending_end is None:
             self.pending_end = (STATUS_FAIL, action.get("debrief") or action["desc"])
-        return {**action, "point_change": delta}
+        return {**action, "point_change": delta, "repeat": repeat}
 
     def effective_point_change(self, action: dict) -> int:
         """``point_change``, or ``point_change_without`` while its KEY is untaken."""

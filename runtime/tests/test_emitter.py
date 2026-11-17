@@ -49,8 +49,16 @@ def test_action_event_carries_the_scenario_desc_and_points():
             # Curly quotes, straight from the utf-8 scenario file.
             "desc": "E.g. “I see this is overwhelming”",
             "point_change": -1,
+            "repeat": False,
         }
     ]
+
+
+def test_action_event_carries_the_repeat_flag():
+    sent = Recorder()
+    action = next(a for a in SCENARIO["actions"] if a["type"] == "Acknowledge distress")
+    GameEvents("s1", sent).action({**action, "point_change": 0, "repeat": True})
+    assert (sent.sent[0]["point_change"], sent.sent[0]["repeat"]) == (0, True)
 
 
 def test_state_event_projects_the_session():

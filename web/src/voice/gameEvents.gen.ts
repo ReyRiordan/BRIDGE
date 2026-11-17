@@ -32,6 +32,7 @@ export interface ActionDetected {
   action_type: string
   desc: string
   point_change: number
+  repeat: boolean
 }
 
 /** Session clock, in seconds. */
