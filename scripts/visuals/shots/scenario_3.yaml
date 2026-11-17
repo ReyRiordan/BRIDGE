@@ -18,9 +18,10 @@ room_prompt: >-
   with the lit hallway visible beyond it. Pale green walls, a whiteboard, grey
   vinyl floor, soft overhead light and a window with daylight on the left.
 patient_description: >-
-  A 55-year-old white woman, medium build, shoulder-length greying
-  light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a
-  white hospital ID wristband and grip socks.
+  A 55-year-old white woman, medium build, a round face with fine lines,
+  shoulder-length dark-blonde hair going grey at the roots, worn loose with a
+  side part, tired eyes, wearing a pale blue patterned hospital gown, a white
+  hospital ID wristband and white grip socks.
 start_level: 5
 max_level: 10
 # The path bed → door spans the room; keep it inside the stage crop.
@@ -56,15 +57,18 @@ frames:
     or two lead wires loose and dangling.
   1: >-
     Reclined in the bed, blanket over her legs, calm and attentive, looking at
-    the camera. A few electrode stickers on her chest, one or two lead wires
+    the camera, a soft, open expression with no frown. A few electrode stickers on her chest, one or two lead wires
     loose and dangling.
   2: >-
-    Reclined in the bed but slightly more upright, blanket over her legs, a
-    neutral listening expression. A few electrode stickers on her chest, one
+    Reclined in the bed but slightly more upright, blanket over her legs,
+    looking straight at the camera with a neutral listening expression,
+    noticeably calmer than before: brow smooth, mouth relaxed. A few electrode stickers on her chest, one
     or two lead wires loose and dangling.
   3: >-
-    Sitting up in the bed, blanket over her legs, brow furrowed, looking at the
-    camera. A few electrode stickers on her chest, one or two lead wires loose
+    Sitting up in the bed, leaning back slightly, blanket over her legs,
+    looking at the camera, noticeably calmer than before: shoulders lowered,
+    only a slight crease between the brows, lips together, wary but
+    listening. A few electrode stickers on her chest, one or two lead wires loose
     and dangling.
   4: >-
     Sitting up straight in the bed, tense, hands still on the blanket, jaw set,
@@ -86,12 +90,16 @@ frames:
   8: >-
     Standing beside the bed, all leads off, the lead wires hanging loose from
     the monitor, stuffing her folded clothes into a clear plastic patient
-    belongings bag, angry and hurried.
+    belongings bag, angry and hurried. Her face and her shoulder-length
+    dark-blonde, grey-rooted hair stay exactly as in the identity reference.
   9: >-
-    Standing near the open door holding her belongings bag, all leads off,
-    turned back toward the camera, angry. She is near the door but not touching
-    it or its handle.
+    Standing a step from the open door, clearly closer to it than to the bed,
+    holding her belongings bag, all leads off, turned back toward the camera,
+    angry. She is near the door but not touching it or its handle. Her face
+    and her shoulder-length dark-blonde, grey-rooted hair stay exactly as in
+    the identity reference.
   10: >-
     Standing right beside the open door, about to walk out, belongings bag in
     hand, all leads off, looking back at the camera defiantly. She is not
-    touching the door or its handle.
+    touching the door or its handle. Her face and her shoulder-length
+    dark-blonde, grey-rooted hair stay exactly as in the identity reference.
