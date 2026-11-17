@@ -132,12 +132,12 @@ function SessionList({
             className={`${input} w-36`}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-ink-muted">
+        <label className="flex min-w-0 max-w-full flex-col gap-1 text-xs text-ink-muted">
           Scenario
           <select
             value={filters.scenario}
             onChange={(e) => set({ scenario: e.target.value })}
-            className={input}
+            className={`${input} w-full sm:w-64`}
           >
             <option value="">All scenarios</option>
             {scenarios.map(([id, title]) => (
@@ -272,7 +272,7 @@ function SessionList({
                     {r.netid}
                   </button>
                 </td>
-                <td className="px-3 py-2.5">{r.scenario_title}</td>
+                <td className="min-w-48 px-3 py-2.5">{r.scenario_title}</td>
                 <td className="px-3 py-2.5">
                   <ModeIcon mode={r.mode} />
                 </td>
