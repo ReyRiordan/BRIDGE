@@ -68,7 +68,7 @@ Silero + `VADProcessor`, built in `runtime/voice_kit/pipeline.py`. Every default
 |---|---|---|
 | `VAD_CONFIDENCE` | `0.7` | Speech-probability threshold. Lower catches quiet speech and invents phantom turns — gotcha #19 |
 | `VAD_START_SECS` | `0.2` | Confirmation window before a turn starts. Lower shortens the window the STT pre-roll has to cover — gotcha #19 |
-| `VAD_STOP_SECS` | `0.2` | Silence before a turn ends. Raise it if the patient interrupts mid-sentence |
+| `VAD_STOP_SECS` | `0.2` | Silence before a turn ends. Raise it if the patient interrupts mid-sentence. BRIDGE deploys `0.8` (`amplify/constants.ts`): at 0.2 a thinking pause splits one sentence into two turns; every reply pays the extra wait |
 | `VAD_MIN_VOLUME` | `0.6` | Minimum normalized frame volume counted as speech |
 | `VAD_SPEECH_ACTIVITY_PERIOD` | `0.2` | Spacing of the speech-activity notifications, which also feed the pipeline's idle backstop |
 | `VAD_AUDIO_IDLE_TIMEOUT` | `1.0` | Force-stop the turn after this much audio silence; `0` disables it |

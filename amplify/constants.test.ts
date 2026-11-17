@@ -138,12 +138,13 @@ describe('VOICE_CONFIG', () => {
     expect(VOICE_CONFIG.IDLE_TIMEOUT_SECS).toBe('180')
   })
 
-  test('VAD knobs are pinned at pipecat defaults', () => {
+  test('VAD knobs are pinned, at pipecat defaults except the end-of-turn wait', () => {
     // Pinned so each tune is an env-only CFN update, not an image rebuild.
-    // These values equal pipecat 1.3.0's own, so pinning changed no behaviour.
+    // All but VAD_STOP_SECS equal pipecat 1.3.0's own.
     expect(VOICE_CONFIG.VAD_CONFIDENCE).toBe('0.7')
     expect(VOICE_CONFIG.VAD_START_SECS).toBe('0.2')
-    expect(VOICE_CONFIG.VAD_STOP_SECS).toBe('0.2')
+    // Long enough that a mid-sentence pause does not end the student's turn.
+    expect(VOICE_CONFIG.VAD_STOP_SECS).toBe('0.8')
     expect(VOICE_CONFIG.VAD_MIN_VOLUME).toBe('0.6')
     expect(VOICE_CONFIG.VAD_SPEECH_ACTIVITY_PERIOD).toBe('0.2')
     expect(VOICE_CONFIG.VAD_AUDIO_IDLE_TIMEOUT).toBe('1.0')
