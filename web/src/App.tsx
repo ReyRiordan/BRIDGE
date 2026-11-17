@@ -14,6 +14,7 @@ import type { Scenario } from './types/scenario'
 import { useVoiceSession } from './voice/useVoiceSession'
 
 /** Friendly copy for the codes the session can surface on the intro screen. */
+// MICROPHONE_PERMISSION_DENIED cannot occur in Text mode: it never asks.
 const ERROR_COPY: Record<string, string> = {
   MICROPHONE_PERMISSION_DENIED:
     'Microphone access is required — allow it in your browser, then try again.',
@@ -97,8 +98,12 @@ function App() {
       {/* The scene stays mounted under the debrief overlay. */}
       <GameScreen
         state={state}
+        mode={voice.mode}
         isAgentSpeaking={voice.isAgentSpeaking}
         isMuted={voice.isMuted}
+        onSendText={voice.sendText}
+        patientMuted={voice.patientMuted}
+        onTogglePatientMuted={() => voice.setPatientMuted(!voice.patientMuted)}
       />
       {outcome && (
         <EndScreen

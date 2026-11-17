@@ -6,11 +6,14 @@ import type { TranscriptEntry } from '../state/useGame'
 interface TranscriptPanelProps {
   transcript: TranscriptEntry[]
   awaitingPatient: boolean
+  /** Shown before the first turn. */
+  emptyHint?: string
 }
 
 function TranscriptPanel({
   transcript,
   awaitingPatient,
+  emptyHint = 'Start speaking to begin the conversation.',
 }: TranscriptPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -31,9 +34,7 @@ function TranscriptPanel({
         className="flex flex-1 flex-col gap-4 overflow-y-auto p-5"
       >
         {transcript.length === 0 && !awaitingPatient && (
-          <p className="text-sm text-ink-muted italic">
-            Start speaking to begin the conversation.
-          </p>
+          <p className="text-sm text-ink-muted italic">{emptyHint}</p>
         )}
         {transcript.map((entry) => (
           <TranscriptMessage key={entry.id} entry={entry} />
