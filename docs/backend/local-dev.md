@@ -51,7 +51,7 @@ npm run dev     # concurrently: web (5173) + api (8000) + rt (8080)
 
 | Script | What it starts |
 |---|---|
-| `dev:web` | `npm --prefix web run dev` — Vite, with a `server.proxy` sending `/voice` and `/scenario` (a prefix, so `/scenarios` too) to :8000 (same-origin, so no CORS on the local path) |
+| `dev:web` | `npm --prefix web run dev` — Vite, with a `server.proxy` sending `/voice`, `/scenario` (a prefix, so `/scenarios` too) and `/sessions` to :8000 (same-origin, so no CORS on the local path) |
 | `dev:api` | `uvicorn api.local:app` on :8000 — `api/local.py` is `api/main.py` with `BRIDGE_LOCAL` set *before* the import |
 | `dev:runtime` | `uvicorn bridge.app:app` on :8080 — the same AgentCore app the container runs, serving `/ping` + `/invocations` |
 | `dev:venv` | The `.venv` guard both backend scripts run first |
@@ -64,7 +64,7 @@ Three details in those commands are load-bearing:
 
 ## What the flag actually changes
 
-`BRIDGE_LOCAL` is one umbrella flag on `VoiceKitSettings` (`runtime/voice_kit/config.py`). It gates the three ICE divergences and nothing else:
+`BRIDGE_LOCAL` is one umbrella flag on `VoiceKitSettings` (`runtime/voice_kit/config.py`). It gates the three ICE divergences below, plus where session records go (see [Session records](#session-records)):
 
 | Divergence | Deployed | `BRIDGE_LOCAL=1` |
 |---|---|---|
@@ -95,6 +95,16 @@ STT_PROVIDER=transcribe (use together); TTS_PROVIDER=polly (use inworld)
 
 (`REFEREE_PROVIDER` is read from `os.environ`: it belongs to `bridge.config`, and `voice_kit` must never import `bridge`.)
 
+## Session records
+
+Under the flag, both processes keep session records as one JSON file per session, under `SESSIONS_LOCAL_DIR` (default `<repo>/.local-data/sessions/`, gitignored). `POST /sessions` writes `<session_id>.json` and the runtime read-modify-writes it as the game runs. Like the Dynamo condition, the runtime skips an id with no file rather than creating one. Inspect a game while it runs:
+
+```bash
+cat .local-data/sessions/<session_id>.json   # status, turns, timeline
+```
+
+`SESSIONS_TABLE` is ignored locally. The schema and write points are in [`README.md`](README.md#session-records).
+
 ## Verifying: the Tier-1 smoke
 
 The transport is verified independently of the browser, by a real aiortc handshake:
@@ -104,7 +114,7 @@ npm run dev                                  # in another terminal
 .venv/bin/python scripts/local_voice_smoke.py
 ```
 
-It asserts `/start` returned no ICE servers, that the answer carries a **non-relay** candidate (proving the filter was skipped), that ICE reaches `connected`, that a v1 game event arrives over the data channel and parses to an *object* (a double-encoded payload leaves audio working while the SPA drops every event — kit gotcha #34), and that `/end` is clean. Non-zero exit on any failure. Not wired into CI — it needs three live processes and the provider keys.
+It gets its session id from `POST /sessions` (as NetID `probe`, so its record lands in `.local-data/sessions/`), then asserts `/start` returned no ICE servers, that the answer carries a **non-relay** candidate (proving the filter was skipped), that ICE reaches `connected`, that a v1 game event arrives over the data channel and parses to an *object* (a double-encoded payload leaves audio working while the SPA drops every event — kit gotcha #34), and that `/end` is clean. Non-zero exit on any failure. Not wired into CI — it needs three live processes and the provider keys.
 
 ### What this smoke can never tell you
 
@@ -118,7 +128,7 @@ It gates on ≥1 `typ relay` candidate and 0 non-relay in the runtime's answer, 
 
 ### Tier 2: a full game in the browser
 
-Open the SPA, pick a scenario, and play, checking the paths tests cannot reach: a turn that clears a transient action, the Restraint instant-fail (scenario_1), an END SIMULATION action showing its debrief and an inactivity charge (scenario_2/3), the timer-expiry fail, and Play Again resetting cleanly (a brand-new `session_id`, a clean board). Kill the runtime process mid-game to check the connection-lost end state. See [`../frontend/voice-integration.md`](../frontend/voice-integration.md) for what each of those exercises.
+Open the SPA, sign in with any NetID (say `test01`), pick a scenario, and play, checking the paths tests cannot reach: a turn that clears a transient action, the Restraint instant-fail (scenario_1), an END SIMULATION action showing its debrief and an inactivity charge (scenario_2/3), the timer-expiry fail, and Play Again resetting cleanly (a brand-new `session_id`, a clean board). Then check `.local-data/sessions/<id>.json`: `active` then the final status, student turns with their actions and points, a timeline, and `t`/`at` on every turn. Kill the runtime process mid-game to check the connection-lost end state. See [`../frontend/voice-integration.md`](../frontend/voice-integration.md) for what each of those exercises.
 
 ## Gotchas
 

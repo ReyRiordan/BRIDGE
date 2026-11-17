@@ -6,7 +6,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 
 | Tree | What it is | Runs on |
 |---|---|---|
-| `api/` | Thin FastAPI control plane: `GET /scenarios` (picker list) + `GET /scenario/{id}` (the whitelisted config; 404 on an unknown id) + the voice signaling router. Every scenario loads at import, so a broken bundle fails the cold start. Deliberately **pipecat-free**. Ships as a container image (`api/Dockerfile.api`) served by uvicorn under the Lambda Web Adapter; the Mangum `handler` is a zip fallback. | Lambda (container image, LWA) |
+| `api/` | Thin FastAPI control plane: `GET /scenarios` (picker list) + `GET /scenario/{id}` (the whitelisted config; 404 on an unknown id) + `POST /sessions` (creates the session record and issues the session id; see [Session records](#session-records)) + the voice signaling router. Every scenario loads at import, so a broken bundle fails the cold start. Deliberately **pipecat-free**. Ships as a container image (`api/Dockerfile.api`) served by uvicorn under the Lambda Web Adapter; the Mangum `handler` is a zip fallback. | Lambda (container image, LWA) |
 | `runtime/voice_kit/` | Vendored voice pipeline kit — control plane (router, config, KVS, errors) + pipeline (pipecat, providers, processors). | Lambda (control-plane half) + container (pipeline half) |
 | `runtime/bridge/` | BRIDGE's own runtime code: the game engine and the wire contract. Container-only. | AgentCore container |
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
@@ -56,7 +56,7 @@ python scripts/gen_event_types.py --check   # verify
 
 ## Game engine (`runtime/bridge/`)
 
-The rules layer that turns the kit's pipeline into the simulation. One `GameSession` per `session_id`, in memory, for the container's life — no database, and no locks (single asyncio loop).
+The rules layer that turns the kit's pipeline into the simulation. One `GameSession` per `session_id`, in memory, for the container's life, with no locks (single asyncio loop). That memory is the only live game state: the session record in DynamoDB is written as the game runs but never read back to resume one.
 
 | Module | Owns |
 |---|---|
@@ -66,10 +66,12 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 | `emitter.py` | `GameEvents` — the v1 envelope helpers; `transcript_event` maps the sink's turns (patient only) |
 | `patient.py` | Patient prompt assembly (template + case file), voice mapping, the per-turn escalation marker — see `prompts.md` |
 | `timer.py` | The 1 Hz clock (which also charges inactivity) and the post-`game_over` grace reaper |
+| `recorder.py` | `SessionRecorder` — turns game events into session-record updates on a bounded per-session queue, drained by a background writer (see [Session records](#session-records)) |
+| `store.py` | The runtime's record backends (pipecat-free): `DynamoSessionTable` (one conditional `UpdateItem`), `FileSessionTable` (local), `NullSessionTable`, and `get_session_table()` |
 | `app.py` | The uvicorn/Docker target: registers every hook and re-exports the kit's app |
 | `events.py` | The frozen v1 wire contract (above) |
 
-**Which scenario.** The SPA mints `session_id = <scenario_id>--<uuid>` and `provide_context` resolves the scenario with `parse_session_id` (split on the first `--`, checked against the allow-list). A missing or unknown prefix raises; there is no fallback scenario. This is a **prototype shortcut**: the kit hands `provide_context` only the session id and `SignalRequest` has no metadata field, so the id is the one channel there is. The cleaner fix is a metadata passthrough in `voice_kit`.
+**Which scenario.** `POST /sessions` issues `session_id = <scenario_id>--<uuid>` (the SPA no longer mints its own) and `provide_context` resolves the scenario with `parse_session_id` (split on the first `--`, checked against the allow-list). A missing or unknown prefix raises; there is no fallback scenario. This is a **prototype shortcut**: the kit hands `provide_context` only the session id and `SignalRequest` has no metadata field, so the id is the one channel there is. The cleaner fix is a metadata passthrough in `voice_kit`.
 
 **Mechanics**, all optional and all read from `scenario.json`:
 
@@ -84,6 +86,55 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 **One turn**, in order: STT → referee (`transcript_update{student}` → `action_detected`×N → `state_update` → `game_over`?) → patient LLM (gated off once the game is over) → TTS → sink (`transcript_update{patient}`). That order is guaranteed by construction — the referee emits directly over the ordered data channel and finishes before the frame reaches the patient LLM, while `timer` ticks interleave freely. The connect-time authoritative `state_update` precedes everything.
 
 **Status vocabulary** is `active | success | fail` — `status` on both `state_update` and `game_over`, and what the SPA switches on. A game ends when escalation reaches the scenario's goal (success), its maximum (fail), or the clock runs out (fail); the reaper then cancels the pipeline after `GAME_GRACE_SECONDS`. The pipeline's own idle backstop is held outside that window — `config.idle_timeout_for()` derives `SessionContext.idle_timeout_seconds` as `time_limit + GAME_GRACE_SECONDS + IDLE_TIMEOUT_MARGIN_SECONDS`, because pipecat cancels the pipeline on idle and one firing mid-game would take the data channel down before `game_over` (`voice-kit/05-gotchas.md` #35).
+
+## Session records
+
+Every case a student plays is one DynamoDB item in `BridgeSessions` (partition key `session_id`), updated as the game runs. The item *is* the record, so one `GetItem` reads a whole session. Sessions are listed from the `by_created` GSI (partition `kind` = `"session"`, sort `created_at`), which projects only the summary attributes (`SESSION_SUMMARY_ATTRIBUTES` in `amplify/constants.ts`).
+
+**Who writes what.**
+
+| Writer | Does | Never |
+|---|---|---|
+| Control plane (`api/sessions.py`) | `POST /sessions {netid, scenario_id, mode}`: normalises the NetID (trim, lowercase, drop `@…`, then `^[a-z]+[0-9]*$` at 2–20 chars), checks the scenario and mode (422 otherwise), mints the id and `PutItem`s the item with `status: started` | — |
+| Runtime (`bridge/recorder.py`) | `UpdateItem` by session id, conditional on `attribute_exists(session_id)` | Create an item, read one, or see the NetID |
+
+The NetID stays in the control plane. The runtime only knows the session id, so personal data stays out of the voice container, its logs, AgentCore session names and signaling. A write for an id the API never issued fails its condition, is logged, and the game carries on. `POST /sessions` is unauthenticated, like the `/voice` endpoints.
+
+**When the runtime writes.** On connect (`status: active`, `started_at`, the bounds, the first timeline point; once per `GameSession`, so a reconnect does not reset it). After each scored student turn, from `RefereeProcessor.score_turn` once its events are out. After each patient turn, from `store_turn`. On each inactivity charge. At game over, from the referee or the timer. On teardown of a still-active session (`abandoned`). That is about two writes per turn.
+
+**Off the hot path.** Each recorder method only builds an update and `put_nowait`s it on a per-session `asyncio.Queue` (bounded at 256), which costs microseconds. A writer task drains it in order and runs boto3 in `asyncio.to_thread`. The recorder fails open, like the referee: a failed or slow write is logged and dropped, and so is an update that overflows the queue. `on_session_end` drains the queue for up to 2 s and then cancels the writer.
+
+**Item schema** (the contract every reader relies on):
+
+```jsonc
+{
+  "session_id": "scenario_3--<uuid>", "kind": "session", "created_at": "ISO",
+  "netid": "abc123", "scenario_id": "scenario_3", "scenario_title": "…",
+  "mode": "voice" | "text", "user_agent": "…",            // header, ≤ 256 chars
+  "status": "started" | "active" | "success" | "fail" | "abandoned",
+  "end_reason": null | "goal" | "max" | "timeout" | "end_action" | "abandoned",
+  "reason": null | "…",                                     // game_over reason / END debrief
+  "start_escalation": 5, "escalation": 5, "max_escalation": 10, "goal": 0,
+  "time_limit_s": 300, "started_at": "ISO", "ended_at": "ISO", "duration_s": 212.4,
+  "updated_at": "ISO",
+  "helpful_count": 0, "escalating_count": 0,                // actions with effective delta < 0 / > 0
+  "turns": [
+    {"role": "student", "t": 12.3, "at": "ISO", "content": "…", "source": "voice",
+     "actions": [{"type": "…", "point_change": -3, "repeat": false}], "escalation_after": 2},
+    {"role": "patient", "t": 15.9, "at": "ISO", "content": "…"}
+  ],
+  "timeline": [{"t": 0, "escalation": 5, "cause": "start"},
+               {"t": 12.3, "escalation": 2, "cause": "turn"}]   // cause: start | turn | inactivity
+}
+```
+
+`t` is seconds since game start (the on-screen clock) and `at` is wall-clock UTC. The gap between a student turn's `t` and the next patient turn's is the response latency. A student turn after the game has ended is still recorded, with `actions: []`. The timeline gets a point only when the escalation changes. `source` comes from `TranscriptMessage.source` (`voice` unless the turn was typed). Only text is stored; audio never is.
+
+**End reasons.** `goal`, `max` and `timeout` are the three game endings. `end_action` is an END SIMULATION action, and `reason` holds its debrief. `abandoned` is a teardown while still active. There is no in-game End button, so there is no "ended early".
+
+**Abandonment is derived on read.** A closed tab fires neither `/end` nor the reaper, so the runtime often never gets to write `abandoned`. Readers must therefore treat an `active` item older than `started_at + time_limit_s + 300 s` as abandoned, and a `started` item older than `created_at + 1 h` as never connected. Because the runtime only writes on events, that derivation is deterministic.
+
+**Stores.** Both sides pick a backend the same way: under `BRIDGE_LOCAL`, a JSON file per session under `SESSIONS_LOCAL_DIR` (default `<repo>/.local-data/sessions`, gitignored; see `local-dev.md`); with `SESSIONS_TABLE` set, DynamoDB; with neither, a no-op (runtime) or in-memory dict (API) for unit tests. `api/session_store.py` also carries `get` and `list_summaries` (all pages of the GSI, newest first) for readers; no endpoint serves them yet. Table, retention and manual deletion: `deployment.md`.
 
 ## Adding a scenario
 

@@ -11,7 +11,7 @@ become one running game. All of it lives in `web/src/voice/useVoiceSession.ts`
 
 | Id | Minted by | Lifetime | Job |
 |---|---|---|---|
-| `session_id` | the browser, `` `${scenarioId}--${crypto.randomUUID()}` `` | one whole game | The domain key in every control-plane path. The control plane treats it as a free-form string; the voice runtime reads the scenario off its `<id>--` prefix (prototype shortcut — the kit passes the runtime nothing else). `begin()` refuses with `NO_SCENARIO` before a scenario is loaded. |
+| `session_id` | `POST /sessions {netid, scenario_id, mode}` (`src/api/sessions.ts`), as `<scenario_id>--<uuid>` | one whole game | The domain key in every control-plane path, and the key of the session record that call creates. The voice runtime reads the scenario off its `<id>--` prefix (prototype shortcut — the kit passes the runtime nothing else) and updates the record by it; the NetID never reaches the runtime. `begin()` refuses with `NO_SCENARIO` before a scenario is loaded and `NO_IDENTITY` before sign-in. |
 | `runtime_session_id` | `POST /voice/{session_id}/start` | one connect attempt | AgentCore container affinity. Every attempt — first connect or retry — takes a fresh one; a stale key pins signaling to a container that may be gone. |
 
 `/start` creates no state, so re-calling it under the same `session_id` is the
@@ -22,7 +22,7 @@ sanctioned way to get a new affinity key.
 ```
 IntroScreen "Begin"
   → requestPermission()            inside the click gesture, or the prompt never shows
-  → session_id = `${scenario.id}--${randomUUID()}`
+  → POST /sessions                 → session_id (and the session record)
   → POST /voice/{id}/start         → runtime_session_id + ice_servers
   → startCall(..., RELAY_ONLY)     RELAY_ONLY from src/config.ts
   → ICE connected                  → dispatch BEGIN → GameScreen
@@ -52,6 +52,7 @@ Bounded on purpose, and asymmetric around `BEGIN`:
 | Pre-`BEGIN`, `ICE_STALL` (the hook's 10 s timeout) | **One** silent retry: re-`POST /start` for a fresh `runtime_session_id`, `startCall` again, still showing "Connecting…". |
 | Pre-`BEGIN`, second `ICE_STALL` | Inline intro error, manual Retry. |
 | Pre-`BEGIN`, any other failure (`CONNECTION_FAILED`, a 502 from `/start`) | No retry — it is server-side, and a second attempt fails the same way. |
+| `POST /sessions` fails | `SESSION_CREATE_FAILED` on the intro screen; `/start` is never called. The student's Begin retry creates a fresh session. |
 | Post-`BEGIN`, any drop | **Zero** automatic retries → `connectionLost`. |
 
 Game state lives in memory on the container. A mid-game reconnect that lands on
