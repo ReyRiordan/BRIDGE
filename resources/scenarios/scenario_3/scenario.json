@@ -6,12 +6,12 @@
     "patient_frame_ext": "webp",
     "speech": {
         "provider": "inworld",
-        "voice": "Calvin",
+        "voice": "community-wcnfpq1cmfky",
         "model": "inworld-tts-2-flash",
         "speed": 1.2
     },
-    "intro": "You are on the internal medicine service. Your next patient is a 47-year-old man admitted overnight for evaluation of a suspected gastrointestinal bleed after presenting with melena and symptomatic anemia. He is awaiting repeat labs and a possible endoscopy later today. The nurse stops you outside the room and tells you the patient has become increasingly frustrated with the hospitalization, has started removing his monitoring leads, and says he needs to leave to get to work. When she explained that leaving could be dangerous, he raised his voice and told her that no one can keep him here. A tech and a second nurse are still in the room after trying to reattach his leads.",
-    "goal": "Your goal is to reduce the patient’s frustration using appropriate de-escalation strategies, ensure he understands the risks of leaving, and work toward a plan that protects his safety while respecting his autonomy.",
+    "intro": "You are on the internal medicine service. Your next patient is a 55-year-old woman admitted overnight for evaluation of a suspected gastrointestinal bleed after presenting with melena and symptomatic anemia. She is awaiting repeat labs and a possible endoscopy later today. The nurse stops you outside the room and tells you the patient has become increasingly frustrated with the hospitalization, has started removing her monitoring leads, and says she needs to leave to get to work. When she explained that leaving could be dangerous, the patient raised her voice and told her that no one can keep her here. A tech and a second nurse are still in the room after trying to reattach her leads.",
+    "goal": "Your goal is to reduce the patient’s frustration using appropriate de-escalation strategies, ensure she understands the risks of leaving, and work toward a plan that protects her safety while respecting her autonomy.",
     "time_limit": 300,
     "point_bar": {
         "max": 10,
@@ -25,7 +25,7 @@
     "actions": [
         {
             "type": "Acknowledge autonomy and outside pressures",
-            "desc": "Recognize that he has responsibilities outside the hospital and state plainly that the decision is ultimately his",
+            "desc": "Recognize that she has responsibilities outside the hospital and state plainly that the decision is ultimately hers",
             "point_change": -3,
             "inactive": "staff_present.webp",
             "active": null,
@@ -34,7 +34,7 @@
         },
         {
             "type": "Explore the specific barrier",
-            "desc": "Ask what is waiting for him at work, whether anyone can be called, and what he is most worried about missing",
+            "desc": "Ask what is waiting for her at work, whether anyone can be called, and what she is most worried about missing",
             "point_change": -2,
             "requires": "Acknowledge autonomy and outside pressures",
             "point_change_without": -1,
@@ -45,7 +45,7 @@
         },
         {
             "type": "Explain risks in plain language",
-            "desc": "Describe what an active GI bleed can do, using concrete and non-threatening terms, and check his understanding",
+            "desc": "Describe what an active GI bleed can do, using concrete and non-threatening terms, and check her understanding",
             "point_change": -2,
             "requires": "Acknowledge autonomy and outside pressures",
             "point_change_without": -1,
@@ -56,7 +56,7 @@
         },
         {
             "type": "Collaborative problem-solving",
-            "desc": "Offer concrete options such as expediting labs, contacting the endoscopy team for a time estimate, or arranging a call to his employer",
+            "desc": "Offer concrete options such as expediting labs, contacting the endoscopy team for a time estimate, or arranging a call to her employer",
             "point_change": -2,
             "requires": "Acknowledge autonomy and outside pressures",
             "point_change_without": -1,
@@ -85,7 +85,7 @@
         },
         {
             "type": "Calm verbal communication",
-            "desc": "Sit down, maintain open posture, let him finish speaking without interruption",
+            "desc": "Sit down, maintain open posture, let her finish speaking without interruption",
             "point_change": -1,
             "inactive": null,
             "active": null,
@@ -112,7 +112,7 @@
         },
         {
             "type": "Restate hospital policy",
-            "desc": "Explain visiting rules, discharge procedures, or unit routines without addressing his concern",
+            "desc": "Explain visiting rules, discharge procedures, or unit routines without addressing her concern",
             "point_change": 0,
             "inactive": null,
             "active": null,
@@ -120,7 +120,7 @@
             "layer": null
         },
         {
-            "type": "Tell the patient he cannot leave",
+            "type": "Tell the patient she cannot leave",
             "desc": "Statements such as “You’re not allowed to leave” or “I can’t let you go”",
             "point_change": 3,
             "inactive": null,
@@ -130,7 +130,7 @@
         },
         {
             "type": "Weaponize AMA paperwork",
-            "desc": "Threaten that leaving AMA means his insurance will not cover the stay or that he will not be allowed back",
+            "desc": "Threaten that leaving AMA means her insurance will not cover the stay or that she will not be allowed back",
             "point_change": 3,
             "inactive": null,
             "active": null,
@@ -178,7 +178,7 @@
             "desc": "Call security, block the doorway, or attempt restraint on a patient with intact capacity who is verbally frustrated",
             "point_change": 0,
             "ends_simulation": true,
-            "debrief": "You moved to keep the patient from leaving by force. A patient with decision-making capacity has the right to leave, even against medical advice, and coercion is not an appropriate substitute for an informed discussion of the risks. The clinical goal is an informed decision — that he understands what an untreated GI bleed can do and what options exist for staying — not a prevented departure.",
+            "debrief": "You moved to keep the patient from leaving by force. A patient with decision-making capacity has the right to leave, even against medical advice, and coercion is not an appropriate substitute for an informed discussion of the risks. The clinical goal is an informed decision — that she understands what an untreated GI bleed can do and what options exist for staying — not a prevented departure.",
             "inactive": null,
             "active": null,
             "persist": false,

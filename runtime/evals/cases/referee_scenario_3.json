@@ -104,11 +104,11 @@
     ]
   },
   {
-    "name": "anchor: tell him he cannot leave",
+    "name": "anchor: tell her she cannot leave",
     "utterance": "I'm sorry, I can't let you go right now.",
     "escalation": 7,
     "expected": [
-      "Tell the patient he cannot leave"
+      "Tell the patient she cannot leave"
     ]
   },
   {
@@ -149,7 +149,7 @@
     "escalation": 8,
     "expected": [
       "Authoritative or confrontational tone",
-      "Tell the patient he cannot leave"
+      "Tell the patient she cannot leave"
     ]
   },
   {

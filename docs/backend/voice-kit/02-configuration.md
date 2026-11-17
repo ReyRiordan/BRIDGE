@@ -82,7 +82,7 @@ Tune one value at a time and listen to a real session — these interact.
 | Env var | Consumer | Default | Notes |
 |---|---|---|---|
 | `TTS_PROVIDER` | runtime | `polly` | `polly` \| `inworld` — used by the *default* context provider; your own provider can choose per session via `VoiceConfig` |
-| `TTS_VOICE` | runtime | `Ruth` | Polly voice ID, or Inworld voice (e.g. `Ashley`) |
+| `TTS_VOICE` | runtime | `Ruth` | Polly voice ID, or Inworld voice: a built-in name (e.g. `Ashley`) or a community voice id (e.g. `community-wcnfpq1cmfky`), passed through unchanged |
 | `TTS_MODEL` | runtime | — | Inworld only (e.g. `inworld-tts-1.5-mini`) |
 | `INWORLD_API_KEY` | runtime | — | Required when `inworld` (raises at construction if unset) |
 

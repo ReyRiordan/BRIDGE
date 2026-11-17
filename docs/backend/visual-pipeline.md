@@ -191,7 +191,7 @@ Shot lists live at `scripts/visuals/shots/<id>.yaml`. The required fields are `r
 
 ## Lessons from the first run
 
-What held up, and what had to change, producing `scenario_2` and `scenario_3`:
+What held up, and what had to change, producing `scenario_2` and `scenario_3` (and recasting the `scenario_3` patient):
 
 - **Plates.**
   - Say "the room's only door" and pin its position and clearance from the workstation. Otherwise the model adds a second door at the frame edge or hides the door behind the monitor.
@@ -203,11 +203,13 @@ What held up, and what had to change, producing `scenario_2` and `scenario_3`:
 - **Layers must not touch each other's changed regions.** Staff standing at the open door leaf picked up a redrawn strip of it, which ghosted over `door_closed`. Place third parties clear of anything another layer changes.
 - **Pin the lighting in prop prompts.** "Close the curtain" alone relit the whole room darker. Adding "lighting and exposure stay exactly as they are" fixed it.
 - **Expression carries along the chain.** Each frame is edited from its neighbour, so a level asking for "a slight frown" came back as tense as the next one. Write the step down explicitly ("noticeably calmer than before"), and say "looking at the camera" in every seated frame.
-- **Identity** held across both chains with the anchor attached. Faces drift slightly but stay recognisable, and outfit, build and hair stayed fixed.
+- **Identity** mostly holds with the anchor attached: outfit and build stay fixed. Hair colour and face can drift over several steps of a long branch. A light, greying hair description drifted to near-platinum three levels from the anchor. Name the hair concretely in `patient_description` (colour, length, part, grey roots), and in late-branch frames repeat "her face and hair stay exactly as in the identity reference".
+- **Recasting a patient.** Keep the plate and the action layers if they contain no patient. Copy the old frame candidates and patient layers to `_archive/<id>_<label>/` in the bucket (outside every `pull` prefix), save their manifest entries alongside, then delete them from the bucket and the manifest. `chain` treats any existing candidate under a level as awaiting review, so old candidates would block regeneration.
+- **The GPT image bridge** (Codex `image_generation`, outside the pipeline) was tried side by side on the late frames. It kept the room as well as Gemini did: after alignment, its diff stayed on the patient, the bed and the floor reflection. But it returns about 1448×1086, well under the 2K master, so Gemini candidates were preferred when both were usable.
 - **Thresholds used:**
   - `scenario_2` patient frames: defaults.
   - `monitor_turned`: `--relight`.
-  - `scenario_3` patient frames: `--no-shadow --near 0.03`, plus `--close 0.02`–`0.035` where legs cross the under-bed shadow (levels 6–10), and `--threshold 0.07` at level 8.
+  - `scenario_3` patient frames: `--no-shadow --near 0.03`. Levels 6–7 (legs over the under-bed shadow) also take `--close 0.03 --threshold 0.07`; without them a lower leg drops out.
   - `staff_present`: `--threshold 0.05 --no-shadow`.
   - `door_closed`: `--relight --threshold 0.05 --max-hole 0.02`.
 - **Review tooling that paid off:**

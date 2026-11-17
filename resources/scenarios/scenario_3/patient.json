@@ -1,19 +1,19 @@
 {
     "demographics": {
-        "name": "Marcus",
-        "date_of_birth": "1979-06-08",
-        "sex": "male",
-        "gender": "male",
-        "background": "47yo man, works shifts at a warehouse, worried about losing his job"
+        "name": "Diane",
+        "date_of_birth": "1971-04-17",
+        "sex": "female",
+        "gender": "female",
+        "background": "55yo home health aide; her elderly clients depend on her morning visits and she cannot afford to lose shifts"
     },
-    "behavior": "Frustrated with the hospitalization and pressed for time; has been pulling off his monitoring leads. Has decision-making capacity. Settles when his autonomy and outside pressures are acknowledged and he is given a concrete plan and timeline.",
+    "behavior": "Frustrated with the hospitalization and pressed for time; has been pulling off her monitoring leads. Has decision-making capacity. Settles when her autonomy and outside pressures are acknowledged and she is given a concrete plan and timeline.",
     "chief_concern": "Admitted overnight for a suspected gastrointestinal bleed (melena, symptomatic anemia); awaiting repeat labs and a possible endoscopy",
     "free_information": [
         "Was admitted overnight for a possible bleed",
         "Is waiting on more blood tests and maybe a scope later today",
-        "Needs to get to work and is afraid of losing his job",
+        "Needs to get to her morning client visits and is afraid of losing her job",
         "Has been pulling off the monitor leads",
-        "Feels like everyone keeps telling him he cannot leave"
+        "Feels like everyone keeps telling her she cannot leave"
     ],
     "locked_information": [
         "Black, tarry stools for two days",
