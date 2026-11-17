@@ -1,6 +1,6 @@
 """
 Control-plane Lambda entry point: `/health`, `/scenarios` + `/scenario/{id}`,
-`POST /sessions`, and the voice_kit signaling router — the thin, pipecat-free half of the BRIDGE
+`POST /sessions`, the password-gated `/admin/*` results API, and the voice_kit signaling router — the thin, pipecat-free half of the BRIDGE
 backend.
 
 Production serves this app with uvicorn under the AWS Lambda Web Adapter
@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from voice_kit import create_voice_router, register_exception_handlers
 
-from api import scenario, sessions
+from api import admin, scenario, sessions
 
 
 def allowed_origins() -> list[str]:
@@ -55,6 +55,7 @@ register_exception_handlers(app)
 
 app.include_router(scenario.router)
 app.include_router(sessions.router)
+app.include_router(admin.router)
 # No on_start/on_end: game state lives in the runtime container (which also
 # writes the session record), and transcripts stream to the browser live over
 # the data channel, so /end returns transcript: [].

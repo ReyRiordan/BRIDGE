@@ -22,6 +22,14 @@ export const SECRET_NAMES = [
 ];
 
 /**
+ * Secrets the control-plane API Lambda resolves from SSM at cold start, through
+ * the same `SECRETS_FROM_SSM` mechanism and prefixes as the runtime.
+ * `BRIDGE_ADMIN_PASSWORD` is the one shared password for the results page
+ * (`api/admin.py`); rotating it is an SSM update plus a cold start.
+ */
+export const API_SECRET_NAMES = ['BRIDGE_ADMIN_PASSWORD'];
+
+/**
  * Single source of truth for the voice runtime's container env. All values must
  * be strings — they become container environment variables verbatim.
  *
