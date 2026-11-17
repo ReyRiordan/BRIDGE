@@ -7,8 +7,8 @@ The browser half of the voice pipeline: the vendored files in `web/src/voice/`. 
 | `webrtc.types.ts` | All types (call state, errors, API request/response shapes) |
 | `voiceConfig.ts` | `WEBRTC_CONFIG` (mic constraints, 16 kHz) + `SESSION_TIME_LIMIT_MINUTES` |
 | `voiceApi.ts` | The three control-plane calls, transport-injected |
-| `webrtc.service.ts` | Singleton service: peer connection, relay-only ICE, non-trickle offer, data-channel game events, remote-audio analysis |
-| `useWebRTC.ts` | React hook: call lifecycle, ICE-stall detection, anti-echo auto-mute |
+| `webrtc.service.ts` | Singleton service: peer connection, relay-only ICE, non-trickle offer, data-channel game events (and typed turns back), remote-audio analysis, patient mute |
+| `useWebRTC.ts` | React hook: call lifecycle, ICE-stall detection, anti-echo auto-mute, `sendText`, patient mute |
 | `useVoiceSession.ts` | **BRIDGE's own**: session lifecycle — ids, connect + retry policy, end settle, drop handling |
 | `gameEvents.ts` | `createGameEventHandler(dispatch)` — the data channel → reducer seam |
 | `gameEvents.gen.ts` | **Generated** — the v1 data-channel event envelope (see below) |
@@ -117,15 +117,24 @@ await startCall(sessionId, runtime_session_id, ice_servers, RELAY_ONLY)
 
 Never infer this from `import.meta.env.DEV`: `vite dev` against the deployed backend is a normal workflow, and handing that session host candidates hides the TURN-only reality until after deploy. Locally the SPA also reaches the control plane **same-origin**, through the Vite `server.proxy` for `/voice` and `/scenario*` — so no CORS is involved and the resolved API base stays empty. See [`../backend/local-dev.md`](../backend/local-dev.md).
 
+## Text mode: receive-only audio, typed turns, mute
+
+`initializeConnection` / `startCall` take a final `sendAudio` argument (default `true`). Text mode passes `false`:
+
+- **No mic.** `getUserMedia` is never called, so there is no permission prompt and nothing is picked up in a public room.
+- **Receive-only audio.** Instead of `addTrack`, the service adds `addTransceiver('audio', {direction: 'recvonly'})`. The server still sends the patient's voice, and the offer keeps a valid audio section, so the relay path and the runtime's `TransportParams` are the same as in Voice mode. The runtime logs one harmless `_receive_audio` error per such connection (`../backend/voice-kit/05-gotchas.md` #39).
+- **Typed turns go back over the data channel.** The service keeps the channel on `this.dataChannel`. `sendAppMessage(payload)` sends JSON and returns `false` when the channel is missing or not open. `useWebRTC().sendText(content)` builds the generated `StudentText` (`{v: 1, type: 'student_text', content}`) and sends it. The runtime enters it into the pipeline where STT output would be (`../backend/README.md`).
+- **Patient mute.** `setRemoteAudioMuted(muted)` sets `muted` on the remote `<audio>` element. The flag survives `ontrack` re-creating the element and is reset on `closeConnection`. Only playback is muted: the speech analyser reads the MediaStream, so `isAgentSpeaking` (and with it the end settle) keeps working. The hook exposes it as `patientMuted` / `setPatientMuted`, and `endCall` resets it.
+
 ## Behavior notes
 
-- **Anti-echo auto-mute**: the hook mutes the mic while `isAgentSpeaking` (detected via an `AnalyserNode` on the remote stream, debounced 500 ms — not `audio.onplay`, which fires at connection time). Without this, speaker output re-triggers the server-side VAD.
+- **Anti-echo auto-mute** (Voice mode; a no-op without a local stream): the hook mutes the mic while `isAgentSpeaking` (detected via an `AnalyserNode` on the remote stream, debounced 500 ms — not `audio.onplay`, which fires at connection time). Without this, speaker output re-triggers the server-side VAD.
 - **Timer**: the runtime is authoritative — drive the countdown from the `timer` game event. `SESSION_TIME_LIMIT_MINUTES` (`voiceConfig.ts`) must stay aligned with the backend's `SESSION_TIME_LIMIT_MINUTES` — a separate knob from the runtime's `IDLE_TIMEOUT_SECS` self-termination backstop.
 - The service is a singleton — one active call per tab.
 
 ## Game events (generated types)
 
-Everything BRIDGE pushes over the data channel is a `GameEvent` from `gameEvents.gen.ts`: `transcript_update`, `state_update`, `action_detected`, `timer`, `game_over`, each stamped `v: 1` and discriminated on `type`.
+Everything BRIDGE pushes over the data channel is a `GameEvent` from `gameEvents.gen.ts`: `transcript_update`, `state_update`, `action_detected`, `timer`, `game_over`, each stamped `v: 1` and discriminated on `type`. The same file carries the one inbound message, `StudentText`, which is outside the `GameEvent` union.
 
 **The channel carries the v1 envelope only** — `transcript_update` uses roles `student`/`patient`, never the kit's `user`/`assistant`.
 

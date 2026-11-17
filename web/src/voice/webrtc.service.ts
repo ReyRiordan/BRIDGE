@@ -54,6 +54,10 @@ class WebRTCServiceClass implements WebRTCService {
   private animationFrameId: number | null = null
   private remoteAudio: HTMLAudioElement | null = null
   private silenceTimer: ReturnType<typeof setTimeout> | null = null
+  /** Kept so `sendAppMessage` can reach the runtime (Text mode's typed turns). */
+  private dataChannel: RTCDataChannel | null = null
+  /** Survives `ontrack` re-creating the element, so a mute set early sticks. */
+  private remoteAudioMuted = false
 
   /** Fired when remote (agent) audio starts/stops playing. */
   onRemoteAudioStateChange: ((playing: boolean) => void) | null = null
@@ -108,16 +112,21 @@ class WebRTCServiceClass implements WebRTCService {
    *   needs its own TURN allocation — the runtime's candidates are not reusable).
    * @param relayOnly - defaults to true. False only for local dev (loopback
    *   host candidates, no TURN); never for a deployed backend.
+   * @param sendAudio - defaults to true. False for Text mode: the mic is never
+   *   requested, and a `recvonly` audio transceiver keeps the patient's audio
+   *   flowing back and the SDP's audio section valid.
    */
   async initializeConnection(
     sessionId: string,
     runtimeSessionId: string,
     iceServers?: IceServerConfig[],
     relayOnly: boolean = true,
+    sendAudio: boolean = true,
   ): Promise<void> {
     try {
-      // Ensure we have microphone access
-      if (!this.localStream) {
+      // Ensure we have microphone access (Voice mode only: Text mode must
+      // never trigger a permission prompt).
+      if (sendAudio && !this.localStream) {
         await this.requestMicrophonePermission()
       }
 
@@ -147,17 +156,24 @@ class WebRTCServiceClass implements WebRTCService {
         iceTransportPolicy: relayOnly ? 'relay' : 'all',
       })
 
-      // Add local audio track
-      if (this.localStream) {
-        this.localStream.getTracks().forEach((track) => {
-          this.peerConnection?.addTrack(track, this.localStream!)
-        })
+      if (sendAudio) {
+        // Add local audio track
+        if (this.localStream) {
+          this.localStream.getTracks().forEach((track) => {
+            this.peerConnection?.addTrack(track, this.localStream!)
+          })
+        }
+      } else {
+        // Receive-only: the runtime still sends the patient's voice.
+        this.peerConnection.addTransceiver('audio', { direction: 'recvonly' })
       }
 
       // Data channel carries the v1 game events (and triggers the runtime's
-      // pipeline, which blocks on the channel being established).
+      // pipeline, which blocks on the channel being established), and the
+      // typed turns going the other way.
       const dataChannel = this.peerConnection.createDataChannel('data')
       dataChannel.onmessage = (event) => this.handleDataChannelMessage(event)
+      this.dataChannel = dataChannel
 
       // Handle incoming audio tracks from the agent
       this.peerConnection.ontrack = (event) => {
@@ -170,6 +186,7 @@ class WebRTCServiceClass implements WebRTCService {
         if (!this.remoteAudio) {
           this.remoteAudio = new Audio()
         }
+        this.remoteAudio.muted = this.remoteAudioMuted
         this.remoteAudio.srcObject = event.streams[0]
         this.remoteAudio.play().catch((error) => {
           console.error('Failed to play audio:', error)
@@ -319,6 +336,31 @@ class WebRTCServiceClass implements WebRTCService {
   }
 
   /**
+   * Send one JSON message to the runtime over the data channel.
+   * @returns false when the channel is missing or not open (nothing is sent)
+   */
+  sendAppMessage(payload: object): boolean {
+    const channel = this.dataChannel
+    if (!channel || channel.readyState !== 'open') return false
+    try {
+      channel.send(JSON.stringify(payload))
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Silence (or restore) the patient's audio playback. Only the element is
+   * muted: the speech analyser reads the MediaStream, so `isAgentSpeaking`
+   * keeps working while muted.
+   */
+  setRemoteAudioMuted(muted: boolean): void {
+    this.remoteAudioMuted = muted
+    if (this.remoteAudio) this.remoteAudio.muted = muted
+  }
+
+  /**
    * Cancel the remote audio-level analysis loop and its silence-debounce timer.
    * The timer would otherwise fire up to REMOTE_SILENCE_DEBOUNCE_MS after
    * teardown, invoking onRemoteAudioStateChange on a re-mounted hook.
@@ -362,6 +404,10 @@ class WebRTCServiceClass implements WebRTCService {
       this.localStream.getTracks().forEach((track) => track.stop())
       this.localStream = null
     }
+
+    this.dataChannel = null
+    // A new call starts audible; the hook resets its own flag alongside.
+    this.remoteAudioMuted = false
 
     // Close peer connection
     if (this.peerConnection) {

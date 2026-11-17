@@ -47,8 +47,32 @@ is wrapped in try/catch, so blocked storage only means signing in again.
 While `identity === null` every picker card is `disabled`.
 
 The identity goes no further than `useVoiceSession`, which sends it to
-`POST /sessions` on Begin (`voice-integration.md`). The mode is only recorded
-for now: text mode still connects voice and asks for the mic.
+`POST /sessions` on Begin (`voice-integration.md`). The mode decides how the
+student talks: Voice uses the mic, and Text never asks for it (see
+[Text mode](#text-mode)).
+
+## Text mode
+
+`App` passes `voice.mode` to `GameScreen`. In Text mode the screen swaps the
+mic-specific UI for two controls:
+
+- **`TextComposer`** sits under the transcript (the transcript keeps filling
+  the column). Enter sends, Shift+Enter adds a newline, input is capped at
+  1000 characters (the runtime's limit) with a counter in the last 100, and
+  empty input is blocked. A failed send (`onSend` returns `false`, channel not
+  open) keeps the draft and says "Not sent". The transcript's empty hint reads
+  "Type below…".
+- **`PatientMuteToggle`** replaces `MicStatus` in the scene's top-left corner
+  (`SceneStage`'s `corner` slot). The patient still speaks every reply; mute
+  only silences playback, and the replies are in the transcript either way.
+
+**One message in flight.** `GameScreen` owns `awaitingReply`. A successful send
+records how many patient turns the transcript holds, and the composer stays
+disabled until that count changes, `gameOver` is set, or
+`AWAITING_REPLY_FALLBACK_MS` (15 s) passes. The fallback covers a referee
+timeout or a turn with no reply. Deriving it from the transcript means no
+event can be missed. Focus returns to the box when it re-enables. Typed turns
+use the same time limit and rules as spoken ones.
 
 ## Reducer contract
 

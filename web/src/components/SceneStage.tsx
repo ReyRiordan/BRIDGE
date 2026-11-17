@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import ActionBadge from './ActionBadge'
 import MicStatus from './MicStatus'
 import SceneLayer from './SceneLayer'
@@ -17,8 +17,13 @@ interface SceneStageProps {
   layers: SceneLayerView[]
   clock: ClockView
   badge: LastAction | null
-  /** Mic pill state — the auto-mute is otherwise invisible to the student. */
-  mic: { agentSpeaking: boolean; muted: boolean }
+  /**
+   * Mic pill state — the auto-mute is otherwise invisible to the student.
+   * Voice mode only; Text mode passes `corner` instead.
+   */
+  mic?: { agentSpeaking: boolean; muted: boolean }
+  /** Replaces the mic pill in the top-left corner (Text mode's mute toggle). */
+  corner?: ReactNode
 }
 
 /**
@@ -29,7 +34,14 @@ interface SceneStageProps {
  * column resized; pinning one aspect on the container and absolutely filling it
  * with every layer makes drift impossible.
  */
-function SceneStage({ scenario, layers, clock, badge, mic }: SceneStageProps) {
+function SceneStage({
+  scenario,
+  layers,
+  clock,
+  badge,
+  mic,
+  corner,
+}: SceneStageProps) {
   // Warm every patient frame once per scenario, so escalation changes
   // cross-fade instead of popping in after a network round trip mid-turn.
   useEffect(() => {
@@ -52,7 +64,10 @@ function SceneStage({ scenario, layers, clock, badge, mic }: SceneStageProps) {
       ))}
 
       <TimerPill text={clock.text} urgent={clock.urgent} />
-      <MicStatus agentSpeaking={mic.agentSpeaking} muted={mic.muted} />
+      {corner ??
+        (mic && (
+          <MicStatus agentSpeaking={mic.agentSpeaking} muted={mic.muted} />
+        ))}
 
       {badge && (
         // Keyed by id: back-to-back detections remount and re-pop.

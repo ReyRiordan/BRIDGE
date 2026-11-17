@@ -5,8 +5,8 @@
  *
  * No jest-dom: assertions use textContent / className / getAttribute.
  */
-import { act, cleanup, render, screen } from '@testing-library/react'
-import GameScreen from './GameScreen'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import GameScreen, { AWAITING_REPLY_FALLBACK_MS } from './GameScreen'
 import {
   foldTo,
   successRun,
@@ -202,5 +202,95 @@ describe('mic status', () => {
     )
     expect(pill()?.getAttribute('data-mic')).toBe('muted')
     expect(pill()?.textContent).toContain('Patient speaking')
+  })
+})
+
+describe('text mode', () => {
+  const box = () => screen.getByLabelText('Your message') as HTMLTextAreaElement
+  const typeAndSend = (value: string) => {
+    fireEvent.change(box(), { target: { value } })
+    fireEvent.keyDown(box(), { key: 'Enter' })
+  }
+  const textScreen = (
+    state: ReturnType<typeof foldTo>,
+    onSendText = vi.fn(() => true),
+  ) => (
+    <GameScreen
+      state={state}
+      mode="text"
+      onSendText={onSendText}
+      patientMuted={false}
+      onTogglePatientMuted={() => {}}
+    />
+  )
+
+  it('shows the composer and the patient mute in place of the mic pill', () => {
+    render(textScreen(foldTo(successRun, 2)))
+    expect(screen.getByLabelText('Your message')).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Mute patient audio' }),
+    ).toBeDefined()
+    expect(document.querySelector('[data-mic]')).toBeNull()
+    expect(screen.getByText(/Type below/)).toBeDefined()
+  })
+
+  it('locks the composer after a send until the patient replies', () => {
+    const onSendText = vi.fn(() => true)
+    const { rerender } = render(textScreen(foldTo(successRun, 2), onSendText))
+
+    typeAndSend('Let me just get this IV in quickly.')
+    expect(onSendText).toHaveBeenCalledWith(
+      'Let me just get this IV in quickly.',
+    )
+    expect(box().disabled).toBe(true)
+
+    // The student's own line and the scoring events do not release it.
+    rerender(textScreen(foldTo(successRun, 5), onSendText))
+    expect(box().disabled).toBe(true)
+
+    // The patient's reply does.
+    rerender(textScreen(foldTo(successRun, 6), onSendText))
+    expect(box().disabled).toBe(false)
+  })
+
+  it('a failed send does not lock the composer', () => {
+    render(
+      textScreen(
+        foldTo(successRun, 2),
+        vi.fn(() => false),
+      ),
+    )
+    typeAndSend('hello')
+    expect(box().disabled).toBe(false)
+  })
+
+  it('releases after the fallback when no reply comes', () => {
+    vi.useFakeTimers()
+    render(textScreen(foldTo(successRun, 2)))
+    typeAndSend('hello')
+    expect(box().disabled).toBe(true)
+
+    act(() => {
+      vi.advanceTimersByTime(AWAITING_REPLY_FALLBACK_MS)
+    })
+    expect(box().disabled).toBe(false)
+  })
+
+  it('stays disabled once the game is over', () => {
+    const over = {
+      ...foldTo(successRun, 6),
+      gameOver: { status: 'fail' as const, reason: 'Time ran out' },
+    }
+    render(textScreen(over))
+    expect(box().disabled).toBe(true)
+  })
+
+  it('voice mode renders no composer and no patient mute', () => {
+    render(<GameScreen state={foldTo(successRun, 4)} />)
+    expect(screen.queryByLabelText('Your message')).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Mute patient audio' }),
+    ).toBeNull()
+    expect(document.querySelector('[data-mic]')).not.toBeNull()
   })
 })

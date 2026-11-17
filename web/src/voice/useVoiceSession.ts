@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createSession } from '../api/sessions'
 import { RELAY_ONLY } from '../config'
-import type { Identity } from '../identity'
+import type { Identity, Mode } from '../identity'
 import type { GameAction, GameState } from '../state/useGame'
 import { createGameEventHandler } from './gameEvents'
 import { useWebRTC } from './useWebRTC'
@@ -47,7 +47,7 @@ export type VoiceSessionStatus = 'idle' | 'connecting' | 'active' | 'ended'
 
 export interface UseVoiceSession {
   /**
-   * Mic permission → `POST /sessions` → `/start` → connect. Dispatches BEGIN
+   * Mic permission (Voice mode only) → `POST /sessions` → `/start` → connect. Dispatches BEGIN
    * once ICE is up.
    */
   begin: () => Promise<void>
@@ -60,6 +60,12 @@ export interface UseVoiceSession {
   connectionLost: boolean
   isAgentSpeaking: boolean
   isMuted: boolean
+  /** Voice or Text, from the signed-in identity (`voice` before sign-in). */
+  mode: Mode
+  /** Text mode: send one typed turn over the data channel. */
+  sendText: (content: string) => boolean
+  patientMuted: boolean
+  setPatientMuted: (muted: boolean) => void
 }
 
 /** Normalize anything thrown by the transport into the WebRTCError surface. */
@@ -84,6 +90,7 @@ export function useVoiceSession(
   const [error, setError] = useState<WebRTCError | null>(null)
   const [connectionLost, setConnectionLost] = useState(false)
   const scenarioId = state.scenario?.id ?? null
+  const mode: Mode = identity?.mode ?? 'voice'
 
   const sessionIdRef = useRef<string | null>(null)
   const runtimeSessionIdRef = useRef<string | null>(null)
@@ -111,6 +118,9 @@ export function useVoiceSession(
     requestPermission,
     startCall,
     endCall,
+    sendText,
+    patientMuted,
+    setPatientMuted,
   } = useWebRTC({ onGameEvent: (event) => onGameEventRef.current(event) })
 
   const clearTimers = useCallback(() => {
@@ -139,14 +149,17 @@ export function useVoiceSession(
     setError(null)
     setStatus('connecting')
 
-    try {
-      // Inside the click gesture, so the browser actually shows the prompt.
-      await requestPermission()
-    } catch (err) {
-      setError(toWebRTCError(err))
-      setStatus('idle')
-      beginningRef.current = false
-      return
+    // Text mode never touches the mic: no prompt, nothing picked up.
+    if (mode === 'voice') {
+      try {
+        // Inside the click gesture, so the browser actually shows the prompt.
+        await requestPermission()
+      } catch (err) {
+        setError(toWebRTCError(err))
+        setStatus('idle')
+        beginningRef.current = false
+        return
+      }
     }
 
     if (scenarioId === null) {
@@ -164,8 +177,7 @@ export function useVoiceSession(
 
     let sessionId: string
     try {
-      // Server-issued: this also creates the session record. Text mode still
-      // asks for the mic above for now.
+      // Server-issued: this also creates the session record.
       ;({ session_id: sessionId } = await createSession({
         netid: identity.netid,
         scenario_id: scenarioId,
@@ -193,7 +205,13 @@ export function useVoiceSession(
         const { runtime_session_id, ice_servers } =
           await startVoiceSession(sessionId)
         runtimeSessionIdRef.current = runtime_session_id
-        await startCall(sessionId, runtime_session_id, ice_servers, RELAY_ONLY)
+        await startCall(
+          sessionId,
+          runtime_session_id,
+          ice_servers,
+          RELAY_ONLY,
+          mode === 'voice',
+        )
         setStatus('active')
         dispatch({ type: 'BEGIN' })
         beginningRef.current = false
@@ -207,7 +225,7 @@ export function useVoiceSession(
         return
       }
     }
-  }, [dispatch, identity, requestPermission, scenarioId, startCall])
+  }, [dispatch, identity, mode, requestPermission, scenarioId, startCall])
 
   /** Tear down locally, tell the runtime, then hand the end screen over. */
   const settle = useCallback(async () => {
@@ -316,5 +334,9 @@ export function useVoiceSession(
     connectionLost,
     isAgentSpeaking,
     isMuted,
+    mode,
+    sendText,
+    patientMuted,
+    setPatientMuted,
   }
 }

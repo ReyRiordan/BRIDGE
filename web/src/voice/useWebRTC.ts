@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { webrtcService } from './webrtc.service'
+import type { StudentText } from './gameEvents.gen'
 import type { CallState, IceServerConfig, WebRTCError } from './webrtc.types'
 
 // How long to wait for ICE to reach `connected` before declaring a cold-start
@@ -40,9 +41,15 @@ export interface UseWebRTCReturn {
     runtimeSessionId: string,
     iceServers?: IceServerConfig[],
     relayOnly?: boolean,
+    sendAudio?: boolean,
   ) => Promise<() => void>
   endCall: () => Promise<void>
   toggleMute: () => void
+  /** Text mode: send one typed turn. False when the data channel is not open. */
+  sendText: (content: string) => boolean
+  /** The patient's playback is muted (speech detection keeps running). */
+  patientMuted: boolean
+  setPatientMuted: (muted: boolean) => void
 }
 
 /**
@@ -66,6 +73,7 @@ export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
   const [isMuted, setIsMuted] = useState(false)
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false)
   const [error, setError] = useState<WebRTCError | null>(null)
+  const [patientMuted, setPatientMutedState] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Read through a ref so an inline callback doesn't re-register (and briefly
@@ -119,6 +127,8 @@ export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
    * @param iceServers - the browser's own KVS managed-TURN servers (relay-only)
    * @param relayOnly - defaults to true; callers pass `RELAY_ONLY` from
    *   src/config.ts, which is false only under VITE_BRIDGE_LOCAL=1
+   * @param sendAudio - defaults to true; false for Text mode (no mic, the
+   *   connection only receives the patient's audio)
    * @returns cleanup fn that clears the connection-state poll
    */
   const startCall = useCallback(
@@ -127,6 +137,7 @@ export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
       runtimeSessionId: string,
       iceServers?: IceServerConfig[],
       relayOnly: boolean = true,
+      sendAudio: boolean = true,
     ) => {
       try {
         setError(null)
@@ -137,6 +148,7 @@ export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
           runtimeSessionId,
           iceServers,
           relayOnly,
+          sendAudio,
         )
 
         // Wait for ICE to actually connect; a cold-started runtime can fail to
@@ -209,6 +221,7 @@ export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
       setCallState('ended')
       setConnectionState(null)
       setIsMuted(false)
+      setPatientMutedState(false)
       // Reset the speaking flag: a stale `true` would break the anti-echo
       // auto-mute on the next call (the mute effect never sees false→true).
       setIsAgentSpeaking(false)
@@ -227,6 +240,16 @@ export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
     webrtcService.setMuted(newMutedState)
     setIsMuted(newMutedState)
   }, [isMuted])
+
+  const sendText = useCallback((content: string) => {
+    const message: StudentText = { v: 1, type: 'student_text', content }
+    return webrtcService.sendAppMessage(message)
+  }, [])
+
+  const setPatientMuted = useCallback((muted: boolean) => {
+    webrtcService.setRemoteAudioMuted(muted)
+    setPatientMutedState(muted)
+  }, [])
 
   /**
    * Cleanup on unmount
@@ -248,5 +271,8 @@ export const useWebRTC = (options: UseWebRTCOptions = {}): UseWebRTCReturn => {
     startCall,
     endCall,
     toggleMute,
+    sendText,
+    patientMuted,
+    setPatientMuted,
   }
 }

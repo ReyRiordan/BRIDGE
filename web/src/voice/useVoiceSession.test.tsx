@@ -12,6 +12,7 @@ import { useVoiceSession } from './useVoiceSession'
 import { gameReducer, initialState, type GameState } from '../state/gameState'
 import { scenarioFixture } from '../state/__fixtures__/scenario.fixture'
 import { useEffect, useReducer } from 'react'
+import type { Identity } from '../identity'
 
 vi.mock('../api/sessions', () => ({
   createSession: vi.fn(),
@@ -30,6 +31,8 @@ vi.mock('./webrtc.service', () => ({
     initializeConnection: vi.fn(),
     closeConnection: vi.fn(),
     setMuted: vi.fn(),
+    sendAppMessage: vi.fn(),
+    setRemoteAudioMuted: vi.fn(),
     getConnectionState: vi.fn(),
     getIceConnectionState: vi.fn(),
   },
@@ -41,7 +44,7 @@ import { webrtcService } from './webrtc.service'
 
 const createApi = vi.mocked(createSession)
 let issued = 0
-const IDENTITY = { netid: 'abc123', mode: 'voice' as const }
+const IDENTITY: Identity = { netid: 'abc123', mode: 'voice' }
 
 const service = vi.mocked(webrtcService)
 const startApi = vi.mocked(startVoiceSession)
@@ -66,6 +69,10 @@ interface Observed {
   status: string
   error: { code: string } | null
   connectionLost: boolean
+  mode: string
+  sendText: (content: string) => boolean
+  patientMuted: boolean
+  setPatientMuted: (muted: boolean) => void
   state: GameState
 }
 
@@ -74,11 +81,7 @@ let latest: Observed
 const seen = (): Observed => latest
 
 /** A miniature App: the same reducer, the same hook, no screens. */
-function Harness({
-  identity = IDENTITY,
-}: {
-  identity?: typeof IDENTITY | null
-}) {
+function Harness({ identity = IDENTITY }: { identity?: Identity | null }) {
   const [state, dispatch] = useReducer(gameReducer, initialState)
   const voice = useVoiceSession(state, dispatch, identity)
   useEffect(() => {
@@ -98,8 +101,8 @@ function Harness({
 }
 
 /** Mount, and get as far as the intro phase (where Begin lives). */
-async function mountAtIntro() {
-  render(<Harness />)
+async function mountAtIntro(identity: Identity = IDENTITY) {
+  render(<Harness identity={identity} />)
   await act(async () => {
     screen.getByRole('button', { name: 'load' }).click()
   })
@@ -178,6 +181,7 @@ describe('begin', () => {
       'rt-1',
       [],
       expect.any(Boolean),
+      true, // voice mode sends audio
     )
 
     ice('connected')
@@ -241,6 +245,7 @@ describe('reconnect policy', () => {
       'rt-2',
       [],
       expect.any(Boolean),
+      true, // voice mode sends audio
     )
     expect(seen().status).toBe('connecting')
 
@@ -420,5 +425,54 @@ describe('scenario prefix', () => {
     expect(startApi).not.toHaveBeenCalled()
     expect(seen().error?.code).toBe('NO_SCENARIO')
     expect(seen().status).toBe('idle')
+  })
+})
+
+describe('text mode', () => {
+  const TEXT: Identity = { netid: 'abc123', mode: 'text' }
+
+  it('never requests the mic and connects receive-only', async () => {
+    await mountAtIntro(TEXT)
+    await connect()
+
+    expect(service.requestMicrophonePermission).not.toHaveBeenCalled()
+    expect(createApi).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'text' }),
+    )
+    // (sessionId, runtimeSessionId, iceServers, relayOnly, sendAudio)
+    expect(service.initializeConnection.mock.calls[0][4]).toBe(false)
+    expect(seen().mode).toBe('text')
+    expect(seen().state.phase).toBe('game')
+  })
+
+  it('voice mode still asks for the mic and sends audio', async () => {
+    await mountAtIntro()
+    await connect()
+
+    expect(service.requestMicrophonePermission).toHaveBeenCalledTimes(1)
+    expect(service.initializeConnection.mock.calls[0][4]).toBe(true)
+    expect(seen().mode).toBe('voice')
+  })
+
+  it('sends a typed turn as a StudentText message', async () => {
+    await mountAtIntro(TEXT)
+    await connect()
+    service.sendAppMessage.mockReturnValue(true)
+
+    expect(seen().sendText('I hear you.')).toBe(true)
+    expect(service.sendAppMessage).toHaveBeenCalledWith({
+      v: 1,
+      type: 'student_text',
+      content: 'I hear you.',
+    })
+  })
+
+  it('mutes the patient through the service', async () => {
+    await mountAtIntro(TEXT)
+    await connect()
+
+    act(() => seen().setPatientMuted(true))
+    expect(service.setRemoteAudioMuted).toHaveBeenLastCalledWith(true)
+    expect(seen().patientMuted).toBe(true)
   })
 })
