@@ -129,14 +129,14 @@ export const wardFixture: Scenario = {
   environment: 'environment.webp',
   patient_frame_ext: 'webp',
   inactivity: { seconds: 120, point_change: 1 },
-  intro: 'A 47-year-old man admitted overnight for a suspected GI bleed.',
-  goal: 'Work toward a plan that protects his safety while respecting his autonomy.',
+  intro: 'A 55-year-old woman admitted overnight for a suspected GI bleed.',
+  goal: 'Work toward a plan that protects her safety while respecting her autonomy.',
   time_limit: 300,
   point_bar: { max: 10, start: 5, goal: 0 },
   actions: [
     {
       type: WARD_KEY,
-      desc: 'Recognize outside responsibilities; the decision is his',
+      desc: 'Recognize outside responsibilities; the decision is hers',
       point_change: -3,
       inactive: 'staff_present.webp',
       active: null,
@@ -145,7 +145,7 @@ export const wardFixture: Scenario = {
     },
     {
       type: WARD_BARRIER,
-      desc: 'Ask what is waiting for him at work',
+      desc: 'Ask what is waiting for her at work',
       point_change: -2,
       requires: WARD_KEY,
       point_change_without: -1,
@@ -164,7 +164,7 @@ export const wardFixture: Scenario = {
       layer: null,
     },
     {
-      type: 'Tell the patient he cannot leave',
+      type: 'Tell the patient she cannot leave',
       desc: 'E.g. “You’re not allowed to leave”',
       point_change: 3,
       inactive: null,
