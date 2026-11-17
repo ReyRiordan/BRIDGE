@@ -1,4 +1,5 @@
-# scenario_3 — inpatient GI bleed who wants to leave for work.
+# scenario_3 — Diane, an inpatient with a GI bleed who wants to leave for her
+# morning home-health client visits.
 # Source: docs/scenarios/scenario_3.md. First-person: the camera is the
 # student, standing near the foot of the bed; the clinician is never drawn.
 # Lead state: 0–7 share the intro's (a few electrode stickers on, one or two
@@ -17,10 +18,10 @@ room_prompt: >-
   with the lit hallway visible beyond it. Pale green walls, a whiteboard, grey
   vinyl floor, soft overhead light and a window with daylight on the left.
 patient_description: >-
-  A 47-year-old Black man, stocky build, very short black hair, a trimmed
-  beard, tired eyes, wearing a pale blue patterned hospital gown, a white
-  hospital ID wristband and grip socks.
-start_level: 6
+  A 55-year-old white woman, medium build, shoulder-length greying
+  light-brown hair, tired eyes, wearing a pale blue patterned hospital gown, a
+  white hospital ID wristband and grip socks.
+start_level: 5
 max_level: 10
 # The path bed → door spans the room; keep it inside the stage crop.
 safe_area: [0.04, 0.04, 0.96, 0.97]
@@ -49,48 +50,48 @@ layers:
 start_visible: [staff_present]
 frames:
   0: >-
-    Lying reclined in the bed with the head raised, blanket over his legs,
+    Lying reclined in the bed with the head raised, blanket over her legs,
     calm, hands resting on the blanket, a slight tired smile at the camera. A
-    few ECG electrode stickers on his chest at the gown's neckline, with one
+    few ECG electrode stickers on her chest at the gown's neckline, with one
     or two lead wires loose and dangling.
   1: >-
-    Reclined in the bed, blanket over his legs, calm and attentive, looking at
-    the camera. A few electrode stickers on his chest, one or two lead wires
+    Reclined in the bed, blanket over her legs, calm and attentive, looking at
+    the camera. A few electrode stickers on her chest, one or two lead wires
     loose and dangling.
   2: >-
-    Reclined in the bed but slightly more upright, blanket over his legs, a
-    neutral listening expression. A few electrode stickers on his chest, one
+    Reclined in the bed but slightly more upright, blanket over her legs, a
+    neutral listening expression. A few electrode stickers on her chest, one
     or two lead wires loose and dangling.
   3: >-
-    Sitting up in the bed, blanket over his legs, brow furrowed, looking at the
-    camera. A few electrode stickers on his chest, one or two lead wires loose
+    Sitting up in the bed, blanket over her legs, brow furrowed, looking at the
+    camera. A few electrode stickers on her chest, one or two lead wires loose
     and dangling.
   4: >-
     Sitting up straight in the bed, tense, hands still on the blanket, jaw set,
-    frowning. A few electrode stickers on his chest, one or two lead wires
+    frowning. A few electrode stickers on her chest, one or two lead wires
     loose and dangling.
   5: >-
     Sitting up in the bed, tense, hands still, blanket pushed down, glancing
     toward the open door with an anxious, frustrated expression. A few
-    electrode stickers on his chest, one or two lead wires loose and dangling.
+    electrode stickers on her chest, one or two lead wires loose and dangling.
   6: >-
     Sitting on the edge of the bed facing the camera, feet on the floor,
-    tugging at a lead wire on his chest with one hand, frustrated and agitated.
-    A few electrode stickers still on his chest, one or two lead wires loose
+    tugging at a lead wire on her chest with one hand, frustrated and agitated.
+    A few electrode stickers still on her chest, one or two lead wires loose
     and dangling.
   7: >-
     Sitting on the edge of the bed, feet on the floor, holding up the last
-    lead wire he has just pulled off, angry, mouth open mid-sentence. A few
-    electrode stickers still on his chest; the wires dangle loose.
+    lead wire she has just pulled off, angry, mouth open mid-sentence. A few
+    electrode stickers still on her chest; the wires dangle loose.
   8: >-
     Standing beside the bed, all leads off, the lead wires hanging loose from
-    the monitor, stuffing his folded clothes into a clear plastic patient
+    the monitor, stuffing her folded clothes into a clear plastic patient
     belongings bag, angry and hurried.
   9: >-
-    Standing near the open door holding his belongings bag, all leads off,
-    turned back toward the camera, angry. He is near the door but not touching
+    Standing near the open door holding her belongings bag, all leads off,
+    turned back toward the camera, angry. She is near the door but not touching
     it or its handle.
   10: >-
     Standing right beside the open door, about to walk out, belongings bag in
-    hand, all leads off, looking back at the camera defiantly. He is not
+    hand, all leads off, looking back at the camera defiantly. She is not
     touching the door or its handle.
