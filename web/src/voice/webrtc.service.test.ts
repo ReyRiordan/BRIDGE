@@ -12,8 +12,17 @@ import { webrtcService } from './webrtc.service'
 import * as voiceApi from './voiceApi'
 
 let configs: RTCConfiguration[] = []
-let channels: { onmessage: ((event: MessageEvent) => void) | null }[] = []
+interface FakeChannel {
+  onmessage: ((event: MessageEvent) => void) | null
+  readyState: RTCDataChannelState
+  sent: string[]
+  send: (data: string) => void
+}
+let channels: FakeChannel[] = []
+let tracks = 0
+let transceivers: [string, RTCRtpTransceiverInit | undefined][] = []
 let closed = 0
+let pcs: FakePeerConnection[] = []
 
 class FakePeerConnection {
   iceGatheringState = 'complete'
@@ -22,12 +31,23 @@ class FakePeerConnection {
 
   constructor(config: RTCConfiguration) {
     configs.push(config)
+    pcs.push(this)
   }
 
-  addTrack() {}
+  addTrack() {
+    tracks += 1
+  }
+  addTransceiver(kind: string, init?: RTCRtpTransceiverInit) {
+    transceivers.push([kind, init])
+  }
   createDataChannel() {
-    const channel: { onmessage: ((event: MessageEvent) => void) | null } = {
+    const channel: FakeChannel = {
       onmessage: null,
+      readyState: 'open',
+      sent: [],
+      send(data: string) {
+        this.sent.push(data)
+      },
     }
     channels.push(channel)
     return channel
@@ -47,6 +67,9 @@ class FakePeerConnection {
 beforeEach(() => {
   configs = []
   channels = []
+  tracks = 0
+  transceivers = []
+  pcs = []
   closed = 0
   vi.stubGlobal('RTCPeerConnection', FakePeerConnection)
   vi.stubGlobal(
@@ -57,11 +80,10 @@ beforeEach(() => {
       }
     },
   )
-  // The service requests a mic before negotiating; hand it a stream with no
-  // tracks so nothing else has to be faked.
-  vi.stubGlobal('navigator', {
-    mediaDevices: { getUserMedia: async () => ({ getTracks: () => [] }) },
-  })
+  // The service requests a mic before negotiating; hand it a stream with one
+  // track so the voice path's addTrack is observable.
+  getUserMedia = vi.fn(async () => ({ getTracks: () => [{ stop() {} }] }))
+  vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } })
   vi.spyOn(voiceApi, 'signalVoiceSession').mockResolvedValue({
     sdp: 'answer-sdp',
     type: 'answer',
@@ -73,6 +95,8 @@ afterEach(async () => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
+
+let getUserMedia: ReturnType<typeof vi.fn>
 
 const TURN = [{ urls: ['turn:example'], username: 'u', credential: 'c' }]
 
@@ -212,4 +236,87 @@ test('a stall with candidates already gathered signals them instead of failing',
   })
 
   vi.useRealTimers()
+})
+
+describe('text mode (sendAudio = false)', () => {
+  test('never asks for the mic and offers a recvonly audio transceiver', async () => {
+    await webrtcService.initializeConnection('s', 'r', TURN, true, false)
+
+    expect(getUserMedia).not.toHaveBeenCalled()
+    expect(tracks).toBe(0)
+    expect(transceivers).toEqual([['audio', { direction: 'recvonly' }]])
+    // Relay-only still applies: the text path goes through the same TURN.
+    expect(configs[0].iceTransportPolicy).toBe('relay')
+  })
+
+  test('voice mode is unchanged: mic track, no transceiver', async () => {
+    await webrtcService.initializeConnection('s', 'r', TURN)
+
+    expect(getUserMedia).toHaveBeenCalledTimes(1)
+    expect(tracks).toBe(1)
+    expect(transceivers).toEqual([])
+  })
+})
+
+describe('sendAppMessage', () => {
+  test('sends JSON on an open channel', async () => {
+    await webrtcService.initializeConnection('s', 'r', TURN, true, false)
+    const payload = { v: 1, type: 'student_text', content: 'hi' }
+
+    expect(webrtcService.sendAppMessage(payload)).toBe(true)
+    expect(channels[0].sent).toEqual([JSON.stringify(payload)])
+  })
+
+  test('returns false on a channel that is not open', async () => {
+    await webrtcService.initializeConnection('s', 'r', TURN, true, false)
+    channels[0].readyState = 'connecting'
+
+    expect(webrtcService.sendAppMessage({ v: 1 })).toBe(false)
+    expect(channels[0].sent).toEqual([])
+  })
+
+  test('returns false with no connection at all', async () => {
+    await webrtcService.closeConnection()
+    expect(webrtcService.sendAppMessage({ v: 1 })).toBe(false)
+  })
+})
+
+test('patient mute applies to the audio element, including one created later', async () => {
+  const created: { muted: boolean }[] = []
+  vi.stubGlobal(
+    'Audio',
+    class {
+      muted = false
+      srcObject: unknown = null
+      constructor() {
+        created.push(this)
+      }
+      play = async () => {}
+      pause() {}
+    },
+  )
+  vi.stubGlobal(
+    'AudioContext',
+    class {
+      createMediaStreamSource() {
+        return { connect() {} }
+      }
+      createAnalyser() {
+        return { fftSize: 0, frequencyBinCount: 1, getByteFrequencyData() {} }
+      }
+      async close() {}
+    },
+  )
+  vi.stubGlobal('requestAnimationFrame', () => 0)
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+
+  await webrtcService.initializeConnection('s', 'r', TURN, true, false)
+  // Muted before the patient's track arrives: it must still come up muted.
+  webrtcService.setRemoteAudioMuted(true)
+  const ontrack = pcs[0].ontrack as (e: { streams: unknown[] }) => void
+  ontrack({ streams: [{}] })
+  expect(created[0].muted).toBe(true)
+
+  webrtcService.setRemoteAudioMuted(false)
+  expect(created[0].muted).toBe(false)
 })

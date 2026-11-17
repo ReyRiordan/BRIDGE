@@ -89,9 +89,14 @@ export interface WebRTCService {
     runtimeSessionId: string,
     iceServers?: IceServerConfig[],
     relayOnly?: boolean,
+    sendAudio?: boolean,
   ): Promise<void>
   closeConnection(): Promise<void>
   setMuted(muted: boolean): void
+  /** JSON over the data channel; false when the channel is not open. */
+  sendAppMessage(payload: object): boolean
+  /** Mute the patient's playback without affecting speech detection. */
+  setRemoteAudioMuted(muted: boolean): void
   getConnectionState(): RTCPeerConnectionState | null
   getIceConnectionState(): RTCIceConnectionState | null
 }
