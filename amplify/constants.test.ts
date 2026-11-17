@@ -6,6 +6,8 @@ import {
   API_LAMBDA,
   RUNTIME_NAME_MAX_LENGTH,
   SECRET_NAMES,
+  SESSION_SUMMARY_ATTRIBUTES,
+  SESSIONS_INDEX,
   VOICE_CONFIG,
   VOICE_IMAGE_EXCLUDE,
   voiceRuntimeName,
@@ -286,5 +288,32 @@ describe('.dockerignore', () => {
     for (const pattern of ['**/build/', '**/dist/', '**/*.egg-info/']) {
       expect(lines).toContain(pattern)
     }
+  })
+})
+
+describe('session records', () => {
+  test('the index name matches what api/session_store.py queries', () => {
+    expect(SESSIONS_INDEX).toBe('by_created')
+  })
+
+  test('the GSI projects the summary only, never the transcript', () => {
+    expect(SESSION_SUMMARY_ATTRIBUTES).toContain('netid')
+    expect(SESSION_SUMMARY_ATTRIBUTES).toContain('escalation')
+    expect(SESSION_SUMMARY_ATTRIBUTES).not.toContain('turns')
+    expect(SESSION_SUMMARY_ATTRIBUTES).not.toContain('timeline')
+  })
+
+  test('key attributes are not repeated in the projection', () => {
+    // DynamoDB rejects a nonKeyAttributes list that names a key attribute.
+    for (const key of ['session_id', 'kind', 'created_at']) {
+      expect(SESSION_SUMMARY_ATTRIBUTES).not.toContain(key)
+    }
+    expect(new Set(SESSION_SUMMARY_ATTRIBUTES).size).toBe(SESSION_SUMMARY_ATTRIBUTES.length)
+  })
+
+  test('the voice config does not hard-code the table name', () => {
+    // backend.ts injects the per-backend table name; a constant here would
+    // point sandbox and main at the same table.
+    expect(Object.keys(VOICE_CONFIG)).not.toContain('SESSIONS_TABLE')
   })
 })
