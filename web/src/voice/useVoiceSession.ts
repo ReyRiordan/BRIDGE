@@ -7,18 +7,21 @@
  * status against `state.phase` to decide what renders.
  *
  * Two ids, two jobs:
- *  - `session_id` — the domain key, minted here as
- *    `${scenarioId}--${crypto.randomUUID()}` and stable for the whole game.
- *    The control plane treats it as a free-form path key; the voice runtime
+ *  - `session_id` — the domain key, issued by `POST /sessions` (which also
+ *    creates the session record under the student's NetID) as
+ *    `<scenario_id>--<uuid>`, and stable for the whole game. The voice runtime
  *    reads the scenario off its prefix (the kit hands the runtime nothing but
- *    the session id, so the id is the only channel there is).
+ *    the session id, so the id is the only channel there is) and updates the
+ *    record by it; the NetID itself never reaches the runtime.
  *  - `runtime_session_id` — the AgentCore container-affinity key. Freshly
  *    minted by `/start` on EVERY connect attempt; reusing a stale one pins
  *    signaling to a container that may be gone.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createSession } from '../api/sessions'
 import { RELAY_ONLY } from '../config'
+import type { Identity } from '../identity'
 import type { GameAction, GameState } from '../state/useGame'
 import { createGameEventHandler } from './gameEvents'
 import { useWebRTC } from './useWebRTC'
@@ -43,7 +46,10 @@ const SETTLE_HARD_CAP_MS = 20000
 export type VoiceSessionStatus = 'idle' | 'connecting' | 'active' | 'ended'
 
 export interface UseVoiceSession {
-  /** Mic permission → `/start` → connect. Dispatches BEGIN once ICE is up. */
+  /**
+   * Mic permission → `POST /sessions` → `/start` → connect. Dispatches BEGIN
+   * once ICE is up.
+   */
   begin: () => Promise<void>
   /** Play Again: drop ids, flags and timers so the next `begin()` is a new session. */
   reset: () => void
@@ -72,6 +78,7 @@ function toWebRTCError(err: unknown): WebRTCError {
 export function useVoiceSession(
   state: GameState,
   dispatch: React.Dispatch<GameAction>,
+  identity: Identity | null,
 ): UseVoiceSession {
   const [status, setStatus] = useState<VoiceSessionStatus>('idle')
   const [error, setError] = useState<WebRTCError | null>(null)
@@ -148,7 +155,31 @@ export function useVoiceSession(
       beginningRef.current = false
       return
     }
-    const sessionId = `${scenarioId}--${crypto.randomUUID()}`
+    if (identity === null) {
+      setError({ code: 'NO_IDENTITY', message: 'Sign in with your NetID.' })
+      setStatus('idle')
+      beginningRef.current = false
+      return
+    }
+
+    let sessionId: string
+    try {
+      // Server-issued: this also creates the session record. Text mode still
+      // asks for the mic above for now.
+      ;({ session_id: sessionId } = await createSession({
+        netid: identity.netid,
+        scenario_id: scenarioId,
+        mode: identity.mode,
+      }))
+    } catch (err) {
+      setError({
+        code: 'SESSION_CREATE_FAILED',
+        message: err instanceof Error ? err.message : 'Could not start.',
+      })
+      setStatus('idle')
+      beginningRef.current = false
+      return
+    }
     sessionIdRef.current = sessionId
     endedOnceRef.current = false
     intentionalEndRef.current = false
@@ -176,7 +207,7 @@ export function useVoiceSession(
         return
       }
     }
-  }, [dispatch, requestPermission, scenarioId, startCall])
+  }, [dispatch, identity, requestPermission, scenarioId, startCall])
 
   /** Tear down locally, tell the runtime, then hand the end screen over. */
   const settle = useCallback(async () => {

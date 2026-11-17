@@ -1,4 +1,10 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
+import {
+  clearIdentity,
+  loadIdentity,
+  saveIdentity,
+  type Identity,
+} from './identity'
 import EndScreen, { type EndOutcome } from './screens/EndScreen'
 import GameScreen from './screens/GameScreen'
 import IntroScreen from './screens/IntroScreen'
@@ -12,6 +18,7 @@ const ERROR_COPY: Record<string, string> = {
   MICROPHONE_PERMISSION_DENIED:
     'Microphone access is required — allow it in your browser, then try again.',
   ICE_STALL: 'Could not reach the patient. Please try again.',
+  SESSION_CREATE_FAILED: 'Could not start the session. Please try again.',
 }
 
 const CONNECTION_LOST: EndOutcome = {
@@ -31,7 +38,15 @@ const CONNECTION_LOST: EndOutcome = {
  */
 function App() {
   const { state, dispatch } = useGame()
-  const voice = useVoiceSession(state, dispatch)
+  // Remembered across visits; read once, written on every change.
+  const [identity, setIdentity] = useState<Identity | null>(loadIdentity)
+  const voice = useVoiceSession(state, dispatch, identity)
+
+  const onIdentityChange = useCallback((next: Identity | null) => {
+    if (next === null) clearIdentity()
+    else saveIdentity(next)
+    setIdentity(next)
+  }, [])
 
   const onLoaded = useCallback(
     (scenario: Scenario) => dispatch({ type: 'SCENARIO_LOADED', scenario }),
@@ -45,7 +60,13 @@ function App() {
   }, [dispatch, reset])
 
   if (state.phase === 'start' || state.scenario === null) {
-    return <StartScreen onLoaded={onLoaded} />
+    return (
+      <StartScreen
+        onLoaded={onLoaded}
+        identity={identity}
+        onIdentityChange={onIdentityChange}
+      />
+    )
   }
 
   if (state.phase === 'intro') {

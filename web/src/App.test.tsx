@@ -1,15 +1,27 @@
 /**
  * The shell flow, driven the way a user drives it: Start lists `/scenarios`,
- * picking a card fetches `/scenario/{id}`, Begin connects a (mocked) voice session, and every subsequent screen is
+ * picking a card fetches `/scenario/{id}`, Begin creates the session record and
+ * connects a (mocked) voice session, and every subsequent screen is
  * derived from the payload plus the events that arrive on the data channel.
  *
  * The WebRTC service singleton is mocked; everything above it — the session
  * hook, the reducer, the screens — is real.
  */
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import App from './App'
 import { scenarioFixture } from './state/__fixtures__/scenario.fixture'
 import { successRun } from './state/__fixtures__/goldenRun'
+
+vi.mock('./api/sessions', () => ({
+  createSession: vi.fn(),
+}))
 
 vi.mock('./voice/voiceApi', () => ({
   startVoiceSession: vi.fn(),
@@ -29,6 +41,8 @@ vi.mock('./voice/webrtc.service', () => ({
   },
 }))
 
+import { createSession } from './api/sessions'
+import { IDENTITY_KEY } from './identity'
 import { endVoiceSession, startVoiceSession } from './voice/voiceApi'
 import { webrtcService } from './voice/webrtc.service'
 
@@ -38,6 +52,15 @@ const endApi = vi.mocked(endVoiceSession)
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Signed in from a previous visit, so the picker is live.
+  localStorage.setItem(
+    IDENTITY_KEY,
+    JSON.stringify({ netid: 'abc123', mode: 'voice' }),
+  )
+  let issued = 0
+  vi.mocked(createSession).mockImplementation(async ({ scenario_id }) => ({
+    session_id: `${scenario_id}--server-${++issued}`,
+  }))
   service.requestMicrophonePermission.mockResolvedValue({} as MediaStream)
   service.initializeConnection.mockResolvedValue(undefined)
   service.closeConnection.mockResolvedValue(undefined)
@@ -53,6 +76,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  localStorage.clear()
   vi.unstubAllGlobals()
   vi.useRealTimers()
 })
@@ -94,6 +118,36 @@ async function pickScenario() {
 }
 
 describe('App', () => {
+  it('signs in on Start, remembers it, and Change signs out', async () => {
+    localStorage.clear()
+    ok()
+    render(<App />)
+    await act(async () => {})
+
+    const cardButton = () =>
+      screen.getByRole('button', {
+        name: new RegExp(scenarioFixture.title),
+      }) as HTMLButtonElement
+    expect(cardButton().disabled).toBe(true)
+
+    const input = screen.getByLabelText('Rutgers NetID')
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'test01' } })
+      screen.getByRole('button', { name: 'Continue' }).click()
+    })
+    expect(cardButton().disabled).toBe(false)
+    expect(JSON.parse(localStorage.getItem(IDENTITY_KEY) ?? 'null')).toEqual({
+      netid: 'test01',
+      mode: 'voice',
+    })
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Change' }).click()
+    })
+    expect(cardButton().disabled).toBe(true)
+    expect(localStorage.getItem(IDENTITY_KEY)).toBeNull()
+  })
+
   it('walks Start → Intro → Game off the real /scenario payload', async () => {
     ok()
     render(<App />)
@@ -185,8 +239,13 @@ describe('a full session', () => {
     await beginSimulation()
 
     const firstSessionId = startApi.mock.calls[0][0]
-    // The runtime reads the scenario off the session id's prefix.
-    expect(firstSessionId).toMatch(/^scenario_1--[0-9a-f-]{36}$/)
+    // The server-issued id, created under the remembered identity.
+    expect(firstSessionId).toBe('scenario_1--server-1')
+    expect(vi.mocked(createSession)).toHaveBeenCalledWith({
+      netid: 'abc123',
+      scenario_id: 'scenario_1',
+      mode: 'voice',
+    })
     expect(screen.getByRole('progressbar')).toBeDefined()
 
     // The data channel drives everything on screen.

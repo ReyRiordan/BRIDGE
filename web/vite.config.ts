@@ -13,6 +13,7 @@ export default defineConfig({
     proxy: {
       '/voice': 'http://localhost:8000',
       '/scenario': 'http://localhost:8000',
+      '/sessions': 'http://localhost:8000',
     },
   },
   test: {
