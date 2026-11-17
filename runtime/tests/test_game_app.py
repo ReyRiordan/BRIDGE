@@ -184,9 +184,18 @@ class FakeTransport:
         return register
 
 
+class FakeTask:
+    def __init__(self):
+        self.frames = []
+
+    async def queue_frame(self, frame):
+        self.frames.append(frame)
+
+
 class FakePipelineContext:
     def __init__(self, game):
         self.game = game
+        self.task = FakeTask()
 
 
 def test_session_start_arms_the_clock_and_emits_state_on_connect():
@@ -221,6 +230,30 @@ def test_session_start_arms_the_clock_and_emits_state_on_connect():
             "status": "active",
         }
     ]
+
+
+def test_session_start_routes_typed_text_into_the_pipeline():
+    session = asyncio.run(provide_context(SID)).metadata["game"]
+    context = FakePipelineContext(session)
+    transport = FakeTransport()
+
+    async def run():
+        await on_session_start(SID, context, transport, lambda _: None)
+        handler = transport.handlers["on_app_message"]
+        await handler(
+            transport, {"v": 1, "type": "student_text", "content": " hi "}, "pc"
+        )
+        # Malformed or foreign messages are dropped, never raised.
+        await handler(transport, {"v": 2, "type": "student_text", "content": "x"}, "pc")
+        await handler(transport, "ping", "pc")
+        timer_module.cancel_timer(SID)
+
+    asyncio.run(run())
+
+    (frame,) = context.task.frames
+    assert frame.message.role == "user"
+    assert frame.message.content == "hi"
+    assert frame.message.source == "text"
 
 
 # --- session record wiring --------------------------------------------------

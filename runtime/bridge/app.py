@@ -5,7 +5,8 @@ A thin wiring module: it registers the game engine on the kit's extension points
 at import time and re-exports ``voice_kit.runtime:app``. All game logic lives in
 the sibling modules; nothing here knows how a turn is scored.
 
-The chain it builds per session::
+The chain it builds per session (a typed Text-mode turn is queued at the source
+and passes VAD and STT untouched; see ``typed_input.py``)::
 
     transport.input() -> VAD
         -> STTProcessor -> RefereeProcessor -> LLMProcessor(patient)
@@ -62,6 +63,7 @@ from .timer import (
     start_reaper,
     start_timer,
 )
+from .typed_input import inject_student_text, parse_student_text
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +170,15 @@ async def on_session_start(session_id, pipeline_context, transport, emit) -> Non
     @transport.event_handler("on_client_connected")
     async def _on_client_connected(_transport, _client):
         events.state(session)
+
+    # Text mode: a typed turn enters the pipeline where STT output does.
+    @transport.event_handler("on_app_message")
+    async def _on_app_message(_transport, message, _sender):
+        content = parse_student_text(message)
+        if content is None:
+            logger.debug("[%s] app message dropped: %r", session_id, message)
+            return
+        await inject_student_text(pipeline_context.task, session, content, events)
 
 
 async def on_session_end(session_id: str) -> None:

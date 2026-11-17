@@ -28,6 +28,7 @@ from voice_kit.processors import (
     EventSinkProcessor,
     LLMProcessor,
     STTProcessor,
+    TranscriptMessageFrame,
     TTSProcessor,
 )
 
@@ -289,3 +290,69 @@ def test_build_pipeline_wires_vad_settings_into_the_analyzer(monkeypatch):
     assert params.min_volume == 0.4
     assert captured["speech_activity_period"] == 0.35
     assert captured["audio_idle_timeout"] == 2.5
+
+
+def test_a_frame_queued_at_the_source_reaches_the_referee_unchanged():
+    """Text mode's seam: a typed turn queued at the pipeline source passes the
+    real VAD and STT stages untouched and arrives where STT output would."""
+    import asyncio
+
+    from pipecat.frames.frames import EndFrame
+    from pipecat.processors.frame_processor import FrameProcessor
+    from pipecat.workers.runner import WorkerRunner
+    from voice_kit import set_context_provider
+
+    received = []
+
+    class PassThrough(FrameProcessor):
+        # A bare FrameProcessor forwards nothing, not even the StartFrame.
+        async def process_frame(self, frame, direction):
+            await super().process_frame(frame, direction)
+            await self.push_frame(frame, direction)
+
+    class RefereeStandIn(PassThrough):
+        async def process_frame(self, frame, direction):
+            if isinstance(frame, TranscriptMessageFrame):
+                received.append(frame)
+            await super().process_frame(frame, direction)
+
+    class FakeTransport:
+        def input(self):
+            return PassThrough()
+
+        def output(self):
+            return PassThrough()
+
+    async def provider(session_id: str) -> SessionContext:
+        return a_context()
+
+    # The real STT stage, then a stand-in where RefereeProcessor sits.
+    set_processor_factory(
+        lambda args: [STTProcessor(provider="together"), RefereeStandIn()]
+    )
+    set_context_provider(provider)
+    message = TranscriptMessage(
+        role="user", content="typed", timestamp=datetime(2026, 1, 1), source="text"
+    )
+    sent = TranscriptMessageFrame(message)
+
+    async def run():
+        context = await build_pipeline_for_session("s", FakeTransport(), emit=None)
+        # The runtime's own worker, driven the way inject_student_text drives it.
+        runner = WorkerRunner()
+        await runner.add_workers(context.task)
+
+        async def push():
+            await asyncio.sleep(0.01)
+            await context.task.queue_frame(sent)
+            await context.task.queue_frame(EndFrame())
+
+        await asyncio.wait_for(asyncio.gather(runner.run(), push()), timeout=10)
+
+    try:
+        asyncio.run(run())
+    finally:
+        set_context_provider(default_context_provider)
+
+    assert received == [sent]
+    assert received[0].message is message
