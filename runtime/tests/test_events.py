@@ -2,11 +2,13 @@
 
 import pytest
 from bridge.events import (
+    CLIENT_MODELS,
     EVENT_MODELS,
     ActionDetected,
     GameEvent,
     GameOver,
     StateUpdate,
+    StudentText,
     Timer,
     TranscriptUpdate,
 )
@@ -96,3 +98,31 @@ def test_action_detected_repeat_defaults_false_and_serialises():
         action_type="validate", desc="Validated", point_change=0, repeat=True
     )
     assert game_event.validate_python(repeat.model_dump()).repeat is True
+
+
+# --- inbound (client -> runtime) -------------------------------------------
+
+
+def test_student_text_round_trip():
+    msg = StudentText(content="I can see you're frustrated.")
+    dumped = msg.model_dump()
+
+    assert dumped == {
+        "v": 1,
+        "type": "student_text",
+        "content": "I can see you're frustrated.",
+    }
+    assert StudentText.model_validate(dumped) == msg
+    assert CLIENT_MODELS == [StudentText]
+
+
+def test_student_text_is_not_an_outbound_game_event():
+    """Inbound only: the runtime never sends it, so the union must not accept it."""
+    assert StudentText not in EVENT_MODELS
+    with pytest.raises(ValidationError):
+        game_event.validate_python(StudentText(content="hi").model_dump())
+
+
+def test_student_text_rejects_a_future_envelope():
+    with pytest.raises(ValidationError):
+        StudentText.model_validate({"v": 2, "type": "student_text", "content": "hi"})

@@ -4,7 +4,8 @@
 // Regenerate:      python scripts/gen_event_types.py
 //
 // The v1 envelope for every message the voice runtime pushes over the WebRTC
-// data channel. Backend CI fails if this file drifts from the pydantic models.
+// data channel (GameEvent), plus the messages the browser sends back to it.
+// Backend CI fails if this file drifts from the pydantic models.
 
 /** One finalized conversational turn, pushed as it happens. */
 export interface TranscriptUpdate {
@@ -57,3 +58,12 @@ export type GameEvent =
   | ActionDetected
   | Timer
   | GameOver
+
+// --- Inbound: browser -> runtime ---
+
+/** A typed student turn (Text mode), sent by the browser to the runtime. */
+export interface StudentText {
+  v: 1
+  type: 'student_text'
+  content: string
+}

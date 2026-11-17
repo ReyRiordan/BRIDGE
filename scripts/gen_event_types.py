@@ -24,7 +24,10 @@ OUTPUT_PATH = REPO_ROOT / "web" / "src" / "voice" / "gameEvents.gen.ts"
 
 sys.path.insert(0, str(RUNTIME_DIR))
 
-from bridge.events import EVENT_MODELS  # noqa: E402  — needs the sys.path line above
+from bridge.events import (  # noqa: E402  — needs the sys.path line above
+    CLIENT_MODELS,
+    EVENT_MODELS,
+)
 
 HEADER = """// GENERATED — do not edit.
 //
@@ -32,7 +35,8 @@ HEADER = """// GENERATED — do not edit.
 // Regenerate:      python scripts/gen_event_types.py
 //
 // The v1 envelope for every message the voice runtime pushes over the WebRTC
-// data channel. Backend CI fails if this file drifts from the pydantic models."""
+// data channel (GameEvent), plus the messages the browser sends back to it.
+// Backend CI fails if this file drifts from the pydantic models."""
 
 
 def ts_type(annotation: typing.Any) -> str:
@@ -64,21 +68,27 @@ def _ts_literal(value: typing.Any) -> str:
     raise TypeError(f"No TypeScript mapping for literal {value!r}")
 
 
+def _interface(model) -> str:
+    doc = (model.__doc__ or "").strip().splitlines()
+    lines = [f"/** {doc[0]} */"] if doc else []
+    lines.append(f"export interface {model.__name__} {{")
+    for name, field in model.model_fields.items():
+        lines.append(f"  {name}: {ts_type(field.annotation)}")
+    lines.append("}")
+    return "\n".join(lines)
+
+
 def render() -> str:
     """Build the full file contents as a string (byte-stable across runs)."""
     blocks = [HEADER]
-
-    for model in EVENT_MODELS:
-        doc = (model.__doc__ or "").strip().splitlines()
-        lines = [f"/** {doc[0]} */"] if doc else []
-        lines.append(f"export interface {model.__name__} {{")
-        for name, field in model.model_fields.items():
-            lines.append(f"  {name}: {ts_type(field.annotation)}")
-        lines.append("}")
-        blocks.append("\n".join(lines))
+    blocks.extend(_interface(model) for model in EVENT_MODELS)
 
     union = "\n  | ".join(model.__name__ for model in EVENT_MODELS)
     blocks.append(f"export type GameEvent =\n  | {union}")
+
+    # Inbound (browser -> runtime) messages, after the outbound union.
+    blocks.append("// --- Inbound: browser -> runtime ---")
+    blocks.extend(_interface(model) for model in CLIENT_MODELS)
 
     return "\n\n".join(blocks) + "\n"
 

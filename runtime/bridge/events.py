@@ -10,9 +10,13 @@ bearing:
 - ``type`` — the pydantic discriminator for ``GameEvent`` and the field the
   frontend switches on.
 
+The one inbound message, browser -> runtime, lives here too (``CLIENT_MODELS``),
+kept out of the outbound ``GameEvent`` union.
+
 This module is the SINGLE source of truth for the contract: the TypeScript in
-``web/src/voice/gameEvents.gen.ts`` is generated from ``EVENT_MODELS`` by
-``scripts/gen_event_types.py`` and CI fails when the two drift.
+``web/src/voice/gameEvents.gen.ts`` is generated from ``EVENT_MODELS`` and
+``CLIENT_MODELS`` by ``scripts/gen_event_types.py`` and CI fails when the two
+drift.
 
 Imports nothing from pipecat or voice_kit — it is a pure schema module usable
 from the control plane, the runtime and the tests alike.
@@ -92,6 +96,19 @@ EVENT_MODELS = [
     GameOver,
 ]
 
+
+class StudentText(BaseModel):
+    """A typed student turn (Text mode), sent by the browser to the runtime."""
+
+    v: Literal[1] = 1
+    type: Literal["student_text"] = "student_text"
+    content: str
+
+
+# Inbound (client -> runtime) messages. Not part of GameEvent: the runtime
+# never sends these, and the SPA reducer never receives them.
+CLIENT_MODELS = [StudentText]
+
 __all__ = [
     "TranscriptUpdate",
     "StateUpdate",
@@ -100,4 +117,6 @@ __all__ = [
     "GameOver",
     "GameEvent",
     "EVENT_MODELS",
+    "StudentText",
+    "CLIENT_MODELS",
 ]
