@@ -9,7 +9,7 @@
 | `web/index.html`, `src/main.tsx` | Entry point — the async bootstrap resolves the API base, configures the voice transport, then renders (load error on failure) |
 | `src/App.tsx` | App shell — owns the reducer and routes on `state.phase` (start → intro → game → end) |
 | `src/screens/` | The four screens: `StartScreen`, `IntroScreen`, `GameScreen`, `EndScreen` (an overlay over the frozen final scene) |
-| `src/components/` | Game UI: scene stage + layers, escalation bar, timer, action badge, transcript, checklist; plus the Start screen's `IdentityPanel` |
+| `src/components/` | Game UI: scene stage + layers, escalation bar, timer, action badge, transcript, checklist; plus the Start screen's `IdentityPanel` and Text mode's `TextComposer` + `PatientMuteToggle` |
 | `src/state/` | `useGame` — one pure reducer over the generated `GameEvent` types, plus the derived-visual selectors and the golden-run fixtures |
 | `src/types/` | The hand-written `GET /scenarios` + `GET /scenario/{id}` contract |
 | `src/identity.ts` | The student's NetID + mode: `normalizeNetId`, and the try/catch-wrapped `localStorage` load/save/clear |
@@ -27,8 +27,8 @@
 
 | Doc | Read it for |
 |---|---|
-| `app-shell.md` | The phase machine, Start-screen sign-in and identity, the reducer contract, the scenario-derived and no-wall-clock rules, scene-layer compositing, and the `dispatch` seam the voice client feeds |
-| `voice-client.md` | `src/voice/`: the startup bootstrap, connect/reconnect/end flow, the `relayOnly` seam, and the data-channel → reducer path |
+| `app-shell.md` | The phase machine, Start-screen sign-in and identity, the Text-mode game screen, the reducer contract, the scenario-derived and no-wall-clock rules, scene-layer compositing, and the `dispatch` seam the voice client feeds |
+| `voice-client.md` | `src/voice/`: the startup bootstrap, connect/reconnect/end flow, the `relayOnly` seam, Text mode's receive-only connection and typed sends, and the data-channel → reducer path |
 | `voice-integration.md` | How the two join: the session lifecycle (`useVoiceSession`), the two-ids model, the bounded reconnect policy, the end settle, and the connection-lost state |
 | `../backend/local-dev.md` | Running the SPA against a local backend (`web/.env.local`, the proxy, what relay-only means locally) |
 | `../backend/README.md` | The server side of the contract (event envelope, control-plane endpoints) |

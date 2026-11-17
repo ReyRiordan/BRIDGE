@@ -21,10 +21,10 @@ sanctioned way to get a new affinity key.
 
 ```
 IntroScreen "Begin"
-  → requestPermission()            inside the click gesture, or the prompt never shows
+  → requestPermission()            Voice mode only, inside the click gesture, or the prompt never shows
   → POST /sessions                 → session_id (and the session record)
   → POST /voice/{id}/start         → runtime_session_id + ice_servers
-  → startCall(..., RELAY_ONLY)     RELAY_ONLY from src/config.ts
+  → startCall(..., RELAY_ONLY, sendAudio)   RELAY_ONLY from src/config.ts; sendAudio = mode === 'voice'
   → ICE connected                  → dispatch BEGIN → GameScreen
 
 game events on the data channel → createGameEventHandler(dispatch) → reducer
@@ -36,6 +36,8 @@ game_over
 mid-game drop → connectionLost     → EndScreen's connection_lost variant
 Play Again    → voice.reset() + PLAY_AGAIN → Start → a brand-new session_id
 ```
+
+**Text mode** (`identity.mode === 'text'`) skips the permission step entirely and connects with `sendAudio = false`: a receive-only audio connection, so no prompt ever appears (`voice-client.md`). Everything after that is the same lifecycle, including relay-only ICE, the retry policy and the end settle (the patient still speaks, so the settle still waits on its audio). The hook exposes `mode`, `sendText`, `patientMuted` and `setPatientMuted` for the game screen. `MICROPHONE_PERMISSION_DENIED` cannot occur in this mode.
 
 `BEGIN` is dispatched **only** once ICE reaches `connected`. A failed connect
 therefore leaves the student on the intro screen with an inline error and a
@@ -97,7 +99,7 @@ this variant.
 
 ## Mic status
 
-The anti-echo auto-mute in `useWebRTC` silences the student's track while the
+Voice mode only (Text mode shows the patient-mute toggle in this corner instead; see `app-shell.md`). The anti-echo auto-mute in `useWebRTC` silences the student's track while the
 patient speaks (otherwise speaker output re-triggers the server-side VAD). That
 is invisible on its own, so `components/MicStatus.tsx` renders a read-only pill
 over the scene — "🎤 Listening" ↔ "🔇 Patient speaking". Deliberately not a

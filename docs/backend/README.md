@@ -43,6 +43,14 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 | `timer` | `elapsed`, `limit` |
 | `game_over` | `status: "success"\|"fail"`, `reason` |
 
+**Inbound (client → runtime).** The browser sends one message back over the same channel, kept out of the `GameEvent` union in `CLIENT_MODELS` (and generated to TS after it):
+
+| type | payload |
+|---|---|
+| `student_text` | `content` — a typed student turn (Text mode) |
+
+`bridge/typed_input.py` validates it in `transport.event_handler("on_app_message")` (pipecat consumes its own `type: "signalling"` messages first). The content is stripped, and anything empty, over 1000 characters, malformed or `v ≠ 1` is logged at debug and dropped. The runtime does not know a session's mode, so it accepts typed text from any session.
+
 Transcript roles are domain roles (`student`/`patient`) — deliberately not `voice_kit.types.TranscriptMessage`'s chat-native `user`/`assistant`, which is mapped at the boundary.
 
 Regenerate the TS after any change to the models (CI fails on drift):
@@ -68,8 +76,9 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 | `timer.py` | The 1 Hz clock (which also charges inactivity) and the post-`game_over` grace reaper |
 | `recorder.py` | `SessionRecorder` — turns game events into session-record updates on a bounded per-session queue, drained by a background writer (see [Session records](#session-records)) |
 | `store.py` | The runtime's record backends (pipecat-free): `DynamoSessionTable` (one conditional `UpdateItem`), `FileSessionTable` (local), `NullSessionTable`, and `get_session_table()` |
-| `app.py` | The uvicorn/Docker target: registers every hook and re-exports the kit's app |
-| `events.py` | The frozen v1 wire contract (above) |
+| `typed_input.py` | Text mode: `parse_student_text` (the inbound `student_text` check) and `inject_student_text` (queues the typed turn as a user `TranscriptMessageFrame`, `source="text"`) |
+| `app.py` | The uvicorn/Docker target: registers every hook (including the `on_app_message` handler for typed turns) and re-exports the kit's app |
+| `events.py` | The frozen v1 wire contract (above), outbound and inbound |
 
 **Which scenario.** `POST /sessions` issues `session_id = <scenario_id>--<uuid>` (the SPA no longer mints its own) and `provide_context` resolves the scenario with `parse_session_id` (split on the first `--`, checked against the allow-list). A missing or unknown prefix raises; there is no fallback scenario. This is a **prototype shortcut**: the kit hands `provide_context` only the session id and `SignalRequest` has no metadata field, so the id is the one channel there is. The cleaner fix is a metadata passthrough in `voice_kit`.
 
@@ -84,6 +93,8 @@ The rules layer that turns the kit's pipeline into the simulation. One `GameSess
 | `environment`, `intro_image`, `patient_frame_ext` | top level | Client-only visuals (see `../frontend/app-shell.md`). |
 
 **One turn**, in order: STT → referee (`transcript_update{student}` → `action_detected`×N → `state_update` → `game_over`?) → patient LLM (gated off once the game is over) → TTS → sink (`transcript_update{patient}`). That order is guaranteed by construction — the referee emits directly over the ordered data channel and finishes before the frame reaches the patient LLM, while `timer` ticks interleave freely. The connect-time authoritative `state_update` precedes everything.
+
+**Typed turns** (Text mode) enter at the STT output: `inject_student_text` queues a user `TranscriptMessageFrame` with `source="text"` at the pipeline source with `PipelineWorker.queue_frame`, and VAD and STT forward it untouched. From the referee on it is the same code as speech, so scoring, ordering, the patient's spoken reply and the record are identical (`test_pipeline_seams.py` pins the pass-through). Once the game is over a typed turn is not queued: it is echoed as `transcript_update{student}` and recorded unscored, which is what the referee would have done with it. The browser's text connection is receive-only for audio (`../frontend/voice-client.md`), and the runtime's `TransportParams` stay the same for both modes (`voice-kit/05-gotchas.md` #39).
 
 **Status vocabulary** is `active | success | fail` — `status` on both `state_update` and `game_over`, and what the SPA switches on. A game ends when escalation reaches the scenario's goal (success), its maximum (fail), or the clock runs out (fail); the reaper then cancels the pipeline after `GAME_GRACE_SECONDS`. The pipeline's own idle backstop is held outside that window — `config.idle_timeout_for()` derives `SessionContext.idle_timeout_seconds` as `time_limit + GAME_GRACE_SECONDS + IDLE_TIMEOUT_MARGIN_SECONDS`, because pipecat cancels the pipeline on idle and one firing mid-game would take the data channel down before `game_over` (`voice-kit/05-gotchas.md` #35).
 
