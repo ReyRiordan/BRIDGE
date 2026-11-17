@@ -49,6 +49,17 @@ npx ampx sandbox secret set OPENROUTER_API_KEY --profile compass-test   # ×3
 
 For the branch, set the same three in the Amplify console under App settings → Secrets.
 
+### The results-page password
+
+`BRIDGE_ADMIN_PASSWORD` (`API_SECRET_NAMES`) is the API Lambda's one secret: the shared password collaborators enter at `/#/results`. The Lambda gets `SECRETS_FROM_SSM=BRIDGE_ADMIN_PASSWORD` with the same prefixes as the runtime and `ssm:GetParameter` on them. Unset, login answers 503 `admin not configured`. Generate a long random value, set it, and share it out of band:
+
+```bash
+python -c "import secrets;print(secrets.token_urlsafe(18))" \
+  | npx ampx sandbox secret set BRIDGE_ADMIN_PASSWORD --profile compass-test
+```
+
+For the branch, set it in the Amplify console under App settings → Secrets. **Rotate** by setting a new value and forcing a cold start (an API redeploy, or any configuration change to the API function). The token signature is keyed by the password, so every outstanding token stops working at the same moment.
+
 > Never put `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in the runtime environment — they shadow the task role for every boto3 client in the container (gotcha #1).
 
 ## Session records table
@@ -66,7 +77,7 @@ For the branch, set the same three in the Amplify console under App settings →
 | Env | `SESSIONS_TABLE` (the generated name) on the API Lambda and the runtime |
 | IAM | API Lambda: `PutItem`, `GetItem`, `Query` (table and index ARNs). Runtime role: `UpdateItem` on the table ARN only |
 
-Retention is indefinite, with no TTL. Remove a student's data by hand on request:
+Retention is indefinite, with no TTL. The results page is read-only by design (a shared password plus a delete button risks destroying study data), so removing a student's data is done by hand, on request:
 
 ```bash
 TABLE=$(aws dynamodb list-tables --profile compass-test --query 'TableNames[?contains(@, `BridgeSessions`)]' --output text)
@@ -105,7 +116,8 @@ Order matters at steps 5 → 6 → 7.
 4. **Verify** —
    - `aws lambda get-function-configuration` shows `VOICE_RUNTIME_ARN` + `KVS_CHANNEL_NAME`.
    - `curl <fnUrl>/health` returns `{"status":"ok","scenario_loaded":true}` (this is the proof that `resources/` really is in the image).
-   - `aws ssm describe-parameters` lists the three keys under the runtime's first `SECRETS_SSM_PREFIXES` path.
+   - `aws ssm describe-parameters` lists the three keys and `BRIDGE_ADMIN_PASSWORD` under the first `SECRETS_SSM_PREFIXES` path.
+   - `curl -s -o /dev/null -w '%{http_code}' $API/admin/sessions` answers `401`, and the password signs in at `/#/results`.
    - `aws bedrock-agentcore invoke-agent-runtime` with a **fresh** `runtimeSessionId` (containers are pinned per session — reusing one gets you a warm container from before the secrets existed) triggers a cold start. CloudWatch should show "Application startup complete" and no `UnrecognizedClientException` / `None`-key errors.
    - `_export_ssm_secrets()` logs nothing on success and swallows `ParameterNotFound`, so there is no positive log line to grep for. What the clean start *does* prove is that the read did not raise: it runs at import time (`config.py`), so an `AccessDenied` would stop the container before it ever served `/ping`. Confirm the grant itself with `aws iam simulate-principal-policy --action-names ssm:GetParameter` against the runtime role, including a negative control outside the prefix (expect `implicitDeny`).
 5. **Hosting** — in the Amplify console create the app against the GitHub repo's `main`, build spec from the root `amplify.yml`, frontend-only. Leave **"my app is a monorepo" unchecked**: the build spec handles `web/` itself via `npm --prefix`, and that option expects the different `applications:`/`appRoot` format.

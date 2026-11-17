@@ -6,7 +6,7 @@ Everything server-side in the BRIDGE rewrite: the control-plane Lambda, the voic
 
 | Tree | What it is | Runs on |
 |---|---|---|
-| `api/` | Thin FastAPI control plane: `GET /scenarios` (picker list) + `GET /scenario/{id}` (the whitelisted config; 404 on an unknown id) + `POST /sessions` (creates the session record and issues the session id; see [Session records](#session-records)) + the voice signaling router. Every scenario loads at import, so a broken bundle fails the cold start. Deliberately **pipecat-free**. Ships as a container image (`api/Dockerfile.api`) served by uvicorn under the Lambda Web Adapter; the Mangum `handler` is a zip fallback. | Lambda (container image, LWA) |
+| `api/` | Thin FastAPI control plane: `GET /scenarios` (picker list) + `GET /scenario/{id}` (the whitelisted config; 404 on an unknown id) + `POST /sessions` (creates the session record and issues the session id; see [Session records](#session-records)) + the password-gated, read-only `/admin/*` results API (`POST /admin/login`, `GET /admin/sessions`, `GET /admin/sessions/{id}`; see [Results API](#results-api)) + the voice signaling router. Every scenario loads at import, so a broken bundle fails the cold start. Deliberately **pipecat-free**. Ships as a container image (`api/Dockerfile.api`) served by uvicorn under the Lambda Web Adapter; the Mangum `handler` is a zip fallback. | Lambda (container image, LWA) |
 | `runtime/voice_kit/` | Vendored voice pipeline kit — control plane (router, config, KVS, errors) + pipeline (pipecat, providers, processors). | Lambda (control-plane half) + container (pipeline half) |
 | `runtime/bridge/` | BRIDGE's own runtime code: the game engine and the wire contract. Container-only. | AgentCore container |
 | `amplify/` | Amplify Gen 2 / CDK infra: `backend.ts` (API Lambda + Function URL + voice runtime), `constants.ts` (deploy-time config), `voice-runtime.ts` (the vendored kit module). | Deploy time |
@@ -145,7 +145,22 @@ The NetID stays in the control plane. The runtime only knows the session id, so 
 
 **Abandonment is derived on read.** A closed tab fires neither `/end` nor the reaper, so the runtime often never gets to write `abandoned`. Readers must therefore treat an `active` item older than `started_at + time_limit_s + 300 s` as abandoned, and a `started` item older than `created_at + 1 h` as never connected. Because the runtime only writes on events, that derivation is deterministic.
 
-**Stores.** Both sides pick a backend the same way: under `BRIDGE_LOCAL`, a JSON file per session under `SESSIONS_LOCAL_DIR` (default `<repo>/.local-data/sessions`, gitignored; see `local-dev.md`); with `SESSIONS_TABLE` set, DynamoDB; with neither, a no-op (runtime) or in-memory dict (API) for unit tests. `api/session_store.py` also carries `get` and `list_summaries` (all pages of the GSI, newest first) for readers; no endpoint serves them yet. Table, retention and manual deletion: `deployment.md`.
+**Stores.** Both sides pick a backend the same way: under `BRIDGE_LOCAL`, a JSON file per session under `SESSIONS_LOCAL_DIR` (default `<repo>/.local-data/sessions`, gitignored; see `local-dev.md`); with `SESSIONS_TABLE` set, DynamoDB; with neither, a no-op (runtime) or in-memory dict (API) for unit tests. `api/session_store.py` also carries `get` and `list_summaries` (all pages of the GSI, newest first), which the results API reads. Table, retention and manual deletion: `deployment.md`.
+
+## Results API
+
+`api/admin.py` serves the collaborators' results page (`../frontend/results.md`). It is read-only: there is no delete or hide, so removals stay manual (`deployment.md`).
+
+**Auth.** One shared password, `BRIDGE_ADMIN_PASSWORD`, resolved from SSM at cold start by the kit's `SECRETS_FROM_SSM` mechanism (`admin.py` imports `voice_kit.config` itself, so resolution never depends on import order). `POST /admin/login {password}` compares with `hmac.compare_digest` and returns `{token, expires_at}`, a 12-hour token: `b64url(json {"exp": unix}) + "." + b64url(HMAC-SHA256(key, payload))` with `key = sha256(b"bridge-admin-v1:" + password)`. There is no second secret, and a new password invalidates every old token. A wrong password answers 401 after a 1 s sleep (a damper; the long random password is the defence). An unset password answers 503 `admin not configured`, except under `BRIDGE_LOCAL`, where `local` is accepted.
+
+**Data.** Both endpoints need `Authorization: Bearer <token>` (401 otherwise, with `WWW-Authenticate: Bearer`):
+
+| Endpoint | Returns |
+|---|---|
+| `GET /admin/sessions` | `{"sessions": [summary…]}`, newest first. Each summary is the GSI projection (`session_id`, `kind`, `created_at` + `SESSION_SUMMARY_ATTRIBUTES`; the file and memory stores are projected to the same set, and `test_admin.py` pins it to `amplify/constants.ts`) |
+| `GET /admin/sessions/{session_id}` | The whole item, or 404 |
+
+Numbers leave as JSON numbers (`Decimal` is converted at the boundary). Both add **`display_status`**: `abandoned` for an `active` item once now is past `started_at + time_limit_s + 300 s` (falling back to `created_at` with no `started_at`), `never_connected` for a `started` item over an hour past `created_at`, otherwise the stored `status`.
 
 ## Adding a scenario
 

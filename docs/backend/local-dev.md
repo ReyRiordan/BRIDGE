@@ -51,7 +51,7 @@ npm run dev     # concurrently: web (5173) + api (8000) + rt (8080)
 
 | Script | What it starts |
 |---|---|
-| `dev:web` | `npm --prefix web run dev` — Vite, with a `server.proxy` sending `/voice`, `/scenario` (a prefix, so `/scenarios` too) and `/sessions` to :8000 (same-origin, so no CORS on the local path) |
+| `dev:web` | `npm --prefix web run dev` — Vite, with a `server.proxy` sending `/voice`, `/scenario` (a prefix, so `/scenarios` too), `/sessions` and `/admin` to :8000 (same-origin, so no CORS on the local path) |
 | `dev:api` | `uvicorn api.local:app` on :8000 — `api/local.py` is `api/main.py` with `BRIDGE_LOCAL` set *before* the import |
 | `dev:runtime` | `uvicorn bridge.app:app` on :8080 — the same AgentCore app the container runs, serving `/ping` + `/invocations` |
 | `dev:venv` | The `.venv` guard both backend scripts run first |
@@ -104,6 +104,8 @@ cat .local-data/sessions/<session_id>.json   # status, turns, timeline
 ```
 
 `SESSIONS_TABLE` is ignored locally. The schema and write points are in [`README.md`](README.md#session-records).
+
+**The results page** reads the same files. Open `http://localhost:5173/#/results` and sign in with the password `local`, which the control plane accepts under the flag when `BRIDGE_ADMIN_PASSWORD` is unset (it logs a warning at startup). Set `BRIDGE_ADMIN_PASSWORD` in `.env` to try a real one. See [`../frontend/results.md`](../frontend/results.md).
 
 ## Verifying: the Tier-1 smoke
 

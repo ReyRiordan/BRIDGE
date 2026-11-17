@@ -6,7 +6,7 @@
 
 | Path | What it is |
 |---|---|
-| `web/index.html`, `src/main.tsx` | Entry point — the async bootstrap resolves the API base, configures the voice transport, then renders (load error on failure) |
+| `web/index.html`, `src/main.tsx` | Entry point — the async bootstrap resolves the API base, configures the voice transport, then renders `ResultsApp` when the hash starts with `#/results` and `App` otherwise, re-rendering on `hashchange` (load error on failure) |
 | `src/App.tsx` | App shell — owns the reducer and routes on `state.phase` (start → intro → game → end) |
 | `src/screens/` | The four screens: `StartScreen`, `IntroScreen`, `GameScreen`, `EndScreen` (an overlay over the frozen final scene) |
 | `src/components/` | Game UI: scene stage + layers, escalation bar, timer, action badge, transcript, checklist; plus the Start screen's `IdentityPanel` and Text mode's `TextComposer` + `PatientMuteToggle` |
@@ -14,13 +14,14 @@
 | `src/types/` | The hand-written `GET /scenarios` + `GET /scenario/{id}` contract |
 | `src/identity.ts` | The student's NetID + mode: `normalizeNetId`, and the try/catch-wrapped `localStorage` load/save/clear |
 | `src/api/` | `fetchScenarios()` / `fetchScenario(id)`, `createSession()` (`POST /sessions`), plus `transport.ts` — the fetch adapter the voice-kit calls run through, and the one place the API base URL is applied |
+| `src/results/` | The collaborators' results page at `#/results`: login gate, session list (filters, sort, per-student history, CSV) and session detail (agitation chart, checklist, transcript, JSON). See `results.md` |
 | `src/index.css` | `@import 'tailwindcss'` plus the `@theme` block that IS the design system — Tailwind v4 has no config file; the `@tailwindcss/vite` plugin in `vite.config.ts` is the whole setup |
 | `src/config.ts` | Runtime config: `BRIDGE_LOCAL` (from `VITE_BRIDGE_LOCAL`), `RELAY_ONLY`, and `resolveApiBaseUrl()` / `getApiBaseUrl()` (runtime `custom.apiUrl` lookup) |
 | `src/vite-env.d.ts` | Vite client types + the `ImportMetaEnv` declaration for `VITE_BRIDGE_LOCAL` |
 | `src/voice/` | The voice client (vendored), `useVoiceSession` (session lifecycle), the `gameEvents.ts` dispatch seam + the generated event types |
 | `public/visuals/<id>/` | Scene art per scenario: `patient_{escalation}.{png,webp}` + per-action active/inactive layers (a matched set at the stage aspect), an optional `environment` plate, and the intro image. scenario_1 is PNG/JPG; scenario_2/3 are WebP from the scene-art pipeline |
 | `public/amplify_outputs.json` | Backend outputs (`custom.apiUrl`). **Generated, never committed** — the Hosting build writes it (see `../backend/deployment.md`); the SPA fetches it at runtime |
-| `vite.config.ts` | Vite plugins, the dev-server proxy (`/voice` + `/scenario*` + `/sessions` → `localhost:8000`), and the Vitest (jsdom, globals) config |
+| `vite.config.ts` | Vite plugins, the dev-server proxy (`/voice` + `/scenario*` + `/sessions` + `/admin` → `localhost:8000`), and the Vitest (jsdom, globals) config |
 | `eslint.config.js` | ESLint flat config: typescript-eslint, react-hooks, react-refresh, prettier |
 
 ## Doc map
@@ -30,6 +31,7 @@
 | `app-shell.md` | The phase machine, Start-screen sign-in and identity, the Text-mode game screen, the reducer contract, the scenario-derived and no-wall-clock rules, scene-layer compositing, and the `dispatch` seam the voice client feeds |
 | `voice-client.md` | `src/voice/`: the startup bootstrap, connect/reconnect/end flow, the `relayOnly` seam, Text mode's receive-only connection and typed sends, and the data-channel → reducer path |
 | `voice-integration.md` | How the two join: the session lifecycle (`useVoiceSession`), the two-ids model, the bounded reconnect policy, the end settle, and the connection-lost state |
+| `results.md` | The results page: hash routes, the token handling, the list (filters, CSV columns, student history) and the detail view (chart encoding, checklist states, transcript annotations) |
 | `../backend/local-dev.md` | Running the SPA against a local backend (`web/.env.local`, the proxy, what relay-only means locally) |
 | `../backend/README.md` | The server side of the contract (event envelope, control-plane endpoints) |
 

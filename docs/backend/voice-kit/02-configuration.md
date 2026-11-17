@@ -116,6 +116,12 @@ Read at call time by `runtime/bridge/store.py` (runtime) and `api/session_store.
 | `SESSIONS_TABLE` | both | unset | The `BridgeSessions` table name. Injected per backend by `amplify/backend.ts` into the API Lambda and the runtime, never set in `VOICE_CONFIG` (sandbox and main have separate tables). Ignored under `BRIDGE_LOCAL` |
 | `SESSIONS_LOCAL_DIR` | both | `<repo>/.local-data/sessions` | Local mode only: one `<session_id>.json` per session. Both processes must agree on it |
 
+### Results API
+
+| Env var | Side | Default | Notes |
+|---|---|---|---|
+| `BRIDGE_ADMIN_PASSWORD` | control plane | unset | The one shared password for the results page (`api/admin.py`), read at request time. Deployed, it is an SSM secret: the API Lambda gets `SECRETS_FROM_SSM=BRIDGE_ADMIN_PASSWORD` (`API_SECRET_NAMES` in `amplify/constants.ts`) and the runtime's prefixes. Unset, login answers 503, except under `BRIDGE_LOCAL`, where `local` is accepted (with a startup warning). It also keys the token signature, so changing it invalidates every token |
+
 ## AWS static keys (local dev only)
 
 | Env var | Consumer | Notes |
@@ -129,7 +135,7 @@ Deployed runtimes never receive plain-text secret values. Instead infra injects:
 - `SECRETS_FROM_SSM` — comma-separated secret *names* (e.g. `OPENROUTER_API_KEY,INWORLD_API_KEY,TOGETHER_API_KEY,AWS_BEDROCK_BASE_URL`)
 - `SECRETS_SSM_PREFIXES` — comma-separated SSM parameter path prefixes, most specific first
 
-At cold start, `_export_ssm_secrets()` (runs before `Settings` loads) resolves each name via `ssm:GetParameter` (WithDecryption) under the first prefix that has it and exports it into `os.environ`. Already-set env vars always win; unresolved names stay unset and the owning feature degrades as with any missing secret. Locally (no `SECRETS_FROM_SSM`) it's a no-op and `.env` is used. The task role needs `ssm:GetParameter` on the prefixes (handled by `amplify/voice-runtime.ts`); with Amplify, set values via `npx ampx sandbox secret set NAME`.
+At cold start, `_export_ssm_secrets()` (runs before `Settings` loads) resolves each name via `ssm:GetParameter` (WithDecryption) under the first prefix that has it and exports it into `os.environ`. Already-set env vars always win; unresolved names stay unset and the owning feature degrades as with any missing secret. Locally (no `SECRETS_FROM_SSM`) it's a no-op and `.env` is used. The task role needs `ssm:GetParameter` on the prefixes (handled by `amplify/voice-runtime.ts` for the runtime and `amplify/backend.ts` for the API Lambda, which resolves `BRIDGE_ADMIN_PASSWORD` the same way); with Amplify, set values via `npx ampx sandbox secret set NAME`.
 
 ## Local mode (`BRIDGE_LOCAL=1`)
 
