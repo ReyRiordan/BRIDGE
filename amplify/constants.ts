@@ -198,3 +198,33 @@ export const API_IMAGE_EXCLUDE = [
 ];
 
 export const VOICE_IMAGE_EXCLUDE = ['api/'];
+
+/**
+ * The session-record table's one GSI: partition `kind` (always "session"),
+ * sort `created_at`. `api/session_store.py` queries it by this name.
+ */
+export const SESSIONS_INDEX = 'by_created';
+
+/**
+ * The GSI's INCLUDE projection: the summary attributes the results list shows,
+ * never `turns` or `timeline`. Listing a thousand sessions then reads a few
+ * hundred KB instead of tens of MB. `session_id`, `kind` and `created_at` are
+ * key attributes and are always projected.
+ */
+export const SESSION_SUMMARY_ATTRIBUTES = [
+  'netid',
+  'scenario_id',
+  'scenario_title',
+  'mode',
+  'status',
+  'end_reason',
+  'start_escalation',
+  'escalation',
+  'max_escalation',
+  'time_limit_s',
+  'started_at',
+  'duration_s',
+  'helpful_count',
+  'escalating_count',
+  'updated_at',
+];

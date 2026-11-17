@@ -14,6 +14,7 @@ from bridge import session as session_module
 from bridge import timer as timer_module
 from bridge.app import (
     build_game_processors,
+    on_session_end,
     on_session_start,
     provide_context,
     store_turn,
@@ -220,3 +221,89 @@ def test_session_start_arms_the_clock_and_emits_state_on_connect():
             "status": "active",
         }
     ]
+
+
+# --- session record wiring --------------------------------------------------
+
+
+class RecordingTable:
+    def __init__(self):
+        self.updates = []
+
+    def update(self, session_id, update):
+        self.updates.append(update)
+
+
+@pytest.fixture
+def table(monkeypatch):
+    t = RecordingTable()
+    monkeypatch.setattr("bridge.app.get_session_table", lambda: t)
+    return t
+
+
+def start(session):
+    async def run():
+        await on_session_start(
+            SID, FakePipelineContext(session), FakeTransport(), lambda _: None
+        )
+        timer_module.cancel_timer(SID)
+
+    return run()
+
+
+def test_a_reconnect_reuses_the_recorder_and_records_one_start(table):
+    async def run():
+        first = (await provide_context(SID)).metadata["game"]
+        recorder = first.recorder
+        await start(first)
+        second = (await provide_context(SID)).metadata["game"]
+        await start(second)
+        assert second.recorder is recorder
+        await recorder.close()
+
+    asyncio.run(run())
+    starts = [u for u in table.updates if u.get("set", {}).get("status") == "active"]
+    assert len(starts) == 1
+
+
+def test_store_turn_records_patient_turns_only(table):
+    async def run():
+        session = (await provide_context(SID)).metadata["game"]
+        for role in ("user", "assistant"):
+            await store_turn(
+                SID,
+                TranscriptMessage(
+                    role=role, content=role, timestamp=datetime(2026, 1, 1)
+                ),
+            )
+        await session.recorder.close()
+
+    asyncio.run(run())
+    turns = [t for u in table.updates for t in u.get("append", {}).get("turns", [])]
+    assert [(t["role"], t["content"]) for t in turns] == [("patient", "assistant")]
+
+
+def test_session_end_marks_an_active_session_abandoned(table):
+    async def run():
+        session = (await provide_context(SID)).metadata["game"]
+        await start(session)
+        await on_session_end(SID)
+
+    asyncio.run(run())
+    assert table.updates[-1]["set"]["status"] == "abandoned"
+    assert table.updates[-1]["set"]["end_reason"] == "abandoned"
+    assert session_module.get_session(SID) is None
+
+
+def test_session_end_after_game_over_is_not_abandoned(table):
+    async def run():
+        session = (await provide_context(SID)).metadata["game"]
+        await start(session)
+        session.escalation = 0
+        session.check_terminal()
+        session.recorder.ended(session)
+        await on_session_end(SID)
+
+    asyncio.run(run())
+    statuses = [u["set"].get("status") for u in table.updates if "set" in u]
+    assert statuses == ["active", "success"]

@@ -80,18 +80,29 @@ async def run_timer(session, events, on_expire=None, *, sleep=asyncio.sleep) -> 
         events.timer(min(elapsed, limit), limit)
         if elapsed >= limit:
             events.game_over(*session.expire())
+            _record_end(session)
             if on_expire is not None:
                 await _maybe_await(on_expire())
             return
         if session.apply_inactivity():
             events.state(session)
+            recorder = getattr(session, "recorder", None)
+            if recorder:
+                recorder.inactivity(session)
             terminal = session.check_terminal()
             if terminal is not None:
                 events.game_over(*terminal)
+                _record_end(session)
                 if on_expire is not None:
                     await _maybe_await(on_expire())
                 return
         await sleep(1)
+
+
+def _record_end(session) -> None:
+    recorder = getattr(session, "recorder", None)
+    if recorder:
+        recorder.ended(session)
 
 
 def start_timer(session, events, on_expire=None) -> asyncio.Task:

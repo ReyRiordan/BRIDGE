@@ -2,9 +2,10 @@
 Per-session game state and the process-wide session registry.
 
 One :class:`GameSession` per ``session_id``, held in memory for the life of the
-container. That is the whole persistence story: AgentCore gives us session
-affinity (one container per session), the simulation is a single sitting, and a
-DB would buy nothing a warm container does not already provide.
+container. That memory is the game's only live state: AgentCore gives us
+session affinity (one container per session) and the simulation is a single
+sitting. The DynamoDB session record (``recorder.py``) is a write-only log for
+the results page, never read back to resume a game.
 
 The registry mirrors ``voice_kit.runtime._pipeline_tasks``: a module-level dict,
 single asyncio loop, **no locks** — nothing here is touched from a worker
@@ -40,11 +41,14 @@ Three optional scenario mechanics live here too:
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from voice_kit.types import TranscriptMessage
 
 from .events import StateUpdate
+
+if TYPE_CHECKING:
+    from .recorder import SessionRecorder
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +58,13 @@ logger = logging.getLogger(__name__)
 STATUS_ACTIVE = "active"
 STATUS_SUCCESS = "success"
 STATUS_FAIL = "fail"
+
+# Why a game ended, as the session record stores it (`end_reason`). The
+# runtime-only `abandoned` is written by the recorder, never set here.
+END_GOAL = "goal"
+END_MAX = "max"
+END_TIMEOUT = "timeout"
+END_ACTION = "end_action"
 
 
 @dataclass
@@ -83,6 +94,12 @@ class GameSession:
     pending_end: Optional[Tuple[str, str]] = None
     # helpful action type -> the most negative delta credited for it so far.
     credited: Dict[str, int] = field(default_factory=dict)
+    # Set together with a terminal `status`: one of the END_* values, plus the
+    # `game_over` reason it was announced with.
+    end_reason: Optional[str] = None
+    reason: Optional[str] = None
+    # Attached by `app.provide_context`; None in engine-only tests.
+    recorder: Optional["SessionRecorder"] = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if self.escalation is None:
@@ -207,29 +224,35 @@ class GameSession:
         if self.status != STATUS_ACTIVE:
             return None
         if self.pending_end is not None:
-            return self._end(*self.pending_end)
+            return self._end(*self.pending_end, END_ACTION)
         if self.escalation <= self.goal:
-            return self._end(STATUS_SUCCESS, "Escalation reduced to goal")
+            return self._end(STATUS_SUCCESS, "Escalation reduced to goal", END_GOAL)
         if self.escalation >= self.max_escalation:
-            return self._end(STATUS_FAIL, "Escalation reached maximum")
+            return self._end(STATUS_FAIL, "Escalation reached maximum", END_MAX)
         return None
 
     def expire(self) -> Tuple[str, str]:
         """End the session on the clock (idempotent for an already-ended one)."""
         if self.status != STATUS_ACTIVE:
             return self.status, "Time limit reached"
-        return self._end(STATUS_FAIL, "Time limit reached")
+        return self._end(STATUS_FAIL, "Time limit reached", END_TIMEOUT)
 
-    def _end(self, status: str, reason: str) -> Tuple[str, str]:
+    def _end(self, status: str, reason: str, end_reason: str) -> Tuple[str, str]:
         self.status = status
+        self.end_reason = end_reason
+        self.reason = reason
         self.ended_at = time.monotonic()
         logger.info("[%s] game over: %s (%s)", self.session_id, status, reason)
         return status, reason
 
     # --- projections ------------------------------------------------------
 
+    def elapsed(self) -> float:
+        """Seconds since game start (the on-screen clock), unrounded."""
+        return time.monotonic() - self.started_at
+
     def elapsed_seconds(self) -> int:
-        return int(time.monotonic() - self.started_at)
+        return int(self.elapsed())
 
     def to_state_update(self) -> StateUpdate:
         return StateUpdate(

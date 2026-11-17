@@ -3,7 +3,7 @@
 Tier-1 smoke test for local dev mode: a real WebRTC handshake against a running
 `npm run dev`, with zero AWS calls.
 
-It drives the same three control-plane endpoints the browser does, using
+It drives the same four control-plane endpoints the browser does, using
 aiortc as the peer (already installed via runtime/requirements-voice.txt), so
 it proves the transport independently of the SPA — run it first when a browser
 session will not connect.
@@ -12,6 +12,7 @@ session will not connect.
     .venv/bin/python scripts/local_voice_smoke.py
 
 What it proves, in order:
+  0. `POST /sessions` issues a session id (and creates its record).
   1. `/start` returns `ice_servers: []` — the KVS fetch was skipped, so no boto3
      call was made.
   2. The runtime's answer contains a NON-relay candidate — the relay-only SDP
@@ -34,8 +35,9 @@ import fractions
 import json
 import sys
 import time
-import uuid
 
+# What the smoke signs in as; its records land in .local-data/sessions/.
+PROBE_SESSION = {"netid": "probe", "scenario_id": "scenario_1", "mode": "voice"}
 DEFAULT_API_BASE = "http://127.0.0.1:8000"
 ICE_CONNECT_TIMEOUT = 20
 GATHER_TIMEOUT = 10
@@ -102,11 +104,15 @@ async def run(api_base: str) -> None:
     import aiohttp
     from aiortc import RTCConfiguration, RTCPeerConnection, RTCSessionDescription
 
-    # The runtime reads the scenario off the id's prefix, as the SPA mints it.
-    session_id = f"scenario_1--{uuid.uuid4()}"
-    print(f"Local voice smoke — session {session_id}")
-
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as http:
+        # --- 0. create ------------------------------------------------------
+        # The id is server-issued (the SPA's flow), which also creates the
+        # session record the runtime then fills in.
+        created = await _post(http, api_base, "/sessions", PROBE_SESSION)
+        session_id = created["session_id"]
+        print(f"Local voice smoke — session {session_id}")
+        ok("POST /sessions issued the session id")
+
         # --- 1. start -------------------------------------------------------
         start = await _post(http, api_base, f"/voice/{session_id}/start")
         if start.get("ice_servers") != []:

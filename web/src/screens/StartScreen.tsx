@@ -1,19 +1,29 @@
 import { useEffect, useState } from 'react'
 import Button from '../components/Button'
+import IdentityPanel from '../components/IdentityPanel'
 import { fetchScenario, fetchScenarios } from '../api/scenario'
+import type { Identity } from '../identity'
 import type { Scenario, ScenarioSummary } from '../types/scenario'
 
 interface StartScreenProps {
   onLoaded: (scenario: Scenario) => void
+  identity: Identity | null
+  onIdentityChange: (identity: Identity | null) => void
 }
 
 /**
- * The title card and scenario picker — the only place `/scenarios` and
- * `/scenario/{id}` are fetched. Loading and error state are local: nothing
- * about a failed fetch belongs in game state, and keeping it here is what lets
- * Play Again → Start pick up scenario edits.
+ * The title card, the sign-in panel and the scenario picker — the only place
+ * `/scenarios` and `/scenario/{id}` are fetched. The picker stays disabled
+ * until the student has signed in, so a NetID is entered once and reused for
+ * every case. Loading and error state are local: nothing about a failed fetch
+ * belongs in game state, and keeping it here is what lets Play Again → Start
+ * pick up scenario edits.
  */
-function StartScreen({ onLoaded }: StartScreenProps) {
+function StartScreen({
+  onLoaded,
+  identity,
+  onIdentityChange,
+}: StartScreenProps) {
   const [scenarios, setScenarios] = useState<ScenarioSummary[] | null>(null)
   /** The card whose full config is being fetched. */
   const [choosing, setChoosing] = useState<string | null>(null)
@@ -84,6 +94,8 @@ function StartScreen({ onLoaded }: StartScreenProps) {
         </p>
       </div>
 
+      <IdentityPanel identity={identity} onChange={onIdentityChange} />
+
       <section aria-labelledby="picker-title" className="w-full max-w-5xl">
         <h2
           id="picker-title"
@@ -91,6 +103,11 @@ function StartScreen({ onLoaded }: StartScreenProps) {
         >
           Choose a scenario
         </h2>
+        {identity === null && (
+          <p className="mb-4 text-center text-xs text-ink-muted">
+            Sign in with your NetID to choose a scenario.
+          </p>
+        )}
 
         {scenarios === null && error === null && (
           <p className="text-center text-sm text-ink-muted">
@@ -106,7 +123,7 @@ function StartScreen({ onLoaded }: StartScreenProps) {
                   type="button"
                   data-scenario={s.id}
                   onClick={() => void choose(s)}
-                  disabled={choosing !== null}
+                  disabled={identity === null || choosing !== null}
                   className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-card border border-edge bg-surface text-left transition hover:border-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <img

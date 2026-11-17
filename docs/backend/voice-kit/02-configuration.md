@@ -107,6 +107,15 @@ Read by `runtime/bridge/config.py` — plain environment reads, all runtime-side
 
 Both files are read once and cached (`lru_cache`) for the container's life, as utf-8 — the scenario's `desc` strings carry curly quotes.
 
+### Session records
+
+Read at call time by `runtime/bridge/store.py` (runtime) and `api/session_store.py` (control plane), which select the same way: `BRIDGE_LOCAL` → file store, else `SESSIONS_TABLE` → DynamoDB, else a no-op (runtime) or in-memory dict (API).
+
+| Env var | Side | Default | Notes |
+|---|---|---|---|
+| `SESSIONS_TABLE` | both | unset | The `BridgeSessions` table name. Injected per backend by `amplify/backend.ts` into the API Lambda and the runtime, never set in `VOICE_CONFIG` (sandbox and main have separate tables). Ignored under `BRIDGE_LOCAL` |
+| `SESSIONS_LOCAL_DIR` | both | `<repo>/.local-data/sessions` | Local mode only: one `<session_id>.json` per session. Both processes must agree on it |
+
 ## AWS static keys (local dev only)
 
 | Env var | Consumer | Notes |
@@ -134,5 +143,7 @@ One umbrella flag, validated in `VoiceKitSettings`. It raises at startup — not
 `REFEREE_PROVIDER` is read from `os.environ` rather than settings: it belongs to `bridge.config`, and `voice_kit` must never import `bridge` (container-only). Both processes share the same environment, so the guard holds on either side.
 
 Note that `configure(**overrides)` assigns with `setattr` and therefore bypasses this validator — a pre-existing gap, documented rather than fixed.
+
+Under the flag, session records also go to the local file store instead of DynamoDB (see Session records above).
 
 Full walkthrough: [`../local-dev.md`](../local-dev.md).

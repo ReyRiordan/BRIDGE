@@ -19,3 +19,6 @@ web/public/amplify_outputs.json
 
 # Visuals pipeline work dir (masters cache + contact sheets; S3 is the source of truth).
 .visuals-work/
+
+# Local session records (BRIDGE_LOCAL file store).
+.local-data/

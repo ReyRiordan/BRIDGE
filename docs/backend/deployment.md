@@ -33,6 +33,8 @@ Amplify Hosting (web/dist)  ──fetch──>  Lambda Function URL  ──invok
 
 **API exposure** is a Lambda **Function URL** with `authType: NONE` — no API Gateway, since there are no auth, throttling, or custom-domain needs while auth is out of scope. The URL is configured with **no CORS block**: FastAPI's `CORSMiddleware` in `api/main.py` owns CORS, and configuring both duplicates the response headers, which browsers reject.
 
+**Session records** live in the stack's `BridgeSessions` DynamoDB table (see the next section).
+
 **SPA → API wiring.** `backend.addOutput({ custom: { apiUrl } })` puts the Function URL into `amplify_outputs.json`. A sandbox writes that file locally; the Hosting build fetches it with `npx ampx generate outputs` and copies it into `web/public/`, so the SPA can `fetch('/amplify_outputs.json')` at runtime. Neither copy is committed.
 
 ## Secrets
@@ -48,6 +50,39 @@ npx ampx sandbox secret set OPENROUTER_API_KEY --profile compass-test   # ×3
 For the branch, set the same three in the Amplify console under App settings → Secrets.
 
 > Never put `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in the runtime environment — they shadow the task role for every boto3 client in the container (gotcha #1).
+
+## Session records table
+
+`BridgeSessions` (`amplify/backend.ts`) holds one item per case played. The schema and write points are in [`README.md`](README.md#session-records).
+
+| | |
+|---|---|
+| Key | partition `session_id` (string) |
+| GSI | `by_created`: partition `kind` (always `"session"`), sort `created_at`, `INCLUDE` projection of `SESSION_SUMMARY_ATTRIBUTES` (`amplify/constants.ts`) |
+| Billing | on-demand |
+| Backups | point-in-time recovery on |
+| Removal | `RETAIN`: deleting the stack or a bad deploy never deletes study data. A torn-down stack leaves its table behind, to be deleted by hand once it is no longer needed |
+| Per backend | yes: sandbox and main each get their own table (CDK-generated name), so test runs never mix with real data |
+| Env | `SESSIONS_TABLE` (the generated name) on the API Lambda and the runtime |
+| IAM | API Lambda: `PutItem`, `GetItem`, `Query` (table and index ARNs). Runtime role: `UpdateItem` on the table ARN only |
+
+Retention is indefinite, with no TTL. Remove a student's data by hand on request:
+
+```bash
+TABLE=$(aws dynamodb list-tables --profile compass-test --query 'TableNames[?contains(@, `BridgeSessions`)]' --output text)
+aws dynamodb describe-table --table-name "$TABLE" --profile compass-test --query 'Table.GlobalSecondaryIndexes[].IndexName'
+aws dynamodb describe-continuous-backups --table-name "$TABLE" --profile compass-test   # PITR ENABLED
+aws dynamodb get-item --table-name "$TABLE" --key '{"session_id":{"S":"<id>"}}' --profile compass-test
+# A student's sessions (the GSI carries netid; filter client-side):
+aws dynamodb query --table-name "$TABLE" --index-name by_created \
+  --key-condition-expression '#k = :k' --filter-expression 'netid = :n' \
+  --expression-attribute-names '{"#k":"kind"}' \
+  --expression-attribute-values '{":k":{"S":"session"},":n":{"S":"abc123"}}' \
+  --projection-expression session_id --profile compass-test
+aws dynamodb delete-item --table-name "$TABLE" --key '{"session_id":{"S":"<id>"}}' --profile compass-test
+```
+
+`cloud_voice_probe.py` creates a real item on every run, under NetID `probe`.
 
 ## Runbook
 
@@ -93,7 +128,7 @@ Order matters at steps 5 → 6 → 7.
 
 ## Cost
 
-No always-on network cost: the runtime uses AgentCore's managed PUBLIC network, so there is no VPC, NAT gateway, or Elastic IP (an earlier revision ran in-VPC and paid ~$32/month for the NAT — gotcha #4 in `voice-kit/05-gotchas.md`). Media relays through KVS managed TURN (billed per streaming minute). AgentCore containers scale per `runtimeSessionId` and are bounded by `maxLifetime: 1h`.
+No always-on network cost: the runtime uses AgentCore's managed PUBLIC network, so there is no VPC, NAT gateway, or Elastic IP (an earlier revision ran in-VPC and paid ~$32/month for the NAT — gotcha #4 in `voice-kit/05-gotchas.md`). Media relays through KVS managed TURN (billed per streaming minute). AgentCore containers scale per `runtimeSessionId` and are bounded by `maxLifetime: 1h`. The session table is on-demand: about 30–60 small writes per session, plus PITR storage.
 
 ## Gotchas
 

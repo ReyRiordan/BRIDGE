@@ -1,14 +1,16 @@
 // ---------------------------------------------------------------------------
 // BRIDGE backend — Amplify Gen 2 entry point.
 //
-// Provisions two things in one custom stack:
+// Provisions three things in one custom stack:
 //   1. The control-plane API Lambda (FastAPI under the Lambda Web Adapter, as
 //      a container image) behind a Function URL.
 //   2. The voice runtime (KVS channel + AgentCore container on the managed
 //      PUBLIC network + IAM), via the vendored addVoiceRuntime() module.
+//   3. The `BridgeSessions` DynamoDB table: one session record per case. The
+//      API creates items; the runtime only updates them.
 //
-// No auth/data resources: `defineBackend({})` exists only to give us the
-// Amplify app, the backend identifier, and the outputs file.
+// No Amplify auth/data categories: `defineBackend({})` exists only to give us
+// the Amplify app, the backend identifier, and the outputs file.
 //
 // Everything here validates ONLY at deploy time. See
 // docs/backend/deployment.md for the runbook and the topology rationale.
@@ -17,7 +19,8 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { CDKContextKey, ParameterPathConversions } from '@aws-amplify/platform-core';
 import type { BackendIdentifier } from '@aws-amplify/plugin-types';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { AttributeType, BillingMode, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import {
   Architecture,
@@ -25,12 +28,15 @@ import {
   DockerImageFunction,
   FunctionUrlAuthType,
 } from 'aws-cdk-lib/aws-lambda';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 import {
   ALLOWED_ORIGINS,
   API_IMAGE_EXCLUDE,
   API_LAMBDA,
   SECRET_NAMES,
+  SESSION_SUMMARY_ATTRIBUTES,
+  SESSIONS_INDEX,
   VOICE_CONFIG,
   VOICE_IMAGE_EXCLUDE,
   voiceRuntimeName,
@@ -58,6 +64,29 @@ const secretsSsmPrefixes = [
 ].join(',');
 
 // ---------------------------------------------------------------------------
+// Session records
+//
+// Study data: RETAIN so a stack teardown or a bad deploy can never delete it,
+// PITR for a bad write. In this per-backend stack, so sandbox and main get
+// separate tables. Deletions are by hand (see docs/backend/deployment.md).
+// ---------------------------------------------------------------------------
+const sessionsTable = new Table(stack, 'BridgeSessions', {
+  partitionKey: { name: 'session_id', type: AttributeType.STRING },
+  billingMode: BillingMode.PAY_PER_REQUEST,
+  pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+  removalPolicy: RemovalPolicy.RETAIN,
+});
+// A constant partition (`kind` = "session") is fine at study scale; the
+// results page filters client-side.
+sessionsTable.addGlobalSecondaryIndex({
+  indexName: SESSIONS_INDEX,
+  partitionKey: { name: 'kind', type: AttributeType.STRING },
+  sortKey: { name: 'created_at', type: AttributeType.STRING },
+  projectionType: ProjectionType.INCLUDE,
+  nonKeyAttributes: SESSION_SUMMARY_ATTRIBUTES,
+});
+
+// ---------------------------------------------------------------------------
 // Control-plane API Lambda
 //
 // A container-image function, not a zip: api/Dockerfile.api layers deps before
@@ -76,7 +105,10 @@ const apiFn = new DockerImageFunction(stack, 'BridgeApi', {
   // Deliberately no SCENARIOS_DIR: VOICE_CONFIG's value is the *voice*
   // container's path. This image COPYs resources/ next to api/, which is what
   // api/scenario.py's default resolves to.
-  environment: { ALLOWED_ORIGINS: ALLOWED_ORIGINS.join(',') },
+  environment: {
+    ALLOWED_ORIGINS: ALLOWED_ORIGINS.join(','),
+    SESSIONS_TABLE: sessionsTable.tableName,
+  },
   code: DockerImageCode.fromImageAsset('.', {
     file: 'api/Dockerfile.api',
     platform: Platform.LINUX_ARM64,
@@ -90,6 +122,10 @@ const apiFn = new DockerImageFunction(stack, 'BridgeApi', {
 // while auth is out of scope. `cors` is deliberately NOT configured — FastAPI's
 // CORSMiddleware owns CORS, and configuring both duplicates the headers, which
 // browsers reject.
+// Create (POST /sessions) plus the reads the results page needs. `grant`
+// covers the index ARNs too, which Query on the GSI requires.
+sessionsTable.grant(apiFn, 'dynamodb:PutItem', 'dynamodb:GetItem', 'dynamodb:Query');
+
 const apiFnUrl = apiFn.addFunctionUrl({ authType: FunctionUrlAuthType.NONE });
 
 // ---------------------------------------------------------------------------
@@ -112,7 +148,15 @@ addVoiceRuntime({
   // both sides look the channel up by NAME, which must be unique per account.
   channelName: `${stack.stackName}-signaling`,
   invokers: [apiFn],
-  environment: VOICE_CONFIG,
+  environment: { ...VOICE_CONFIG, SESSIONS_TABLE: sessionsTable.tableName },
+  // UpdateItem only, on the table itself: the runtime fills records in by id
+  // (conditionally, so it can never create one) and can read none of them.
+  extraRuntimePolicies: [
+    new PolicyStatement({
+      actions: ['dynamodb:UpdateItem'],
+      resources: [sessionsTable.tableArn],
+    }),
+  ],
   secretsFromSsm: SECRET_NAMES.join(','),
   secretsSsmPrefixes,
 });

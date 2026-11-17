@@ -219,6 +219,8 @@ class RefereeProcessor(FrameProcessor):
 
         if session.status != "active":
             # Transcript preserved, nothing scored, no duplicate state_update.
+            if session.recorder:
+                session.recorder.student_turn(session, message, [])
             return
 
         # Before applying, so an action re-earned this turn stays lit.
@@ -226,11 +228,13 @@ class RefereeProcessor(FrameProcessor):
 
         detected = await self._detect(message.content)
 
+        applied: List[dict] = []
         for action_type in apply_order(session.scenario, detected):
             action = session.apply_action(action_type)
             if action is None:
                 continue
             self._events.action(action)
+            applied.append(action)
 
         # UNCONDITIONAL, including on zero detections: a turn that cleared a
         # transient action changes the state the client renders even though
@@ -241,6 +245,15 @@ class RefereeProcessor(FrameProcessor):
         terminal = session.check_terminal()
         if terminal is not None:
             self._events.game_over(*terminal)
+
+        # After every event is out, before the frame moves on: a non-blocking
+        # enqueue, so the record never delays the patient's reply.
+        if session.recorder:
+            session.recorder.student_turn(session, message, applied)
+            if terminal is not None:
+                session.recorder.ended(session)
+
+        if terminal is not None:
             if self._on_game_over is not None:
                 result = self._on_game_over()
                 if inspect.isawaitable(result):

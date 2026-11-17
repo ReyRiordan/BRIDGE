@@ -12,7 +12,7 @@ state, so there is no second source of truth to keep in sync.
 
 | Phase | Screen | Leaves on |
 |---|---|---|
-| `start` | `StartScreen` — lists `GET /scenarios` as picker cards; a card fetches `GET /scenario/{id}` | `SCENARIO_LOADED` |
+| `start` | `StartScreen` — the sign-in panel, then `GET /scenarios` as picker cards (disabled until signed in); a card fetches `GET /scenario/{id}` | `SCENARIO_LOADED` |
 | `intro` | `IntroScreen` — the scenario's intro image, title, case text + goal | `BEGIN` |
 | `game` | `GameScreen` — scene, escalation bar, transcript | `SHOW_END` |
 | `end` | `GameScreen` + `EndScreen` overlay | `PLAY_AGAIN` → `start` |
@@ -22,6 +22,33 @@ state, so there is no second source of truth to keep in sync.
 refetches, and picks up scenario edits. The Start screen's loading and error
 state are local; Retry re-runs whichever fetch failed (the list, or the chosen
 card's config). Each card's thumbnail is `/visuals/<id>/<intro_image>`.
+
+## Identity
+
+The student signs in once, on the Start screen, and then runs as many cases as
+they like. `IdentityPanel` (`src/components/`) sits above the picker with a
+self-reported Rutgers NetID field, a Voice/Text segmented toggle, and the
+recording notice, verbatim:
+
+> Your NetID, your typed or transcribed responses, and your performance in each
+> case are saved and reviewed by the course/research team. Audio is not recorded
+> or stored.
+
+There is no checkbox and no SSO. `normalizeNetId` (`src/identity.ts`) trims,
+lowercases and strips an `@…` suffix, then requires `^[a-z]+[0-9]*$` at 2–20
+characters. The API re-checks with the same rule. An invalid NetID shows an
+inline error and blocks Continue.
+
+Once confirmed, the panel collapses to "Signed in as **abc123** · Voice · Not
+you? Change". `App` owns the `identity` state, which starts from `loadIdentity()`,
+and stores it on every change in `localStorage` under `bridge.identity`
+(`{netid, mode}`). Change clears it, for shared lab machines. Every storage call
+is wrapped in try/catch, so blocked storage only means signing in again.
+While `identity === null` every picker card is `disabled`.
+
+The identity goes no further than `useVoiceSession`, which sends it to
+`POST /sessions` on Begin (`voice-integration.md`). The mode is only recorded
+for now: text mode still connects voice and asks for the mic.
 
 ## Reducer contract
 

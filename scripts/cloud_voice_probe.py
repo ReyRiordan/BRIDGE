@@ -5,7 +5,7 @@ Post-deploy WebRTC probe for the DEPLOYED stack — the cloud counterpart to
 
 Local mode proves the game logic on loopback host candidates and deliberately
 skips the TURN path entirely, so it can never tell you whether the deployed
-runtime can reach the browser. This script drives the same three control-plane
+runtime can reach the browser. This script drives the same four control-plane
 endpoints against the real function URL, with real KVS TURN credentials, and
 gates on the thing that actually breaks in the cloud: relay candidates in the
 runtime's answer.
@@ -14,6 +14,7 @@ runtime's answer.
     python scripts/cloud_voice_probe.py --api-base https://...lambda-url...aws/
 
 What it proves, in order:
+  0. `POST /sessions` issues a session id (and creates its record).
   1. `/start` returns a valid `runtime_session_id` and a NON-EMPTY `ice_servers`
      list. Every TURN URI is printed — the live record of what KVS hands out.
   2. Control: this machine gathers a `typ relay` candidate with those same
@@ -38,7 +39,6 @@ import asyncio
 import json
 import sys
 import time
-import uuid
 from pathlib import Path
 
 # scripts/ is not a package, but the script's own directory is on sys.path when
@@ -59,6 +59,9 @@ EVENT_TIMEOUT = 20
 # AgentCore's invoke_agent_runtime rejects a runtimeSessionId outside this range
 # client-side, before any network call (voice_kit gotcha #5).
 RUNTIME_SESSION_ID_BOUNDS = (33, 256)
+
+# What the probe signs in as: its records are findable (and deletable) by NetID.
+PROBE_SESSION = {"netid": "probe", "scenario_id": "scenario_1", "mode": "voice"}
 
 
 def default_api_base() -> str:
@@ -106,12 +109,18 @@ async def probe(api_base: str) -> None:
     import aiohttp
     from aiortc import RTCSessionDescription
 
-    # The runtime reads the scenario off the id's prefix, as the SPA mints it.
-    session_id = f"scenario_1--{uuid.uuid4()}"
     print(f"Cloud voice probe — {api_base}")
-    print(f"  session {session_id}\n")
 
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as http:
+        # --- 0. create ------------------------------------------------------
+        # The id is server-issued (the SPA's flow), which also creates the
+        # session record the runtime then fills in. Probe records are marked
+        # by their NetID.
+        created = await _post(http, api_base, "/sessions", PROBE_SESSION)
+        session_id = created["session_id"]
+        print(f"  session {session_id}\n")
+        ok("POST /sessions issued the session id")
+
         # --- 1. start -------------------------------------------------------
         start = await _post(http, api_base, f"/voice/{session_id}/start")
         runtime_session_id = start.get("runtime_session_id", "")

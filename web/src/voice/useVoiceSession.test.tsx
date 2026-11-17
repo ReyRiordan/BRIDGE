@@ -13,6 +13,10 @@ import { gameReducer, initialState, type GameState } from '../state/gameState'
 import { scenarioFixture } from '../state/__fixtures__/scenario.fixture'
 import { useEffect, useReducer } from 'react'
 
+vi.mock('../api/sessions', () => ({
+  createSession: vi.fn(),
+}))
+
 vi.mock('./voiceApi', () => ({
   startVoiceSession: vi.fn(),
   endVoiceSession: vi.fn(),
@@ -31,8 +35,13 @@ vi.mock('./webrtc.service', () => ({
   },
 }))
 
+import { createSession } from '../api/sessions'
 import { endVoiceSession, startVoiceSession } from './voiceApi'
 import { webrtcService } from './webrtc.service'
+
+const createApi = vi.mocked(createSession)
+let issued = 0
+const IDENTITY = { netid: 'abc123', mode: 'voice' as const }
 
 const service = vi.mocked(webrtcService)
 const startApi = vi.mocked(startVoiceSession)
@@ -65,9 +74,13 @@ let latest: Observed
 const seen = (): Observed => latest
 
 /** A miniature App: the same reducer, the same hook, no screens. */
-function Harness() {
+function Harness({
+  identity = IDENTITY,
+}: {
+  identity?: typeof IDENTITY | null
+}) {
   const [state, dispatch] = useReducer(gameReducer, initialState)
-  const voice = useVoiceSession(state, dispatch)
+  const voice = useVoiceSession(state, dispatch, identity)
   useEffect(() => {
     latest = { ...voice, state }
   })
@@ -115,6 +128,9 @@ const beginNow = () => {
 beforeEach(() => {
   vi.useFakeTimers()
   vi.clearAllMocks()
+  createApi.mockImplementation(async ({ scenario_id }) => ({
+    session_id: `${scenario_id}--server-${++issued}`,
+  }))
   service.requestMicrophonePermission.mockResolvedValue({} as MediaStream)
   service.initializeConnection.mockResolvedValue(undefined)
   service.closeConnection.mockResolvedValue(undefined)
@@ -138,7 +154,7 @@ async function connect() {
 }
 
 describe('begin', () => {
-  it('mints a session, starts the runtime and only then dispatches BEGIN', async () => {
+  it('creates the session, starts the runtime and only then dispatches BEGIN', async () => {
     await mountAtIntro()
     startOk()
     ice('checking')
@@ -149,9 +165,14 @@ describe('begin', () => {
     expect(seen().status).toBe('connecting')
     expect(seen().state.phase).toBe('intro')
 
+    // The server-issued id, created under the student's identity.
+    expect(createApi).toHaveBeenCalledWith({
+      netid: 'abc123',
+      scenario_id: 'scenario_1',
+      mode: 'voice',
+    })
     const sessionId = startApi.mock.calls[0][0]
-    // `<scenario id>--<uuid>`: the runtime picks the scenario off the prefix.
-    expect(sessionId).toMatch(/^scenario_1--[0-9a-f-]{36}$/)
+    expect(sessionId).toBe(`scenario_1--server-${issued}`)
     expect(service.initializeConnection).toHaveBeenCalledWith(
       sessionId,
       'rt-1',
@@ -174,6 +195,19 @@ describe('begin', () => {
     beginNow()
     await act(async () => {})
 
+    expect(startApi).not.toHaveBeenCalled()
+    expect(createApi).not.toHaveBeenCalled()
+    expect(seen().status).toBe('idle')
+    expect(seen().state.phase).toBe('intro')
+  })
+
+  it('surfaces a create failure and never calls /start', async () => {
+    await mountAtIntro()
+    createApi.mockRejectedValue(new Error('HTTP 502'))
+    beginNow()
+    await act(async () => {})
+
+    expect(seen().error?.code).toBe('SESSION_CREATE_FAILED')
     expect(startApi).not.toHaveBeenCalled()
     expect(seen().status).toBe('idle')
     expect(seen().state.phase).toBe('intro')
@@ -360,6 +394,20 @@ describe('reset', () => {
     await connect()
     const second = startApi.mock.calls[1][0]
     expect(second).not.toBe(first)
+  })
+})
+
+describe('identity', () => {
+  it('refuses to begin without a signed-in student', async () => {
+    render(<Harness identity={null} />)
+    await act(async () => {
+      screen.getByRole('button', { name: 'load' }).click()
+    })
+    await act(async () => {
+      await seen().begin()
+    })
+    expect(createApi).not.toHaveBeenCalled()
+    expect(seen().error?.code).toBe('NO_IDENTITY')
   })
 })
 
