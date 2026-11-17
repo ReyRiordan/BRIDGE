@@ -203,14 +203,14 @@ def a_ward(**kwargs) -> GameSession:
 
 
 def test_a_conditional_action_without_its_key_uses_point_change_without():
-    session = a_ward()  # start 6
+    session = a_ward()  # start 5
     action = session.apply_action("Explain risks in plain language")
     assert action["point_change"] == -1
-    assert session.escalation == 5
+    assert session.escalation == 4
 
 
 def test_a_conditional_action_after_its_key_uses_point_change():
-    session = a_ward()
+    session = a_ward(escalation=6)
     session.apply_action(WARD_KEY)  # -3 -> 3
     action = session.apply_action("Explain risks in plain language")
     assert action["point_change"] == -2
@@ -238,7 +238,7 @@ def test_an_end_simulation_action_fails_the_game_with_its_debrief():
     session = a_ward()
     action = session.apply_action(WARD_END["type"])
     assert action["point_change"] == 0
-    assert session.escalation == 6
+    assert session.escalation == 5
     assert session.status == "active"  # ends on check_terminal, like any other
     assert session.check_terminal() == ("fail", WARD_END["debrief"])
     assert session.status == "fail"
@@ -257,7 +257,7 @@ def test_inactivity_is_due_after_its_window():
     assert session.apply_inactivity() is False
     session.last_helpful_at -= WARD["inactivity"]["seconds"]
     assert session.apply_inactivity() is True
-    assert session.escalation == 7
+    assert session.escalation == 6
     # The window restarts from the charge.
     assert session.apply_inactivity() is False
 
@@ -274,9 +274,9 @@ def test_a_neutral_or_harmful_action_does_not_restart_the_window():
     session = a_ward()
     session.last_helpful_at -= WARD["inactivity"]["seconds"]
     session.apply_action("Generic reassurance")  # 0
-    session.apply_action("Fear-based coercion")  # +2 -> 8
+    session.apply_action("Fear-based coercion")  # +2 -> 7
     assert session.apply_inactivity() is True
-    assert session.escalation == 9
+    assert session.escalation == 8
 
 
 def test_inactivity_is_a_no_op_without_the_block_or_after_the_end():

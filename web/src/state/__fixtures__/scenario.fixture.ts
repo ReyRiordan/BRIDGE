@@ -118,7 +118,7 @@ export const WARD_DEBRIEF =
 
 /**
  * scenario_3, trimmed to the actions that exercise every new mechanic: the
- * environment plate, webp frames from a start of 6, an inactive-only
+ * environment plate, webp frames from a start of 5, an inactive-only
  * persisting layer (staff, gone once the KEY is taken), a conditional action
  * whose active layer must sort BELOW the staff (layer −2), and an END action.
  */
@@ -132,7 +132,7 @@ export const wardFixture: Scenario = {
   intro: 'A 47-year-old man admitted overnight for a suspected GI bleed.',
   goal: 'Work toward a plan that protects his safety while respecting his autonomy.',
   time_limit: 300,
-  point_bar: { max: 10, start: 6, goal: 0 },
+  point_bar: { max: 10, start: 5, goal: 0 },
   actions: [
     {
       type: WARD_KEY,

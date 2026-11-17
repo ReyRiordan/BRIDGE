@@ -418,6 +418,7 @@ def test_a_key_in_the_same_utterance_prices_its_dependant_and_events_carry_it():
     h = Harness(
         StubLLM(reply_with("Explain risks in plain language", WARD_KEY)), scenario=WARD
     )
+    h.session.escalation = 6  # one above the goal, so the turn does not end it
     sent = h.score()
     detections = [e for e in sent if e["type"] == "action_detected"]
     assert [(e["action_type"], e["point_change"]) for e in detections] == [
@@ -431,7 +432,7 @@ def test_without_the_key_the_event_carries_the_effective_delta():
     h = Harness(StubLLM(reply_with("Explain risks in plain language")), scenario=WARD)
     sent = h.score()
     assert sent[1]["point_change"] == -1
-    assert sent[2]["escalation"] == 5
+    assert sent[2]["escalation"] == 4
 
 
 def test_an_end_simulation_action_ends_the_game_with_its_debrief():
@@ -444,7 +445,7 @@ def test_an_end_simulation_action_ends_the_game_with_its_debrief():
         "game_over",
     ]
     assert sent[1]["point_change"] == 0
-    assert sent[2]["escalation"] == 6
+    assert sent[2]["escalation"] == 5
     assert sent[3] == {
         "v": 1,
         "type": "game_over",
