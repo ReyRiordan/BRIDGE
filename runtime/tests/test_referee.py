@@ -11,7 +11,6 @@ import json
 from datetime import datetime
 
 import pytest
-from bridge.config import load_scenario
 from bridge.emitter import GameEvents
 from bridge.referee import (
     RefereeProcessor,
@@ -21,12 +20,13 @@ from bridge.referee import (
     parse_referee_verdict,
 )
 from bridge.session import GameSession
+from engine_scenarios import engine_scenario
 from voice_kit.errors import UpstreamServiceError
 from voice_kit.processors import TranscriptMessageFrame
 from voice_kit.providers.llm import BaseLLM
 from voice_kit.types import TranscriptMessage
 
-SCENARIO = load_scenario("scenario_1")
+SCENARIO = engine_scenario("scenario_1")
 
 
 class StubLLM(BaseLLM):
@@ -381,7 +381,7 @@ def test_the_referee_can_run_on_bedrock(monkeypatch):
 
 # --- conditional points + END SIMULATION -------------------------------------
 
-WARD = load_scenario("scenario_3")
+WARD = engine_scenario("scenario_3")
 WARD_KEY = "Acknowledge autonomy and outside pressures"
 WARD_END = next(a for a in WARD["actions"] if a.get("ends_simulation"))
 

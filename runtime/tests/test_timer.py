@@ -9,12 +9,12 @@ import json
 
 import pytest
 from bridge import timer as timer_module
-from bridge.config import load_scenario
 from bridge.emitter import GameEvents
 from bridge.session import GameSession
 from bridge.timer import cancel_timer, run_timer, start_timer
+from engine_scenarios import engine_scenario
 
-SCENARIO = load_scenario("scenario_1")
+SCENARIO = engine_scenario("scenario_1")
 LIMIT = SCENARIO["time_limit"]
 
 
@@ -165,7 +165,7 @@ def test_cancel_timer_is_a_no_op_without_one():
 
 # --- inactivity --------------------------------------------------------------
 
-INACTIVE = load_scenario("scenario_3")  # inactivity: +1 every 120 s, start 5
+INACTIVE = engine_scenario("scenario_3")  # inactivity: +1 every 120 s
 
 
 def test_inactivity_charges_once_per_window_and_publishes_state():

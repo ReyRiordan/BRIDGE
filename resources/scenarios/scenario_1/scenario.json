@@ -14,7 +14,7 @@
     "time_limit": 300,
     "point_bar": {
         "max": 10,
-        "start": 5,
+        "start": 7,
         "goal": 0
     },
     "actions": [

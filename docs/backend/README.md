@@ -125,17 +125,17 @@ The NetID stays in the control plane. The runtime only knows the session id, so 
   "status": "started" | "active" | "success" | "fail" | "abandoned",
   "end_reason": null | "goal" | "max" | "timeout" | "end_action" | "abandoned",
   "reason": null | "…",                                     // game_over reason / END debrief
-  "start_escalation": 5, "escalation": 5, "max_escalation": 10, "goal": 0,
+  "start_escalation": 7, "escalation": 7, "max_escalation": 10, "goal": 0,
   "time_limit_s": 300, "started_at": "ISO", "ended_at": "ISO", "duration_s": 212.4,
   "updated_at": "ISO",
   "helpful_count": 0, "escalating_count": 0,                // actions with effective delta < 0 / > 0
   "turns": [
     {"role": "student", "t": 12.3, "at": "ISO", "content": "…", "source": "voice",
-     "actions": [{"type": "…", "point_change": -3, "repeat": false}], "escalation_after": 2},
+     "actions": [{"type": "…", "point_change": -3, "repeat": false}], "escalation_after": 4},
     {"role": "patient", "t": 15.9, "at": "ISO", "content": "…"}
   ],
-  "timeline": [{"t": 0, "escalation": 5, "cause": "start"},
-               {"t": 12.3, "escalation": 2, "cause": "turn"}]   // cause: start | turn | inactivity
+  "timeline": [{"t": 0, "escalation": 7, "cause": "start"},
+               {"t": 12.3, "escalation": 4, "cause": "turn"}]   // cause: start | turn | inactivity
 }
 ```
 
@@ -191,7 +191,9 @@ python scripts/cloud_voice_probe.py
 
 # One combined run, same as CI: the root pytest.ini puts runtime/ on the path
 # and collects api/tests + runtime/tests (the kit is installed editable, so
-# nothing can import a stale copy).
+# nothing can import a stale copy). Engine tests build sessions from
+# runtime/tests/engine_scenarios.py (real scenarios, start pinned at 5), so
+# retuning a scenario's point_bar only touches test_config.py's content pin.
 python -m pytest
 ruff check api runtime                         # lint (config: root ruff.toml)
 ruff format --check api runtime                # format
