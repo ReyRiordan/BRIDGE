@@ -5,12 +5,12 @@ The emitter: v1 envelope per helper, failure isolation, and the sink mapper.
 import json
 from datetime import datetime
 
-from bridge.config import load_scenario
 from bridge.emitter import GameEvents, transcript_event
 from bridge.session import GameSession
+from engine_scenarios import engine_scenario
 from voice_kit.types import TranscriptMessage
 
-SCENARIO = load_scenario("scenario_1")
+SCENARIO = engine_scenario("scenario_1")
 
 
 class Recorder:

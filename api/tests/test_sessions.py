@@ -52,7 +52,10 @@ def test_create_returns_a_prefixed_id_and_stores_the_item(client, memory):
     assert item["mode"] == "voice"
     assert item["status"] == "started"
     assert item["scenario_title"] == main.scenario._scenarios["scenario_3"]["title"]
-    assert item["start_escalation"] == 5
+    assert (
+        item["start_escalation"]
+        == main.scenario._scenarios["scenario_3"]["point_bar"]["start"]
+    )
     assert item["time_limit_s"] == 300
     assert item["user_agent"] == "UA/1"
     assert item["turns"] == [] and item["timeline"] == []

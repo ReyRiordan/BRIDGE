@@ -10,15 +10,15 @@ import time
 
 import pytest
 from bridge import session as session_module
-from bridge.config import load_scenario
 from bridge.session import (
     GameSession,
     drop_session,
     get_or_create_session,
     get_session,
 )
+from engine_scenarios import engine_scenario
 
-SCENARIO = load_scenario("scenario_1")
+SCENARIO = engine_scenario("scenario_1")
 ACTIONS = {a["type"]: a for a in SCENARIO["actions"]}
 
 
@@ -192,8 +192,8 @@ def test_sweep_keeps_a_session_inside_its_grace_window():
 # --- conditional points, END SIMULATION, inactivity ---------------------------
 # Against the real scenario_2 / scenario_3 configs, for the same reason as above.
 
-CLINIC = load_scenario("scenario_2")
-WARD = load_scenario("scenario_3")
+CLINIC = engine_scenario("scenario_2")
+WARD = engine_scenario("scenario_3")
 WARD_KEY = "Acknowledge autonomy and outside pressures"
 WARD_END = next(a for a in WARD["actions"] if a.get("ends_simulation"))
 
@@ -218,7 +218,7 @@ def test_a_conditional_action_after_its_key_uses_point_change():
 
 
 def test_the_key_counts_once_taken_even_after_it_is_cleared():
-    session = GameSession(session_id="c1", scenario=CLINIC)  # start 5
+    session = GameSession(session_id="c1", scenario=CLINIC)  # start pinned at 5
     session.apply_action("Acknowledge frustration and apologize")  # -3 -> 2
     session.clear_transient_actions()  # the KEY is transient in scenario_2
     assert session.apply_action("Reset expectations")["point_change"] == -2

@@ -181,3 +181,11 @@ def test_every_requires_names_a_real_action_and_every_end_has_a_debrief(scenario
         if action.get("ends_simulation"):
             assert action["point_change"] == 0
             assert action["debrief"].strip()
+
+
+@pytest.mark.parametrize("scenario_id", ["scenario_1", "scenario_2", "scenario_3"])
+def test_every_patient_starts_at_7_of_10(scenario_id):
+    # The one place the shipped start is pinned; the engine tests use their own
+    # (tests/engine_scenarios.py) so retuning content doesn't ripple into them.
+    point_bar = bridge_config.load_scenario(scenario_id)["point_bar"]
+    assert point_bar == {"max": 10, "start": 7, "goal": 0}

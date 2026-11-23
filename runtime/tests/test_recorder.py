@@ -13,15 +13,15 @@ import logging
 import threading
 from datetime import datetime
 
-from bridge.config import load_scenario
 from bridge.emitter import GameEvents
 from bridge.recorder import SessionRecorder
 from bridge.referee import RefereeProcessor
 from bridge.session import GameSession
+from engine_scenarios import engine_scenario
 from voice_kit.providers.llm import BaseLLM
 from voice_kit.types import TranscriptMessage
 
-SCENARIO = load_scenario("scenario_1")
+SCENARIO = engine_scenario("scenario_1")
 SID = "scenario_1--abc"
 
 

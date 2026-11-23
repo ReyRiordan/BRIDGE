@@ -31,6 +31,8 @@ from voice_kit.processors import (
 
 # The SPA prefixes every session id with the scenario it picked.
 SID = "scenario_1--s1"
+# These tests run through the real loader, so they track the shipped start.
+START = load_scenario("scenario_1")["point_bar"]["start"]
 
 
 @pytest.fixture(autouse=True)
@@ -102,7 +104,7 @@ def test_a_rebuild_on_a_warm_container_resumes_the_same_session():
 
     second = asyncio.run(provide_context(SID))
     assert second.metadata["game"] is session
-    assert second.metadata["game"].escalation == 3
+    assert second.metadata["game"].escalation == START - 2
     # The prior transcript seeds the patient LLM so it resumes mid-conversation.
     assert [m.content for m in second.initial_history] == ["dim the lights"]
 
@@ -147,7 +149,7 @@ def test_the_patient_turn_is_gated_and_carries_the_escalation_marker():
     llm = build_game_processors(args)[2]
 
     assert llm._turn_gate() is True
-    assert llm._turn_context() == "[CURRENT ESCALATION: 5/10]"
+    assert llm._turn_context() == f"[CURRENT ESCALATION: {START}/10]"
 
     session.escalation = 0
     session.check_terminal()
@@ -224,7 +226,7 @@ def test_session_start_arms_the_clock_and_emits_state_on_connect():
         {
             "v": 1,
             "type": "state_update",
-            "escalation": 3,
+            "escalation": START - 2,
             "max": 10,
             "active_actions": ["Environmental"],
             "status": "active",

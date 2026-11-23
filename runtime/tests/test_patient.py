@@ -18,8 +18,9 @@ from bridge.patient import (
     turn_context,
 )
 from bridge.session import GameSession
+from engine_scenarios import engine_scenario
 
-SCENARIO = load_scenario("scenario_1")
+SCENARIO = engine_scenario("scenario_1")
 
 
 def test_voice_config_comes_from_the_scenario_speech_block():
